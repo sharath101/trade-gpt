@@ -1,6 +1,8 @@
 from dhanhq import dhanhq
-from dotenv import load_dotenv
 import os
+from dhanhq import marketfeed
+from datetime import datetime, timedelta
+import csv
 
 # Load environment variables from .env file
 load_dotenv()
@@ -11,7 +13,7 @@ client_id = os.getenv("CLIENT_ID")
 
 dhan = dhanhq(client_id, access_token)
 
-class Order:
+class DhanOrderManager:
     def __init__(self):
         self.balance = 1000 # from env
 
