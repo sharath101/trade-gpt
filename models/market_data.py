@@ -11,19 +11,18 @@ class MarketTickerData:
 
 class MarketQuoteData:
     def __init__(self):
-        self.type=None,
-        self.exchange_segment=None,
-        self.security_id=None,
-        self.LTP=None,
-        self.LTQ=None,
-        self.LTT=None,
-        self.avg_price=None,
-        self.volume=None,
-        self.total_sell_quantity=None,
-        self.total_buy_quantity=None,
-        self.open=None,
-        self.close=None,
-        self.high=None,
+        self.exchange_segment=None
+        self.security_id=None
+        self.LTP=None
+        self.LTQ=None
+        self.LTT=None
+        self.avg_price=None
+        self.volume=None
+        self.total_sell_quantity=None
+        self.total_buy_quantity=None
+        self.open=None
+        self.close=None
+        self.high=None
         self.low=None
 
     def __repr__(self):
@@ -32,20 +31,16 @@ class MarketQuoteData:
 
 class MarketDepthData:
     def __init__(self):
-        self.type=None,
-        self.exchange_segment=None,
-        self.security_id=None,
-        self.LTP=None,
-        self.LTQ=None,
-        self.LTT=None,
-        self.avg_price=None,
-        self.volume=None,
-        self.total_sell_quantity=None,
-        self.total_buy_quantity=None,
-        self.open=None,
-        self.close=None,
-        self.high=None,
-        self.low=None
+        self.exchange_segment=None
+        self.security_id=None
+        self.LTP=None
+        self.bid_quantity=[None]
+        self.ask_quantity=[None]
+        self.bid_price=[None]
+        self.ask_price=[None]
+        self.bid_orders=[None]
+        self.ask_orders=[None]
+     
 
     def __repr__(self):
-        return f"QouteData(symbol={self.security_id}, price={self.avg_price}, volume={self.volume}, timestamp={self.LTT})"
+        return f"DepthData(symbol={self.security_id}, price={self.LTP}, volume={self.volume}, numbers={len(self.bid_quantity)})"
