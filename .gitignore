@@ -1,3 +1,8 @@
 venv/
 .env
 __pycache__/
+.idea/
+*.pkl
+*.csv
+sample_feed.py
+test.py
