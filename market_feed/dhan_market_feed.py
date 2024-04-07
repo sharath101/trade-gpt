@@ -2,7 +2,7 @@ import os
 import asyncio
 from dhanhq import marketfeed
 from market_feed.template import Template
-from models.market_data import MarketTickerData
+from models.market_data import MarketDepthData, MarketQuoteData, MarketTickerData
 
 
 class DhanMarketFeed(Template) :
@@ -18,7 +18,6 @@ class DhanMarketFeed(Template) :
             self.access_token,
             self.instruments,
             self.subscription_code,
-            #on_connect=on_connect,
             on_message=self.parse
         )
         await feed.connect()
@@ -31,10 +30,47 @@ class DhanMarketFeed(Template) :
                     marketData.symbol = data['security_id']
                     marketData.price = data['LTP']
                     marketData.timestamp = data['LTT']
+
                     self.analyser(marketData)
         
-        if self.subscription_code == 17:
-            self.analyser(data)
+            if self.subscription_code == 17:
+                if 'security_id' in data:
+                    quoteData = MarketQuoteData()
+                    quoteData.exchange_segment=data["exchange_segment"]
+                    quoteData.security_id=data["security_id"]
+                    quoteData.LTP=data["LTP"]
+                    quoteData.LTQ=data["LTQ"]
+                    quoteData.LTT=data["LTT"]
+                    quoteData.avg_price=data["avg_price"]
+                    quoteData.volume=data["volume"]
+                    quoteData.total_sell_quantity=data["total_sell_quantity"]
+                    quoteData.total_buy_quantity=data["total_buy_quantity"]
+                    quoteData.open=data["open"]
+                    quoteData.close=data["close"]
+                    quoteData.high=data["high"]
+                    quoteData.low=data["low"]
 
-        if self.subscription_code == 19:
-            self.analyser(data)
+                    self.analyser(data)
+
+            if self.subscription_code == 19:
+                if 'security_id' in data:
+                    depthData = MarketDepthData()
+                    depthData.exchange_segment=data["exchange_segment"]
+                    depthData.security_id=data["security_id"]
+                    depthData.LTP=data["LTP"]
+                    depthData.bid_quantity=[]
+                    depthData.ask_quantity=[]
+                    depthData.bid_price=[]
+                    depthData.ask_price=[]
+                    depthData.bid_orders=[]
+                    depthData.ask_orders=[]
+
+                    for orderbook in data["depth"]:
+                        depthData.bid_quantity.append(orderbook["bid_quantity"])
+                        depthData.ask_quantity.append(orderbook["ask_quantity"])
+                        depthData.bid_price.append(orderbook["bid_price"])
+                        depthData.ask_price.append(orderbook["ask_price"])
+                        depthData.bid_orders.append(orderbook["bid_orders"])
+                        depthData.ask_orders.append(orderbook["ask_orders"])
+
+                    self.analyser(data)
