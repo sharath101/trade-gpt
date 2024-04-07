@@ -6,3 +6,5 @@ __pycache__/
 *.csv
 sample_feed.py
 test.py
+*.ipynb
+.ipynb_checkpoints/

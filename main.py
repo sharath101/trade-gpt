@@ -13,12 +13,13 @@ async def quote_analyser(data):
 async def depth_analyser(data):
     print(data)
 
+from misc import INSTRUMENTS_LIST
 
 async def main():
 
-    marketFeedDepth = DhanMarketFeed(depth_analyser, [(marketfeed.NSE, "1333")], 19)
-    marketFeedQuote = DhanMarketFeed(quote_analyser, [(marketfeed.NSE, "1333")], 19)
-    marketFeedTicker = DhanMarketFeed(ticker_analyser, [(marketfeed.NSE, "1333")], 15)
+    marketFeedDepth = DhanMarketFeed(depth_analyser, INSTRUMENTS_LIST, marketfeed.Depth)
+    marketFeedQuote = DhanMarketFeed(quote_analyser, INSTRUMENTS_LIST, marketfeed.Quote)
+    marketFeedTicker = DhanMarketFeed(ticker_analyser, INSTRUMENTS_LIST, marketfeed.Ticker)
 
     t1 = asyncio.create_task(marketFeedDepth.connect())
     t2 = asyncio.create_task(marketFeedQuote.connect())
