@@ -1,8 +1,10 @@
 import pickle
+
 import redis
 
+
 class RedisManager:
-    def __init__(self, host='localhost', port=6379, db=0):
+    def __init__(self, host="localhost", port=6379, db=0):
         self.r = redis.Redis(host=host, port=port, db=db)
 
     def set(self, key, value):
@@ -16,7 +18,6 @@ class RedisManager:
             return value
         else:
             return None
-        
-redis_instance = RedisManager()
 
-    
+
+redis_instance = RedisManager()
