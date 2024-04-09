@@ -1,8 +1,5 @@
-import asyncio
 import os
-
 from dhanhq import marketfeed
-
 from market_feed.template import Template
 from models.market_data import MarketDepthData, MarketQuoteData, MarketTickerData
 
@@ -27,16 +24,16 @@ class DhanMarketFeed(Template):
 
     async def parse(self, instance, data):
         if data:
-            if self.subscription_code == 15:
+            if self.subscription_code == marketfeed.Ticker:
                 if "security_id" in data and "LTP" in data and "LTT" in data:
                     marketData = MarketTickerData()
                     marketData.symbol = data["security_id"]
                     marketData.price = data["LTP"]
                     marketData.timestamp = data["LTT"]
 
-                    self.analyser(marketData)
+                    await self.analyser(marketData)
 
-            if self.subscription_code == 17:
+            if self.subscription_code == marketfeed.Quote:
                 if "security_id" in data:
                     quoteData = MarketQuoteData()
                     quoteData.exchange_segment = data["exchange_segment"]
@@ -53,9 +50,9 @@ class DhanMarketFeed(Template):
                     quoteData.high = data["high"]
                     quoteData.low = data["low"]
 
-                    self.analyser(data)
+                    await self.analyser(quoteData)
 
-            if self.subscription_code == 19:
+            if self.subscription_code == marketfeed.Depth:
                 if "security_id" in data:
                     depthData = MarketDepthData()
                     depthData.exchange_segment = data["exchange_segment"]
@@ -76,4 +73,4 @@ class DhanMarketFeed(Template):
                         depthData.bid_orders.append(orderbook["bid_orders"])
                         depthData.ask_orders.append(orderbook["ask_orders"])
 
-                    self.analyser(data)
+                    await self.analyser(depthData)

@@ -1,8 +1,4 @@
-import time
 from datetime import datetime, timedelta
-
-import pandas as pd
-
 from redis_manager import redis_instance
 
 
@@ -25,7 +21,10 @@ class CandleManager:
         if symbol not in self.symbols:
             self.create_symbol(symbol)
         symb = self.symbols[symbol]
-        current_time = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+        current_time = datetime.strptime(
+            f"{datetime.today().strftime('%Y-%m-%d')} {timestamp}", "%Y-%m-%d %H:%M:%S"
+        )
+
         if symb["last_timestamp"] is None:
             symb["last_timestamp"] = current_time - timedelta(
                 minutes=current_time.minute % self.interval_minutes,

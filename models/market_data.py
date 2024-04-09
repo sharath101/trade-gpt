@@ -42,4 +42,4 @@ class MarketDepthData:
         self.ask_orders = [None]
 
     def __repr__(self):
-        return f"DepthData(symbol={self.security_id}, price={self.LTP}, volume={self.volume}, numbers={len(self.bid_quantity)})"
+        return f"DepthData(symbol={self.security_id}, price={self.LTP}, ask={self.ask_quantity[0]}, bid={self.bid_price[0]})"
