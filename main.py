@@ -3,7 +3,7 @@ import asyncio
 from dhanhq import marketfeed
 from dotenv import load_dotenv
 
-from candles import candle_1h, candle_1m, candle_5m, candle_15m
+from candles import candle_1h, candle_1m, candle_2h, candle_5m, candle_15m
 from market_feed import DhanMarketFeed
 
 load_dotenv()
@@ -15,6 +15,7 @@ async def ticker_analyser(data):
     candle_5m.process_tick(data.timestamp, data.price, data.symbol)
     candle_15m.process_tick(data.timestamp, data.price, data.symbol)
     candle_1h.process_tick(data.timestamp, data.price, data.symbol)
+    candle_2h.process_tick(data.timestamp, data.price, data.symbol)
 
 
 async def quote_analyser(data):
