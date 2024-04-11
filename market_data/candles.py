@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from redis_manager import redis_instance
+from .redis_manager import redis_instance
 
 
 class CandleManager:

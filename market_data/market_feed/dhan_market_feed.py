@@ -1,7 +1,7 @@
 import os
 from dhanhq import marketfeed
-from market_feed.template import Template
-from models.market_data import MarketDepthData, MarketQuoteData, MarketTickerData
+from .template import Template
+from market_data.models import MarketDepthData, MarketQuoteData, MarketTickerData
 
 
 class DhanMarketFeed(Template):
@@ -11,8 +11,10 @@ class DhanMarketFeed(Template):
         self.client_id = os.getenv("CLIENT_ID")
         self.instruments = instruments
         self.subscription_code = subscription_code
+        self.task = False
 
     async def connect(self):
+        self.disconnect_request = False
         feed = marketfeed.DhanFeed(
             self.client_id,
             self.access_token,

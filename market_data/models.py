@@ -3,10 +3,9 @@ class MarketTickerData:
         self.symbol = None
         self.price = None
         self.timestamp = None
-        self.volume = None
 
     def __repr__(self):
-        return f"TickerData(symbol={self.symbol}, price={self.price}, volume={self.volume}, timestamp={self.timestamp})"
+        return f"TickerData(symbol={self.symbol}, price={self.price}, timestamp={self.timestamp})"
 
 
 class MarketQuoteData:
@@ -26,7 +25,7 @@ class MarketQuoteData:
         self.low = None
 
     def __repr__(self):
-        return f"QouteData(symbol={self.security_id}, price={self.avg_price}, volume={self.volume}, timestamp={self.LTT})"
+        return f"QouteData(symbol={self.security_id}, price={self.LTP}, volume={self.volume}, timestamp={self.LTT})"
 
 
 class MarketDepthData:
