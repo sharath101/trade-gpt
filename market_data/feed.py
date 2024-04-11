@@ -1,5 +1,5 @@
 import asyncio
-import threading
+import multiprocessing
 
 
 def list_pending_tasks(loop):
@@ -9,43 +9,32 @@ def list_pending_tasks(loop):
 
 class Feed:
     def __init__(self, task, *args, **kwargs):
-        self.loop = None
         self.task = task
         self.args = args
         self.kwargs = kwargs
+        self.loop = None
         self.thread = None
+        self.process = None
 
     def run_event_loop(self, loop):
         asyncio.set_event_loop(loop)
         loop.run_forever()
 
+    async def starter(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        await self.task(*self.args, **self.kwargs)
+
     def start(self):
-        if callable(self.task):
-            self.loop = asyncio.new_event_loop()
-            self.thread = threading.Thread(
-                target=self.run_event_loop, args=(self.loop,)
-            )
-            self.thread.start()
-            self.loop.call_soon_threadsafe(
-                self.loop.create_task, self.task(*self.args, **self.kwargs)
-            )
-            print("Feed started.")
+        self.process = multiprocessing.Process(target=self._start)
+        self.process.start()
 
     def stop(self):
+        self.process.terminate()
+        self.process.join()
+        print("Feed stopped.")
 
-        if self.loop:
-            print("Stopping feed...")
-            self.loop.call_soon_threadsafe(self.loop.stop)
-            print("Loop stopped.")
-            self.thread.join()  # Wait for the thread to finish
-            print("Thread joined.")
-            for task in list_pending_tasks(self.loop):
-                print(f"Cancelling task {task}.")
-                task.cancel()
-            for task in list_pending_tasks(self.loop):
-                print(f"Task {task} is still pending.")
-            self.loop.call_soon_threadsafe(self.loop.close)
-            print("Loop closed.")
-            self.thread = None  # Reset the thread reference
-            self.loop = None  # Reset the loop reference
-            print("Feed stopped.")
+    def _start(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(self.starter())
