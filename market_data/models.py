@@ -1,3 +1,6 @@
+from market_data import db
+
+
 class MarketTickerData:
     def __init__(self):
         self.symbol = None
@@ -42,3 +45,14 @@ class MarketDepthData:
 
     def __repr__(self):
         return f"DepthData(symbol={self.security_id}, price={self.LTP}, ask={self.ask_quantity[0]}, bid={self.bid_price[0]})"
+
+
+class APIKey(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(500), nullable=False)
+    secret = db.Column(db.String(100), nullable=False)
+    expiry = db.Column(db.DateTime, nullable=True)
+    platform = db.Column(db.String(100), nullable=False)
+
+    def __repr__(self):
+        return f"APIKey(key={self.key}, secret={self.secret})"

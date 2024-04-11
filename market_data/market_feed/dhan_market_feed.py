@@ -1,14 +1,13 @@
-import os
 from dhanhq import marketfeed
 from .template import Template
 from market_data.models import MarketDepthData, MarketQuoteData, MarketTickerData
 
 
 class DhanMarketFeed(Template):
-    def __init__(self, analyser, instruments, subscription_code):
+    def __init__(self, analyser, instruments, subscription_code, key, client_id):
         super().__init__(analyser)
-        self.access_token = os.getenv("ACCESS_TOKEN")
-        self.client_id = os.getenv("CLIENT_ID")
+        self.access_token = key
+        self.client_id = client_id
         self.instruments = instruments
         self.subscription_code = subscription_code
         self.task = False
