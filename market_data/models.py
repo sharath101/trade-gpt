@@ -1,50 +1,43 @@
 from market_data import db
+from dataclasses import dataclass
 
 
+@dataclass
 class MarketTickerData:
-    def __init__(self):
-        self.symbol = None
-        self.price = None
-        self.timestamp = None
-
-    def __repr__(self):
-        return f"TickerData(symbol={self.symbol}, price={self.price}, timestamp={self.timestamp})"
+    symbol: str
+    price: float
+    timestamp: str
+    exchange: str
 
 
+@dataclass
 class MarketQuoteData:
-    def __init__(self):
-        self.exchange_segment = None
-        self.security_id = None
-        self.LTP = None
-        self.LTQ = None
-        self.LTT = None
-        self.avg_price = None
-        self.volume = None
-        self.total_sell_quantity = None
-        self.total_buy_quantity = None
-        self.open = None
-        self.close = None
-        self.high = None
-        self.low = None
-
-    def __repr__(self):
-        return f"QouteData(symbol={self.security_id}, price={self.LTP}, volume={self.volume}, timestamp={self.LTT})"
+    exchange_segment: str
+    security_id: str
+    LTP: float
+    LTQ: int
+    LTT: str
+    avg_price: float
+    volume: int
+    total_sell_quantity: int
+    total_buy_quantity: int
+    open: float
+    close: float
+    high: float
+    low: float
 
 
+@dataclass
 class MarketDepthData:
-    def __init__(self):
-        self.exchange_segment = None
-        self.security_id = None
-        self.LTP = None
-        self.bid_quantity = [None]
-        self.ask_quantity = [None]
-        self.bid_price = [None]
-        self.ask_price = [None]
-        self.bid_orders = [None]
-        self.ask_orders = [None]
-
-    def __repr__(self):
-        return f"DepthData(symbol={self.security_id}, price={self.LTP}, ask={self.ask_quantity[0]}, bid={self.bid_price[0]})"
+    exchange_segment: str
+    security_id: str
+    LTP: float
+    bid_quantity: list
+    ask_quantity: list
+    bid_price: list
+    ask_price: list
+    bid_orders: list
+    ask_orders: list
 
 
 class APIKey(db.Model):
@@ -56,3 +49,12 @@ class APIKey(db.Model):
 
     def __repr__(self):
         return f"APIKey(key={self.key}, secret={self.secret})"
+
+
+class Symbol(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(100), nullable=False)
+    exchange = db.Column(db.String(100), nullable=False)
+
+    def __repr__(self):
+        return f"Symbol(symbol={self.symbol}, exchange={self.exchange})"

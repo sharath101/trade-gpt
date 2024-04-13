@@ -1,40 +1,68 @@
 from dhanhq import marketfeed
 from .template import Template
 from market_data.models import MarketDepthData, MarketQuoteData, MarketTickerData
+from market_data.constants import DHAN_INSTRUMENTS
 
 
 class DhanMarketFeed(Template):
-    def __init__(self, analyser, instruments, subscription_code, key, client_id):
+    def __init__(self, analyser):
         super().__init__(analyser)
-        self.access_token = key
-        self.client_id = client_id
-        self.instruments = instruments
-        self.subscription_code = subscription_code
-        self.task = False
+        self._access_token = None
+        self._client_id = None
+        self._feed = None
+        self._instruments = []
+        self._subscription_code = 15  # Subscription code for Ticker
+
+    def set_api_key(self, key, client_id):
+        self._access_token = key
+        self._client_id = client_id
 
     async def connect(self):
         self.disconnect_request = False
-        feed = marketfeed.DhanFeed(
-            self.client_id,
-            self.access_token,
-            self.instruments,
-            self.subscription_code,
+        self._feed = marketfeed.DhanFeed(
+            self._client_id,
+            self._access_token,
+            self._instruments,
+            self._subscription_code,
             on_message=self.parse,
         )
-        await feed.connect()
+        await self._feed.connect()
+
+    @property
+    def instruments(self):
+        return self._instruments
+
+    @instruments.setter
+    def instruments(self, instruments):
+        """Pass the list of all symbols to be subscribed to the market feed"""
+        self._instruments = []
+        for instrument in instruments:
+            if instrument not in DHAN_INSTRUMENTS["symbol"]:
+                return
+            else:
+                index = DHAN_INSTRUMENTS["symbol"].index(instrument)
+                security_id = DHAN_INSTRUMENTS["security_id"][index]
+                if DHAN_INSTRUMENTS["exchange_segment"][index] == "NSE":
+                    exc = marketfeed.NSE
+                else:
+                    exc = marketfeed.BSE
+                self._instruments.append((exc, security_id))
+        return
 
     async def parse(self, instance, data):
         if data:
-            if self.subscription_code == marketfeed.Ticker:
+            if self._subscription_code == marketfeed.Ticker:
                 if "security_id" in data and "LTP" in data and "LTT" in data:
-                    marketData = MarketTickerData()
-                    marketData.symbol = data["security_id"]
-                    marketData.price = data["LTP"]
-                    marketData.timestamp = data["LTT"]
-
+                    symbol = DHAN_INSTRUMENTS["symbol"][
+                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
+                    ]
+                    exc = DHAN_INSTRUMENTS["exchange_segment"][
+                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
+                    ]
+                    marketData = MarketTickerData(symbol, data["LTP"], data["LTT"], exc)
                     await self.analyser(marketData)
 
-            if self.subscription_code == marketfeed.Quote:
+            if self._subscription_code == marketfeed.Quote:
                 if "security_id" in data:
                     quoteData = MarketQuoteData()
                     quoteData.exchange_segment = data["exchange_segment"]
@@ -53,7 +81,7 @@ class DhanMarketFeed(Template):
 
                     await self.analyser(quoteData)
 
-            if self.subscription_code == marketfeed.Depth:
+            if self._subscription_code == marketfeed.Depth:
                 if "security_id" in data:
                     depthData = MarketDepthData()
                     depthData.exchange_segment = data["exchange_segment"]

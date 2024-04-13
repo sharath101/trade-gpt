@@ -1,7 +1,7 @@
-from market_data import app, scheduler
+from market_data import scheduler
 from market_data.models import APIKey
 from market_data.market_feed.dhan_market_feed import DhanMarketFeed
-from market_data.analyser import analyser
+from market_data.misc import analyser
 from dhanhq import marketfeed
 from market_data.feed import Feed
 from datetime import datetime, timedelta
@@ -12,9 +12,6 @@ class MarketScheduler:
         self.key = None
         self.secret = None
         self.platform = None
-        self.marketTickerData = None
-        self.marketQuoteData = None
-        self.marketDepthData = None
         self.feedTicker = None
         self.feedQuote = None
         self.feedDepth = None

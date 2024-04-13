@@ -1,10 +1,13 @@
 from flask import jsonify, request
 from market_data import app, db
-from market_data.models import APIKey
+from market_data.models import APIKey, Symbol
 from datetime import datetime
-from market_data.app_scheduler import MarketScheduler
+from market_data.misc import get_access_token
+from market_data import marketData, marketFeed
+from .misc import analyser
 
 
+# Need to add security to the API
 @app.route("/add_api_key", methods=["POST"])
 def add_api_key():
     if request.method == "POST":
@@ -19,6 +22,7 @@ def add_api_key():
     return jsonify({"message": "Method not allowed"}), 405
 
 
+# This is probably not required
 @app.route("/get_api_key", methods=["GET"])
 def get_api_key():
     if request.method == "GET":
@@ -28,12 +32,44 @@ def get_api_key():
     return jsonify({"message": "Method not allowed"}), 405
 
 
-@app.route("/market_sch", methods=["POST"])
-def market_sch():
+# The button to start the live-data-processing
+# Need to add security to the API
+@app.route("/start")
+def start():
+    platform = "dhan"
+    access_token = get_access_token(platform)
+    if access_token is False:
+        return jsonify({"message": "API Key expired"})
+
+    marketData.set_api_key(access_token["key"], access_token["secret"])
+    marketData.analyser = analyser
+
+    instruments = Symbol.query.all()
+    ins_list = []
+    for ins in instruments:
+        ins_list.append(ins.symbol)
+    marketData.instruments = ins_list
+
+    marketFeed.start()
+    return jsonify({"output": "Market data running"})
+
+
+# The button to stop the live-data-processing
+# Need to add security to the API
+@app.route("/stop", methods=["GET"])
+def stop():
+    marketFeed.stop()
+    return jsonify({"output": "Market data stopped"})
+
+
+# Need to add security to the API
+@app.route("/add_symbols", methods=["POST"])
+def add_symbols():
     if request.method == "POST":
-        platform = request.json["platform"]
-        date = datetime.strptime(request.json["date"], "%Y-%m-%d")
-        market_scheduler = MarketScheduler()
-        output = market_scheduler.scheduler_market_data(platform, date)
-        return jsonify(output)
+        symbol = request.json["symbol"]
+        exchange = request.json["exchange"]
+        symbol = Symbol(symbol=symbol, exchange=exchange)
+        db.session.add(symbol)
+        db.session.commit()
+        return jsonify({"message": "Symbol added successfully"})
     return jsonify({"message": "Method not allowed"}), 405

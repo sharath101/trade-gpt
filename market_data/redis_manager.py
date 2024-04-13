@@ -17,6 +17,3 @@ class RedisManager:
             return value
         else:
             return None
-
-
-redis_instance = RedisManager()
