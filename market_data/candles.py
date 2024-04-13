@@ -1,28 +1,13 @@
 from datetime import datetime, timedelta
 from market_data import redis_instance
-from talipp.indicators import SMA
-
-
-def convert_dict(input_dict):
-    for key, value in input_dict.items():
-        # Convert integer or float represented as string to actual int or float
-        if isinstance(value, str) and value.isdigit():
-            input_dict[key] = int(value)
-        elif isinstance(value, str) and value.replace(".", "", 1).isdigit():
-            input_dict[key] = float(value)
-        # Recursively convert nested dictionaries
-        elif isinstance(value, dict):
-            input_dict[key] = convert_dict(value)
-        # Convert string representation of list to actual list
-        elif isinstance(value, str) and value.startswith("[") and value.endswith("]"):
-            input_dict[key] = eval(value)
-    return input_dict
+from talipp.ohlcv import OHLCV
+from market_data.indicators import IndicatorManager
 
 
 class CandleManager:
     def __init__(self, interval_minutes: int):
         self.interval_minutes = interval_minutes
-        self.sma = SMA(5)
+        self.indicators = IndicatorManager()
 
     def process_tick(self, timestamp: datetime, price: float, volume: int, symbol: str):
         current_time = timestamp
@@ -33,30 +18,23 @@ class CandleManager:
         )
 
         current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
-        last_candle_key = f"candle_{symbol}_{self.interval_minutes}_last"
+        ta_key = f"ta_{symbol}_{self.interval_minutes}"
 
-        last_candle_data = redis_instance.get(last_candle_key)
-        if last_candle_data:
-            last_candle = eval(last_candle_data)
-            last_candle = convert_dict(last_candle)
-            last_candle_timestamp = last_candle["timestamp"]
-            if last_candle_timestamp < last_timestamp:
-                self._close_candle(last_candle, symbol)
+        indicator = redis_instance.get(ta_key)
+        if indicator:
+            self.indicators = indicator
 
         current_candle_data = redis_instance.get(current_candle_key)
         if current_candle_data:
-            current_candle = eval(current_candle_data)
-            current_candle = convert_dict(current_candle)
-            if current_candle["timestamp"] != last_timestamp.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ):
+            current_candle = current_candle_data
+            if current_candle["time"] != last_timestamp.strftime("%Y-%m-%d %H:%M:%S"):
                 self._close_candle(current_candle, symbol)
                 self._open_candle(last_timestamp, price, volume, symbol)
         else:
             self._open_candle(last_timestamp, price, volume, symbol)
 
         current_candle_data = {
-            "timestamp": last_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "time": last_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "open": price,
             "high": (
                 max(price, current_candle["high"]) if current_candle_data else price
@@ -67,34 +45,66 @@ class CandleManager:
                 current_candle["volume"] + volume if current_candle_data else volume
             ),
         }
+        olhcv_data = OHLCV(
+            current_candle_data["open"],
+            current_candle_data["high"],
+            current_candle_data["low"],
+            current_candle_data["close"],
+            current_candle_data["volume"],
+            current_candle_data["time"],
+        )
 
-        redis_instance.set(current_candle_key, str(current_candle_data))
+        self.indicators.update(olhcv_data)
+        indicators_dict = self.indicators.get_all()
+        current_candle_data.update(indicators_dict)
+
+        redis_instance.set(ta_key, self.indicators)
+        redis_instance.set(current_candle_key, current_candle_data)
 
     def _open_candle(self, timestamp, price, volume, symbol):
+        ta_key = f"ta_{symbol}_{self.interval_minutes}"
+        indicator = redis_instance.get(ta_key)
+        if indicator:
+            self.indicators = indicator
         current_candle_data = {
-            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "time": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "open": price,
             "high": price,
             "low": price,
             "close": price,
             "volume": volume,
         }
+        olhcv_data = OHLCV(
+            current_candle_data["open"],
+            current_candle_data["high"],
+            current_candle_data["low"],
+            current_candle_data["close"],
+            current_candle_data["volume"],
+            current_candle_data["time"],
+        )
+
+        self.indicators.add(olhcv_data)
+        indicators_dict = self.indicators.get_all()
+        current_candle_data.update(indicators_dict)
+
         current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
-        redis_instance.set(current_candle_key, str(current_candle_data))
+
+        redis_instance.set(ta_key, self.indicators)
+        redis_instance.set(current_candle_key, current_candle_data)
 
     def _close_candle(self, candle, symbol):
         candles_key = f"candle_{symbol}_{self.interval_minutes}"
         candles_data = redis_instance.get(candles_key)
-        candles = eval(candles_data) if candles_data else []
+        candles = candles_data if candles_data else []
         candles.append(candle)
-        redis_instance.set(candles_key, str(candles))
+        redis_instance.set(candles_key, candles)
 
     def get_candles(self, symbol):
         candles_key = f"candle_{symbol}_{self.interval_minutes}"
         candles_data = redis_instance.get(candles_key)
-        return eval(candles_data) if candles_data else []
+        return candles_data if candles_data else []
 
     def get_latest_candle(self, symbol):
         current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
         current_candle_data = redis_instance.get(current_candle_key)
-        return eval(current_candle_data) if current_candle_data else None
+        return current_candle_data if current_candle_data else None
