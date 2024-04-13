@@ -18,8 +18,12 @@ db = SQLAlchemy(app)
 from .market_feed import DhanMarketFeed
 from .feed import Feed
 
-marketData = DhanMarketFeed(analyser=None)
-marketFeed = Feed(marketData)
+marketDataTicker = DhanMarketFeed(analyser=None)
+marketDataTicker.subscription_code = 15
+marketFeedTicker = Feed(marketDataTicker)
+marketDataQuote = DhanMarketFeed(analyser=None)
+marketDataQuote.subscription_code = 17
+marketFeedQuote = Feed(marketDataQuote)
 redis_instance = RedisManager()
 
 from market_data import routes

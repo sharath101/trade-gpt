@@ -1,9 +1,12 @@
 from .models import APIKey
+from .candles import CandleManager
 from datetime import datetime, timedelta
+from .models import MarketQuoteData
 
 
-async def analyser(data):
-    print(data)
+async def analyser(data: MarketQuoteData):
+    candle1m = CandleManager(1)
+    candle1m.process_tick(data.timestamp, data.price, data.quantity, data.symbol)
 
 
 def get_access_token(platform):
@@ -17,7 +20,6 @@ def get_access_token(platform):
         }
         for key in api_keys
     ]
-    print(len(api_keys))
     for api_key in api_keys:
         if api_key["platform"] == platform:
             if api_key["expiry"] is not None:

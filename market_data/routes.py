@@ -3,7 +3,12 @@ from market_data import app, db
 from market_data.models import APIKey, Symbol
 from datetime import datetime
 from market_data.misc import get_access_token
-from market_data import marketData, marketFeed
+from market_data import (
+    marketDataTicker,
+    marketFeedTicker,
+    marketDataQuote,
+    marketFeedQuote,
+)
 from .misc import analyser
 
 
@@ -41,16 +46,21 @@ def start():
     if access_token is False:
         return jsonify({"message": "API Key expired"})
 
-    marketData.set_api_key(access_token["key"], access_token["secret"])
-    marketData.analyser = analyser
+    marketDataTicker.set_api_key(access_token["key"], access_token["secret"])
+    marketDataQuote.set_api_key(access_token["key"], access_token["secret"])
+    marketDataTicker.analyser = analyser
+    marketDataQuote.analyser = analyser
 
     instruments = Symbol.query.all()
     ins_list = []
     for ins in instruments:
         ins_list.append(ins.symbol)
-    marketData.instruments = ins_list
+    marketDataTicker.instruments = ins_list
+    marketDataQuote.instruments = ins_list
 
-    marketFeed.start()
+    # marketFeedTicker.start()
+    marketFeedQuote.start()
+
     return jsonify({"output": "Market data running"})
 
 
@@ -58,7 +68,8 @@ def start():
 # Need to add security to the API
 @app.route("/stop", methods=["GET"])
 def stop():
-    marketFeed.stop()
+    marketFeedTicker.stop()
+    marketFeedQuote.stop()
     return jsonify({"output": "Market data stopped"})
 
 

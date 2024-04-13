@@ -1,22 +1,28 @@
 from market_data import db
 from dataclasses import dataclass
+import datetime
 
 
 @dataclass
 class MarketTickerData:
     symbol: str
     price: float
-    timestamp: str
+    timestamp: datetime.datetime
     exchange: str
+
+    def __repr__(self):
+        timestamp = self.timestamp.strftime("%H:%M:%S")
+        f_string = f"MarketTickerData(symbol={self.symbol}, price={self.price}, timestamp={timestamp}, exchange={self.exchange})"
+        return f_string
 
 
 @dataclass
 class MarketQuoteData:
     exchange_segment: str
-    security_id: str
-    LTP: float
-    LTQ: int
-    LTT: str
+    symbol: str
+    price: float
+    quantity: int
+    timestamp: datetime.datetime
     avg_price: float
     volume: int
     total_sell_quantity: int
@@ -25,6 +31,10 @@ class MarketQuoteData:
     close: float
     high: float
     low: float
+
+    def __repr__(self):
+        f_string = f"MarketQuoteData(symbol={self.security_id}, LTP={self.LTP}, LTQ={self.LTQ}, LTT={self.LTT}, exchange={self.exchange_segment})"
+        return f_string
 
 
 @dataclass

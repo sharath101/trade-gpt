@@ -1,89 +1,100 @@
 from datetime import datetime, timedelta
-from .redis_manager import redis_instance
+from market_data import redis_instance
+from talipp.indicators import SMA
+
+
+def convert_dict(input_dict):
+    for key, value in input_dict.items():
+        # Convert integer or float represented as string to actual int or float
+        if isinstance(value, str) and value.isdigit():
+            input_dict[key] = int(value)
+        elif isinstance(value, str) and value.replace(".", "", 1).isdigit():
+            input_dict[key] = float(value)
+        # Recursively convert nested dictionaries
+        elif isinstance(value, dict):
+            input_dict[key] = convert_dict(value)
+        # Convert string representation of list to actual list
+        elif isinstance(value, str) and value.startswith("[") and value.endswith("]"):
+            input_dict[key] = eval(value)
+    return input_dict
 
 
 class CandleManager:
-    def __init__(self, interval_minutes):
+    def __init__(self, interval_minutes: int):
         self.interval_minutes = interval_minutes
-        self.symbols = {}
-        self.sum = 0
-        self.total_ticks = 0
+        self.sma = SMA(5)
 
-    def create_symbol(self, symbol):
-        self.symbols[symbol] = {
-            "candles": [],
-            "current_candle": None,
-            "last_timestamp": None,
-        }
+    def process_tick(self, timestamp: datetime, price: float, volume: int, symbol: str):
+        current_time = timestamp
 
-    def process_tick(self, timestamp, price, symbol, save_redis=1):
-        self.total_ticks += 1
-        if symbol not in self.symbols:
-            self.create_symbol(symbol)
-        symb = self.symbols[symbol]
-        current_time = datetime.strptime(
-            f"{datetime.today().strftime('%Y-%m-%d')} {timestamp}", "%Y-%m-%d %H:%M:%S"
+        last_timestamp = current_time - timedelta(
+            minutes=current_time.minute % self.interval_minutes,
+            seconds=current_time.second,
         )
 
-        if symb["last_timestamp"] is None:
-            symb["last_timestamp"] = current_time - timedelta(
-                minutes=current_time.minute % self.interval_minutes,
-                seconds=current_time.second,
-            )
-        if symb["current_candle"] is None:
-            self._open_candle(symb["last_timestamp"], price, symbol)
+        current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
+        last_candle_key = f"candle_{symbol}_{self.interval_minutes}_last"
 
-        while (
-            symb["last_timestamp"] + timedelta(minutes=self.interval_minutes)
-            <= current_time
-        ):
-            self._close_candle(symbol)
-            symb["last_timestamp"] += timedelta(minutes=self.interval_minutes)
-            self._open_candle(symb["last_timestamp"], price, symbol)
-        symb["current_candle"]["high"] = max(symb["current_candle"]["high"], price)
-        symb["current_candle"]["low"] = min(symb["current_candle"]["low"], price)
-        symb["current_candle"]["close"] = price
-        if save_redis:
-            redis_instance.set(
-                f"candle_{symbol}_{self.interval_minutes}", symb["candles"]
-            )
+        last_candle_data = redis_instance.get(last_candle_key)
+        if last_candle_data:
+            last_candle = eval(last_candle_data)
+            last_candle = convert_dict(last_candle)
+            last_candle_timestamp = last_candle["timestamp"]
+            if last_candle_timestamp < last_timestamp:
+                self._close_candle(last_candle, symbol)
 
-    def _open_candle(self, timestamp, price, symbol):
-        symb = self.symbols[symbol]
-        symb["current_candle"] = {
-            "timestamp": timestamp,
+        current_candle_data = redis_instance.get(current_candle_key)
+        if current_candle_data:
+            current_candle = eval(current_candle_data)
+            current_candle = convert_dict(current_candle)
+            if current_candle["timestamp"] != last_timestamp.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ):
+                self._close_candle(current_candle, symbol)
+                self._open_candle(last_timestamp, price, volume, symbol)
+        else:
+            self._open_candle(last_timestamp, price, volume, symbol)
+
+        current_candle_data = {
+            "timestamp": last_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "open": price,
+            "high": (
+                max(price, current_candle["high"]) if current_candle_data else price
+            ),
+            "low": min(price, current_candle["low"]) if current_candle_data else price,
+            "close": price,
+            "volume": (
+                current_candle["volume"] + volume if current_candle_data else volume
+            ),
+        }
+
+        redis_instance.set(current_candle_key, str(current_candle_data))
+
+    def _open_candle(self, timestamp, price, volume, symbol):
+        current_candle_data = {
+            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "open": price,
             "high": price,
             "low": price,
             "close": price,
+            "volume": volume,
         }
+        current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
+        redis_instance.set(current_candle_key, str(current_candle_data))
 
-    def _close_candle(self, symbol):
-        symb = self.symbols[symbol]
-        symb["candles"].append(
-            {
-                "timestamp": symb["current_candle"]["timestamp"],
-                "open": symb["current_candle"]["open"],
-                "high": symb["current_candle"]["high"],
-                "low": symb["current_candle"]["low"],
-                "close": symb["current_candle"]["close"],
-            }
-        )
+    def _close_candle(self, candle, symbol):
+        candles_key = f"candle_{symbol}_{self.interval_minutes}"
+        candles_data = redis_instance.get(candles_key)
+        candles = eval(candles_data) if candles_data else []
+        candles.append(candle)
+        redis_instance.set(candles_key, str(candles))
 
     def get_candles(self, symbol):
-        return self.symbols[symbol]["candles"]
+        candles_key = f"candle_{symbol}_{self.interval_minutes}"
+        candles_data = redis_instance.get(candles_key)
+        return eval(candles_data) if candles_data else []
 
     def get_latest_candle(self, symbol):
-        return self.symbols[symbol]["current_candle"]
-
-
-candle_1m = CandleManager(1)
-candle_5m = CandleManager(5)
-candle_10m = CandleManager(10)
-candle_15m = CandleManager(15)
-candle_30m = CandleManager(30)
-candle_1h = CandleManager(60)
-candle_2h = CandleManager(120)
-candle_5h = CandleManager(300)
-candle_10h = CandleManager(600)
-candle_1d = CandleManager(1440)
+        current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
+        current_candle_data = redis_instance.get(current_candle_key)
+        return eval(current_candle_data) if current_candle_data else None

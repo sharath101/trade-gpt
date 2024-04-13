@@ -2,6 +2,7 @@ from dhanhq import marketfeed
 from .template import Template
 from market_data.models import MarketDepthData, MarketQuoteData, MarketTickerData
 from market_data.constants import DHAN_INSTRUMENTS
+from datetime import datetime
 
 
 class DhanMarketFeed(Template):
@@ -11,11 +12,19 @@ class DhanMarketFeed(Template):
         self._client_id = None
         self._feed = None
         self._instruments = []
-        self._subscription_code = 15  # Subscription code for Ticker
+        self._subscription_code = marketfeed.Ticker
 
     def set_api_key(self, key, client_id):
         self._access_token = key
         self._client_id = client_id
+
+    @property
+    def subscription_code(self, code):
+        return self._subscription_code
+
+    @subscription_code.setter
+    def subscription_code(self, code):
+        self._subscription_code = code
 
     async def connect(self):
         self.disconnect_request = False
@@ -59,25 +68,40 @@ class DhanMarketFeed(Template):
                     exc = DHAN_INSTRUMENTS["exchange_segment"][
                         DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
                     ]
-                    marketData = MarketTickerData(symbol, data["LTP"], data["LTT"], exc)
+                    ltt = datetime.strptime(
+                        f"{datetime.today().strftime('%Y-%m-%d')} {data['LTT']}",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    marketData = MarketTickerData(symbol, data["LTP"], ltt, exc)
                     await self.analyser(marketData)
 
             if self._subscription_code == marketfeed.Quote:
                 if "security_id" in data:
-                    quoteData = MarketQuoteData()
-                    quoteData.exchange_segment = data["exchange_segment"]
-                    quoteData.security_id = data["security_id"]
-                    quoteData.LTP = data["LTP"]
-                    quoteData.LTQ = data["LTQ"]
-                    quoteData.LTT = data["LTT"]
-                    quoteData.avg_price = data["avg_price"]
-                    quoteData.volume = data["volume"]
-                    quoteData.total_sell_quantity = data["total_sell_quantity"]
-                    quoteData.total_buy_quantity = data["total_buy_quantity"]
-                    quoteData.open = data["open"]
-                    quoteData.close = data["close"]
-                    quoteData.high = data["high"]
-                    quoteData.low = data["low"]
+                    symbol = DHAN_INSTRUMENTS["symbol"][
+                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
+                    ]
+                    exc = DHAN_INSTRUMENTS["exchange_segment"][
+                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
+                    ]
+                    ltt = datetime.strptime(
+                        f"{datetime.today().strftime('%Y-%m-%d')} {data['LTT']}",
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    quoteData = MarketQuoteData(
+                        exc,
+                        symbol,
+                        float(data["LTP"]),
+                        int(data["LTQ"]),
+                        ltt,
+                        float(data["avg_price"]),
+                        int(data["volume"]),
+                        int(data["total_sell_quantity"]),
+                        int(data["total_buy_quantity"]),
+                        float(data["open"]),
+                        float(data["close"]),
+                        float(data["high"]),
+                        float(data["low"]),
+                    )
 
                     await self.analyser(quoteData)
 
