@@ -12,7 +12,18 @@ from market_data import (
 from .misc import analyser
 
 
-# Need to add security to the API
+def secure_route(route):
+    def secure_route_decorator(*args, **kwargs):
+        if request.headers.get("Authorization") is None:
+            return jsonify({"message": "Unauthorized"}), 401
+        if request.headers.get("Authorization") == "Bearer 1234":
+            a = route(*args, **kwargs)
+            return a
+        return jsonify({"message": "Unauthorized"}), 401
+
+    return secure_route_decorator
+
+
 @app.route("/add_api_key", methods=["POST"])
 def add_api_key():
     if request.method == "POST":
@@ -38,7 +49,6 @@ def get_api_key():
 
 
 # The button to start the live-data-processing
-# Need to add security to the API
 @app.route("/start")
 def start():
     platform = "dhan"
@@ -65,7 +75,6 @@ def start():
 
 
 # The button to stop the live-data-processing
-# Need to add security to the API
 @app.route("/stop", methods=["GET"])
 def stop():
     marketFeedTicker.stop()

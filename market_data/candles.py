@@ -29,13 +29,15 @@ class CandleManager:
             current_candle = current_candle_data
             if current_candle["time"] != last_timestamp.strftime("%Y-%m-%d %H:%M:%S"):
                 self._close_candle(current_candle, symbol)
-                self._open_candle(last_timestamp, price, volume, symbol)
+                current_candle = self._open_candle(
+                    last_timestamp, price, volume, symbol
+                )
         else:
-            self._open_candle(last_timestamp, price, volume, symbol)
+            current_candle = self._open_candle(last_timestamp, price, volume, symbol)
 
         current_candle_data = {
             "time": last_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            "open": price,
+            "open": current_candle["open"] if current_candle_data else price,
             "high": (
                 max(price, current_candle["high"]) if current_candle_data else price
             ),
@@ -91,6 +93,7 @@ class CandleManager:
 
         redis_instance.set(ta_key, self.indicators)
         redis_instance.set(current_candle_key, current_candle_data)
+        return current_candle_data
 
     def _close_candle(self, candle, symbol):
         candles_key = f"candle_{symbol}_{self.interval_minutes}"

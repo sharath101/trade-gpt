@@ -33,7 +33,7 @@ class MarketQuoteData:
     low: float
 
     def __repr__(self):
-        f_string = f"MarketQuoteData(symbol={self.security_id}, LTP={self.LTP}, LTQ={self.LTQ}, LTT={self.LTT}, exchange={self.exchange_segment})"
+        f_string = f"MarketQuoteData(symbol={self.symbol}, LTP={self.price}, LTQ={self.quantity}, LTT={self.timestamp}, exchange={self.exchange_segment})"
         return f_string
 
 
