@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
-from market_data import redis_instance
+
 from talipp.ohlcv import OHLCV
+
 from market_data.indicators import IndicatorManager
+
+from ..utils import redis_instance
 
 
 class CandleManager:
