@@ -2,7 +2,7 @@ import asyncio
 import multiprocessing
 
 
-class Feed:
+class Processor:
     def __init__(self, obj, *args, **kwargs):
         self.obj = obj
         self.args = args
@@ -33,3 +33,8 @@ class Feed:
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self.starter())
+
+    def is_running(self):
+        if self.process is None:
+            return False
+        return self.process.is_alive()
