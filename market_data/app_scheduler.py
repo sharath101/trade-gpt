@@ -1,9 +1,9 @@
-from market_data import scheduler
-from market_data.models import APIKey
-from market_data.market_feed.dhan_market_feed import DhanMarketFeed
-from market_data.misc import analyser
+from utils import scheduler
+from utils.db_models import APIKey
+from .dhan_market_feed import DhanMarketFeed
+from .misc import analyser
 from dhanhq import marketfeed
-from market_data.feed import Feed
+from .feed import Feed
 from datetime import datetime, timedelta
 
 

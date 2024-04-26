@@ -1,15 +1,16 @@
 from flask import jsonify, request
-from market_data import app, db
-from market_data.models import APIKey, Symbol
+from api import app
+from utils import db
+from utils.db_models import APIKey, Symbol
 from datetime import datetime
-from market_data.misc import get_access_token
+from .misc import get_access_token
 from market_data import (
     marketDataTicker,
     marketFeedTicker,
     marketDataQuote,
     marketFeedQuote,
 )
-from .misc import analyser
+from market_data.misc import analyser
 
 
 def secure_route(route):
@@ -38,7 +39,6 @@ def add_api_key():
     return jsonify({"message": "Method not allowed"}), 405
 
 
-# This is probably not required
 @app.route("/get_api_key", methods=["GET"])
 def get_api_key():
     if request.method == "GET":
@@ -48,9 +48,9 @@ def get_api_key():
     return jsonify({"message": "Method not allowed"}), 405
 
 
-# The button to start the live-data-processing
 @app.route("/start")
 def start():
+    print(request.headers.get("Authorization"))
     platform = "dhan"
     access_token = get_access_token(platform)
     if access_token is False:
@@ -74,7 +74,6 @@ def start():
     return jsonify({"output": "Market data running"})
 
 
-# The button to stop the live-data-processing
 @app.route("/stop", methods=["GET"])
 def stop():
     marketFeedTicker.stop()
@@ -82,7 +81,6 @@ def stop():
     return jsonify({"output": "Market data stopped"})
 
 
-# Need to add security to the API
 @app.route("/add_symbols", methods=["POST"])
 def add_symbols():
     if request.method == "POST":

@@ -1,13 +1,12 @@
 from dhanhq import marketfeed
-from .template import Template
-from market_data.models import MarketDepthData, MarketQuoteData, MarketTickerData
-from market_data.constants import DHAN_INSTRUMENTS
+from .models import MarketDepthData, MarketQuoteData, MarketTickerData
+from .constants import DHAN_INSTRUMENTS
 from datetime import datetime
 
 
-class DhanMarketFeed(Template):
+class DhanMarketFeed:
     def __init__(self, analyser):
-        super().__init__(analyser)
+        self.analyser = analyser
         self._access_token = None
         self._client_id = None
         self._feed = None
