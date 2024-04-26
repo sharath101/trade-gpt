@@ -8,6 +8,7 @@ from market_data import (
     marketDataQuote,
     marketFeedQuote,
 )
+from market_data.schedule import schedule_until_sunday
 
 
 def secure_route(route):
@@ -107,3 +108,9 @@ def delete_symbols():
         db.session.commit()
         return jsonify({"message": "Symbol deleted successfully"})
     return jsonify({"message": "Method not allowed"}), 405
+
+
+@app.route("/schedule", methods=["GET"])
+def schedule():
+    schedule_until_sunday()
+    return jsonify({"message": "Scheduled until upcoming Sunday"})
