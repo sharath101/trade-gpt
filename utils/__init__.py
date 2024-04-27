@@ -4,19 +4,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from sqlalchemy import create_engine
-import os
 import importlib
 from api import app
 
-app_path = os.path.abspath(os.path.dirname(__file__))
-dbpath = os.path.join(app_path, "database.db")
-jobpath = os.path.join(app_path, "jobs.db")
 
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{dbpath}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-
-jobstores = {"default": SQLAlchemyJobStore(url=f"sqlite:///{jobpath}")}
+jobstores = {"default": SQLAlchemyJobStore(url=app.config["SQLALCHEMY_DATABASE_URI"])}
 executors = {"default": ThreadPoolExecutor(20), "processpool": ProcessPoolExecutor(5)}
 job_defaults = {"coalesce": False, "max_instances": 3}
 scheduler = BackgroundScheduler(
@@ -25,7 +17,6 @@ scheduler = BackgroundScheduler(
 
 redis_instance = RedisManager()
 db = SQLAlchemy(app)
-
 
 engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
 connection = engine.connect()

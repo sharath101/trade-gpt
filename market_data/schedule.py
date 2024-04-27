@@ -3,6 +3,7 @@ from flask import app
 import requests
 from utils import scheduler
 from utils.db_models import MarketHolidays
+from .misc import backup_current_day, delete_old_data
 
 
 def schedule_week():
@@ -34,6 +35,22 @@ def schedule_week():
             replace_existing=True,
         )
 
+        scheduler.add_job(
+            id=f"market_backup_{next_day.date()}",
+            func=backup_current_day,
+            trigger="date",
+            run_date=next_day.replace(hour=16, minute=0, second=0),
+            replace_existing=True,
+        )
+
+        scheduler.add_job(
+            id=f"market_delete_{next_day.date()}",
+            func=delete_old_data,
+            trigger="date",
+            run_date=next_day.replace(hour=16, minute=5, second=0),
+            replace_existing=True,
+        )
+
 
 def schedule_until_sunday():
     for i in range(1, 8):
@@ -46,6 +63,7 @@ def schedule_until_sunday():
             marketClosure = MarketHolidays.query.filter_by(date=next_day_str).first()
             if marketClosure:
                 continue
+
         scheduler.add_job(
             id=f"market_start_{next_day.date()}",
             func=requests.get,
@@ -61,5 +79,21 @@ def schedule_until_sunday():
             trigger="date",
             run_date=next_day.replace(hour=15, minute=30, second=0),
             args=(f"http://localhost:5000/stop",),
+            replace_existing=True,
+        )
+
+        scheduler.add_job(
+            id=f"market_backup_{next_day.date()}",
+            func=backup_current_day,
+            trigger="date",
+            run_date=next_day.replace(hour=16, minute=0, second=0),
+            replace_existing=True,
+        )
+
+        scheduler.add_job(
+            id=f"market_delete_{next_day.date()}",
+            func=delete_old_data,
+            trigger="date",
+            run_date=next_day.replace(hour=16, minute=5, second=0),
             replace_existing=True,
         )

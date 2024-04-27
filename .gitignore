@@ -9,3 +9,5 @@ test.py
 *.ipynb
 .ipynb_checkpoints/
 *.db
+data/
+config.py
