@@ -19,11 +19,11 @@ class OrderManager:
                 self.client_ids.append(api_key.secret)
 
     def place_order(self, order: Order):
+        tag = token_hex(5)
+        index = DHAN_INSTRUMENTS["symbol"].index(order.symbol)
+        security_id = DHAN_INSTRUMENTS["security_id"][index]
         for api_key, client_id in zip(self.api_keys, self.client_ids):
             dhan = dhanhq(client_id, api_key)
-            tag = token_hex(5)
-            index = DHAN_INSTRUMENTS["symbol"].index(order.symbol)
-            security_id = DHAN_INSTRUMENTS["security_id"][index]
             response = dhan.place_order(
                 security_id=security_id,
                 exchange_segment=order.exchange,
@@ -59,3 +59,28 @@ class OrderManager:
                     )
                     db.session.add(db_order)
         db.session.commit()
+        return tag
+
+    def cancel_order(self, tag: str):
+        with app.app_context():
+            db_orders = OrderBook.query.filter_by(correlation_id=tag).all()
+        for db_order in db_orders:
+            self.cancel_order_by_id(db_order.order_id)
+
+    def cancel_order_by_id(self, order_id: str):
+        with app.app_context():
+            db_order = OrderBook.query.filter_by(order_id=order_id).first()
+        if not db_order:
+            return False
+        client_id = db_order.client_id
+        index = self.client_ids.index(client_id)
+        api_key = self.api_keys[index]
+        dhan = dhanhq(client_id, api_key)
+        response = dhan.cancel_order(order_id)
+        if response and response["status"] == "success":
+            with app.app_context():
+                db_order = OrderBook.query.filter_by(order_id=order_id).first()
+                db_order.status = "CANCELLED"
+                db_order.order_opened = False
+                db.session.commit()
+        return True
