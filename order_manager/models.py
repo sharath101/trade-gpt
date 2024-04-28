@@ -8,6 +8,7 @@ class Order:
     quantity: int
     price: float
     transaction_type: str
+    trigger_price: float = 0.0
     bo_profit_val: float = 0.0
     bo_stoploss_val: float = 0.0
     order_type: str = dhanhq.LIMIT
@@ -25,6 +26,11 @@ class Order:
             self.product_type = dhanhq.BO
             self.order_type = dhanhq.SL
             self.bo_stoploss_val = self.price * 0.01
+
+        if self.transaction_type == dhanhq.BUY and not self.trigger_price:
+            self.trigger_price = self.price * 0.99
+        elif self.transaction_type == dhanhq.SELL and not self.trigger_price:
+            self.trigger_price = self.price * 1.01
 
     def __repr__(self):
         return f"Order(symbol={self.symbol}, amount={self.quantity*self.price})"
