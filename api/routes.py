@@ -1,14 +1,16 @@
+import os
+from datetime import datetime
+
 from flask import jsonify, request
+
 from api import app
+from backtesting.backtester import BackTester
+from market_data import marketDataQuote, marketFeedQuote
+from market_data.schedule import schedule_until_sunday
 from utils import db
 from utils.db_models import APIKey, Symbol
-from datetime import datetime
+
 from .misc import get_access_token
-from market_data import (
-    marketDataQuote,
-    marketFeedQuote,
-)
-from market_data.schedule import schedule_until_sunday
 
 
 def secure_route(route):
@@ -114,3 +116,14 @@ def delete_symbols():
 def schedule():
     schedule_until_sunday()
     return jsonify({"message": "Scheduled until upcoming Sunday"})
+
+
+@app.route("/backtest", methods=["GET"])
+def backtest():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_file_rel_path = "historical_data/HDFC_with_indicators_.csv"
+    csv_file_abs_path = os.path.join(current_dir, csv_file_rel_path)
+
+    backtester = BackTester(csv_file_abs_path)
+    backtester.backtest()
+    return jsonify({"message": "Started Backtesting"})

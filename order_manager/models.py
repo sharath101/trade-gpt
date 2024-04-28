@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import Literal
+
 from dhanhq import dhanhq
 
 
@@ -7,7 +9,7 @@ class Order:
     symbol: str
     quantity: int
     price: float
-    transaction_type: str
+    transaction_type: Literal["BUY", "SELL"]
     trigger_price: float = 0.0
     bo_profit_val: float = 0.0
     bo_stoploss_val: float = 0.0
@@ -33,4 +35,4 @@ class Order:
             self.trigger_price = self.price * 1.01
 
     def __repr__(self):
-        return f"Order(symbol={self.symbol}, amount={self.quantity*self.price})"
+        return f"Order(transaction_type={self.transaction_type}, symbol={self.symbol}, amount={self.quantity*self.price})"

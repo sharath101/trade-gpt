@@ -22,7 +22,7 @@ class Strategy:
             symbol=self.symbol,
             quantity=quantity,
             price=price,
-            transaction_type="buy",
+            transaction_type="BUY",
             bo_takeprofit=takeprofit,
             bo_stoploss=stoploss,
         )
@@ -33,7 +33,7 @@ class Strategy:
             symbol=self.symbol,
             quantity=quantity,
             price=price,
-            transaction_type="sell",
+            transaction_type="SELL",
             bo_takeprofit=takeprofit,
             bo_stoploss=stoploss,
         )

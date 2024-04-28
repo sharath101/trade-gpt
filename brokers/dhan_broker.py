@@ -1,22 +1,32 @@
 from secrets import token_hex
-from utils.db_models import APIKey, OrderBook
-from .models import Order
+
 from dhanhq import dhanhq
+
 from api import app
-from utils import db
 from market_data.constants import DHAN_INSTRUMENTS
+from order_manager.order_manager import OrderManager
+from utils import db
+from utils.db_models import APIKey, OrderBook
+
+from ..models import Order
+from .broker import Broker
 
 
-class OrderManager:
+class DhanBroker(Broker):
     def __init__(self):
         self.api_keys = []
         self.client_ids = []
+        self.commision = 0.03
+        self.commission_limit = 20
         with app.app_context():
             all_api_keys = APIKey.query.all()
         for api_key in all_api_keys:
             if api_key.trading:
                 self.api_keys.append(api_key.key)
                 self.client_ids.append(api_key.secret)
+
+    def calculate_commission(self, value):
+        return min(self.commision * value, self.commission_limit)
 
     def place_order(self, order: Order):
         tag = token_hex(5)
