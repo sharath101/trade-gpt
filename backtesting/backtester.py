@@ -1,17 +1,23 @@
 import csv
 
+from strategy import EngulfingStrategy
+
 
 class BackTester:
     def __init__(self, csv_file_path):
         self.csv_file_path = csv_file_path
+        self.strategy = EngulfingStrategy(True)
 
     def backtest(self):
         with open(self.csv_file_path, mode="r", newline="") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                print(row)
-
-                # Pass data to strategy class
-                # strategy.handle_data(
-                #     date, open_price, high_price, low_price, close_price, volume
-                # )
+                data = {
+                    "time": row["date"],
+                    "open": row["open"],
+                    "high": row["high"],
+                    "low": row["low"],
+                    "close": row["close"],
+                    "volume": row["volume"],
+                }
+                self.strategy.analyse(data)
