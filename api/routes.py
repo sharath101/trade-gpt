@@ -5,12 +5,10 @@ from utils.db_models import APIKey, Symbol
 from datetime import datetime
 from .misc import get_access_token
 from market_data import (
-    marketDataTicker,
-    marketFeedTicker,
     marketDataQuote,
     marketFeedQuote,
 )
-from market_data.misc import analyser
+from market_data.schedule import schedule_until_sunday
 
 
 def secure_route(route):
@@ -50,25 +48,19 @@ def get_api_key():
 
 @app.route("/start")
 def start():
-    print(request.headers.get("Authorization"))
     platform = "dhan"
     access_token = get_access_token(platform)
     if access_token is False:
         return jsonify({"message": "API Key expired"})
 
-    marketDataTicker.set_api_key(access_token["key"], access_token["secret"])
     marketDataQuote.set_api_key(access_token["key"], access_token["secret"])
-    marketDataTicker.analyser = analyser
-    marketDataQuote.analyser = analyser
 
     instruments = Symbol.query.all()
     ins_list = []
     for ins in instruments:
         ins_list.append(ins.symbol)
-    marketDataTicker.instruments = ins_list
     marketDataQuote.instruments = ins_list
 
-    # marketFeedTicker.start()
     marketFeedQuote.start()
 
     return jsonify({"output": "Market data running"})
@@ -76,7 +68,6 @@ def start():
 
 @app.route("/stop", methods=["GET"])
 def stop():
-    marketFeedTicker.stop()
     marketFeedQuote.stop()
     return jsonify({"output": "Market data stopped"})
 
@@ -86,8 +77,40 @@ def add_symbols():
     if request.method == "POST":
         symbol = request.json["symbol"]
         exchange = request.json["exchange"]
+
+        # Check if symbol already exists
+        existing_symbol = Symbol.query.filter_by(
+            symbol=symbol, exchange=exchange
+        ).first()
+        if existing_symbol:
+            return jsonify({"message": "Symbol already exists"}), 400
+
         symbol = Symbol(symbol=symbol, exchange=exchange)
         db.session.add(symbol)
         db.session.commit()
         return jsonify({"message": "Symbol added successfully"})
     return jsonify({"message": "Method not allowed"}), 405
+
+
+@app.route("/delete_symbols", methods=["DELETE"])
+def delete_symbols():
+    if request.method == "DELETE":
+        symbol = request.json["symbol"]
+        exchange = request.json["exchange"]
+
+        # Check if symbol exists
+        existing_symbol = Symbol.query.filter_by(symbol=symbol, exchange=exchange).all()
+        if not existing_symbol:
+            return jsonify({"message": "Symbol does not exist"}), 400
+
+        for db_symbol in existing_symbol:
+            db.session.delete(db_symbol)
+        db.session.commit()
+        return jsonify({"message": "Symbol deleted successfully"})
+    return jsonify({"message": "Method not allowed"}), 405
+
+
+@app.route("/schedule", methods=["GET"])
+def schedule():
+    schedule_until_sunday()
+    return jsonify({"message": "Scheduled until upcoming Sunday"})
