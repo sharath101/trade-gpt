@@ -51,31 +51,56 @@ class OrderManager:
         self.balance -= total_cost
         self.open_positions.append(order)
 
-    # def analyse(self, data: OHLCV):
-    #     if self.backtesting:
-    #         open_positions: List[OrderBook] = self.open_positions
-    #     else:
-    #         open_positions: List[OrderBook] = order_book_service.get_order_by_filter(
-    #             position_status="OPEN"
-    #         )
+    def analyse(self, data: OHLCV):
+        if self.backtesting:
+            open_positions: List[OrderBook] = self.open_positions
+        else:
+            open_positions: List[OrderBook] = OrderBook.filter(position_status="OPEN")
 
-    #     current_price = data.close
-    #     current_high = data.high
-    #     current_low = data.low
-    #     for position in open_positions:
-    #         if position.order_status == "PENDING":
-    #             if (
-    #                 position.transaction_type == 'BUY'
-    #                 and current_high >= position.trigger_price
-    #             ) or (
-    #                 position.transaction_type == 'SELL'
-    #                 and current_low <= position.trigger_price
-    #             ):
-    #                 position.order_status = "TRADED"
+        current_price = data.close
+        current_high = data.high
+        current_low = data.low
+        updated_open_positions: List[OrderBook] = []
+        for position in open_positions:
+            updated_open_positions.append(position)
+            if position.order_status == "PENDING":
+                if (
+                    position.transaction_type == "BUY"
+                    and current_high >= position.trigger_price
+                ) or (
+                    position.transaction_type == "SELL"
+                    and current_low <= position.trigger_price
+                ):
+                    position.order_status = "TRADED"
 
-    #         if position.order_status == 'TRADED':
-    #             if position.transaction_type == 'BUY':
-    #                 if current_high >= position.bo_takeprofit:
-    #                     self.trade_wins += 1
-    #                     self.balance += (position.bo_takeprofit - position.trigger_price) * position.quantity
-    #             if position.transaction_type == 'SELL':
+            if position.order_status == "TRADED":
+                if position.transaction_type == "BUY":
+                    if current_high >= position.bo_takeprofit:
+                        self.trade_wins += 1
+                        self.balance += (
+                            position.bo_takeprofit - position.trigger_price
+                        ) * position.quantity
+                        updated_open_positions.pop()
+                    if current_low <= position.bo_stoploss:
+                        self.trade_losses += 1
+                        self.balance -= (
+                            position.trigger_price - position.bo_stoploss
+                        ) * position.quantity
+                        updated_open_positions.pop()
+
+                if position.transaction_type == "SELL":
+                    if current_low <= position.bo_takeprofit:
+                        self.trade_wins += 1
+                        self.balance += (
+                            position.trigger_price - position.bo_takeprofit
+                        ) * position.quantity
+                        updated_open_positions.pop()
+                    if current_high >= position.bo_stoploss:
+                        self.trade_losses += 1
+                        self.balance -= (
+                            position.bo_stoploss - position.trigger_price
+                        ) * position.quantity
+                        updated_open_positions.pop()
+
+        OrderBook.save_all(open_positions)
+        self.open_positions = updated_open_positions

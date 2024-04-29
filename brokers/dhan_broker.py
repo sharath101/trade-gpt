@@ -1,11 +1,11 @@
 from secrets import token_hex
+
 from dhanhq import dhanhq
+
 from api import app
-from database import APIKey, OrderBook, order_book_service
+from database import APIKey, OrderBook, db
 from market_data.constants import DHAN_INSTRUMENTS
-from database import db
-from database import APIKey, OrderBook
-from order_manager import Order
+
 from .broker import Broker
 
 
@@ -46,7 +46,7 @@ class DhanBroker(Broker):
             if response and response["status"] == "success":
                 order.order_id = response["data"]["order_id"]
                 order.order_status = response["data"]["orderStatus"]
-                order_book_service.create_order(order)
+                order.save()
 
     def cancel_order(self, tag: str):
         with app.app_context():
