@@ -3,10 +3,10 @@ from secrets import token_hex
 from dhanhq import dhanhq
 
 from api import app
+from database import APIKey, OrderBook, order_book_service
 from market_data.constants import DHAN_INSTRUMENTS
 from order_manager.order_manager import OrderManager
 from utils import db
-from utils.db_models import APIKey, OrderBook
 
 from ..models import Order
 from .broker import Broker
@@ -28,8 +28,7 @@ class DhanBroker(Broker):
     def calculate_commission(self, value):
         return min(self.commision * value, self.commission_limit)
 
-    def place_order(self, order: Order):
-        tag = token_hex(5)
+    def place_order(self, order: OrderBook):
         index = DHAN_INSTRUMENTS["symbol"].index(order.symbol)
         security_id = DHAN_INSTRUMENTS["security_id"][index]
         for api_key, client_id in zip(self.api_keys, self.client_ids):
@@ -43,33 +42,14 @@ class DhanBroker(Broker):
                 trigger_price=order.trigger_price,
                 order_type=order.order_type,
                 product_type=order.product_type,
-                bo_profit_value=order.bo_profit_val,
-                bo_stop_loss_Value=order.bo_stoploss_val,
-                tag=tag,
+                bo_profit_value=order.bo_takeprofit,
+                bo_stop_loss_Value=order.bo_stoploss,
+                tag=order.correlation_id,
             )
             if response and response["status"] == "success":
-                order_id = response["data"]["order_id"]
-
-                with app.app_context():
-                    db_order = OrderBook(
-                        correlation_id=tag,
-                        client_id=client_id,
-                        order_id=order_id,
-                        symbol=order.symbol,
-                        exchange=order.exchange,
-                        quantity=order.quantity,
-                        price=order.price,
-                        transaction_type=order.transaction_type,
-                        order_type=order.order_type,
-                        product_type=order.product_type,
-                        status=response["data"]["orderStatus"],
-                        bo_profit_val=order.bo_profit_val,
-                        bo_stoploss_val=order.bo_stoploss_val,
-                        order_opened=True,
-                    )
-                    db.session.add(db_order)
-        db.session.commit()
-        return tag
+                order.order_id = response["data"]["order_id"]
+                order.order_status = response["data"]["orderStatus"]
+                order_book_service.create_order(order)
 
     def cancel_order(self, tag: str):
         with app.app_context():
