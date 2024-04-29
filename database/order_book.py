@@ -1,6 +1,7 @@
 from typing import List
 
-from utils import db
+from api import app
+from database import db
 
 
 class OrderBook(db.Model):
@@ -29,34 +30,42 @@ class OrderBook(db.Model):
 
 class OrderBookService:
     def create_order(self, order: OrderBook):
-        db.session.add(order)
-        db.session.commit()
+        with app.app_context():
+            db.session.add(order)
+            db.session.commit()
         return order
 
     def create_orders(self, orders: List[OrderBook]):
-        created_orders = []
-        for order in orders:
-            db.session.add(order)
-            created_orders.append(order)
-        db.session.commit()
+        with app.app_context():
+            created_orders = []
+            for order in orders:
+                db.session.add(order)
+                created_orders.append(order)
+            db.session.commit()
         return created_orders
 
-    def get_order_by_id(self, order_id):
-        return OrderBook.query.get(order_id)
+    def get_order_by_id(self, id: int):
+        with app.app_context():
+            return OrderBook.query.get(id)
 
-    def update_order(self, order_id, **kwargs):
-        order = OrderBook.query.get(order_id)
-        if order:
-            for key, value in kwargs.items():
-                setattr(order, key, value)
-            db.session.commit()
-            return order
-        return None
+    def update_order(self, id: int, **kwargs):
+        with app.app_context():
+            order = OrderBook.query.get(id)
+            if order:
+                for key, value in kwargs.items():
+                    setattr(order, key, value)
+                db.session.commit()
+                return order
+            return None
 
-    def delete_order(self, order_id):
-        order = OrderBook.query.get(order_id)
-        if order:
-            db.session.delete(order)
-            db.session.commit()
-            return order
-        return None
+    def delete_order(self, id: int):
+        with app.app_context():
+            order = OrderBook.query.get(id)
+            if order:
+                db.session.delete(order)
+                db.session.commit()
+                return order
+            return None
+
+
+order_book_service = OrderBookService()

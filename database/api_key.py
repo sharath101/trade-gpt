@@ -1,4 +1,4 @@
-from utils import db
+from database import db
 
 
 class APIKey(db.Model):
