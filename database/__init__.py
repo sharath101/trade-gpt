@@ -7,7 +7,7 @@ db = SQLAlchemy(app)
 
 from .api_key import APIKey
 from .market_holidays import MarketHolidays
-from .order_book import OrderBook, order_book_service
+from .order_book import OrderBook
 from .symbol import Symbol
 
 engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])

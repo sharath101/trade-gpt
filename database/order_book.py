@@ -1,6 +1,6 @@
 from typing import List
 
-from api import app
+from api import app, logger
 from database import db
 
 
@@ -33,31 +33,47 @@ class OrderBook(db.Model):
         return f"Order(order_id={self.order_id}, symbol={self.symbol})"
 
     def save(self):
-        with app.app_context():
-            db.session.add(self)
-            db.session.commit()
+        try:
+            with app.app_context():
+                db.session.add(self)
+                db.session.commit()
+        except Exception as e:
+            logger.error(f"Error while saving OrderBook: {e}")
 
     @staticmethod
-    def save_all(orders: List["OrderBook"]):
-        with app.app_context():
-            for order in orders:
-                db.session.add(order)
-            db.session.commit()
+    def save_all(api_keys: List["OrderBook"]):
+        try:
+            with app.app_context():
+                for api_key in api_keys:
+                    db.session.add(api_key)
+                db.session.commit()
+        except Exception as e:
+            logger.error(f"Error while saving all OrderBooks: {e}")
 
     def delete(self):
-        with app.app_context():
-            if self.id:
-                db.session.delete(self)
-            db.session.commit()
+        try:
+            with app.app_context():
+                if self.id:
+                    db.session.delete(self)
+                    db.session.commit()
+        except Exception as e:
+            logger.error(f"Error while deleting OrderBook: {e}")
 
     @staticmethod
-    def delete_all(orders: List["OrderBook"]):
-        with app.app_context():
-            for order in orders:
-                db.session.delete(order)
-            db.session.commit()
+    def delete_all(api_keys: List["OrderBook"]):
+        try:
+            with app.app_context():
+                for api_key in api_keys:
+                    if api_key.id:
+                        db.session.delete(api_key)
+                db.session.commit()
+        except Exception as e:
+            logger.error(f"Error while deleting all OrderBooks {e}")
 
     @staticmethod
     def filter(**filters):
-        with app.app_context():
-            return OrderBook.query.filter_by(**filters).all()
+        try:
+            with app.app_context():
+                return OrderBook.query.filter_by(**filters).all()
+        except Exception as e:
+            logger.error(f"Error while filtering OrderBook: {e}")

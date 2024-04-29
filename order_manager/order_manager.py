@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from secrets import token_hex
 from typing import List
 
@@ -6,7 +5,7 @@ from talipp.ohlcv import OHLCV
 
 from brokers import DhanBroker
 from brokers.broker import Broker
-from database import OrderBook, order_book_service
+from database import OrderBook
 
 from .models import Order
 
