@@ -2,6 +2,7 @@ from dhanhq import marketfeed
 from .models import MarketDepthData, MarketQuoteData, MarketTickerData
 from .constants import DHAN_INSTRUMENTS
 from datetime import datetime
+from api import logger
 
 
 class DhanMarketFeed:
@@ -13,116 +14,152 @@ class DhanMarketFeed:
         self._instruments = []
         self._subscription_code = marketfeed.Ticker
 
-    def set_api_key(self, key, client_id):
+    def set_api_key(self, key, client_id) -> None:
         self._access_token = key
         self._client_id = client_id
 
     @property
-    def subscription_code(self, code):
+    def subscription_code(self) -> int:
         return self._subscription_code
 
     @subscription_code.setter
-    def subscription_code(self, code):
+    def subscription_code(self, code) -> None:
         self._subscription_code = code
 
-    async def connect(self):
-        self.disconnect_request = False
-        self._feed = marketfeed.DhanFeed(
-            self._client_id,
-            self._access_token,
-            self._instruments,
-            self._subscription_code,
-            on_message=self.parse,
-        )
-        await self._feed.connect()
+    async def connect(self) -> None:
+        try:
+            self.disconnect_request = False
+            self._feed = marketfeed.DhanFeed(
+                self._client_id,
+                self._access_token,
+                self._instruments,
+                self._subscription_code,
+                on_message=self.parse,
+            )
+            await self._feed.connect()
+        except Exception as e:
+            logger.error(f"Error connecting to market feed: {e}")
 
     @property
-    def instruments(self):
+    def instruments(self) -> list:
         return self._instruments
 
     @instruments.setter
-    def instruments(self, instruments):
+    def instruments(self, instruments) -> None:
         """Pass the list of all symbols to be subscribed to the market feed"""
         self._instruments = []
         for instrument in instruments:
             if instrument not in DHAN_INSTRUMENTS["symbol"]:
+                logger.info(f"{instrument} not found in DHAN_INSTRUMENTS")
                 continue
             else:
-                index = DHAN_INSTRUMENTS["symbol"].index(instrument)
-                security_id = DHAN_INSTRUMENTS["security_id"][index]
-                if DHAN_INSTRUMENTS["exchange_segment"][index] == "NSE":
-                    exc = marketfeed.NSE
-                else:
-                    exc = marketfeed.BSE
-                self._instruments.append((exc, security_id))
+                try:
+                    index = DHAN_INSTRUMENTS["symbol"].index(instrument)
+                    security_id = DHAN_INSTRUMENTS["security_id"][index]
+                    if DHAN_INSTRUMENTS["exchange_segment"][index] == "NSE":
+                        exc = marketfeed.NSE
+                    else:
+                        exc = marketfeed.BSE
+                    self._instruments.append((exc, security_id))
+                except Exception as e:
+                    logger.error(f"Error setting instrument {instrument}: {e}")
         return
 
-    async def parse(self, instance, data):
+    async def parse(self, instance, data) -> None:
         if data:
             if self._subscription_code == marketfeed.Ticker:
                 if "security_id" in data and "LTP" in data and "LTT" in data:
-                    symbol = DHAN_INSTRUMENTS["symbol"][
-                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
-                    ]
-                    exc = DHAN_INSTRUMENTS["exchange_segment"][
-                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
-                    ]
-                    ltt = datetime.strptime(
-                        f"{datetime.today().strftime('%Y-%m-%d')} {data['LTT']}",
-                        "%Y-%m-%d %H:%M:%S",
-                    )
-                    marketData = MarketTickerData(symbol, data["LTP"], ltt, exc)
-                    await self.analyser(marketData)
+                    try:
+                        symbol = DHAN_INSTRUMENTS["symbol"][
+                            DHAN_INSTRUMENTS["security_id"].index(
+                                str(data["security_id"])
+                            )
+                        ]
+                        exc = DHAN_INSTRUMENTS["exchange_segment"][
+                            DHAN_INSTRUMENTS["security_id"].index(
+                                str(data["security_id"])
+                            )
+                        ]
+                        ltt = datetime.strptime(
+                            f"{datetime.today().strftime('%Y-%m-%d')} {data['LTT']}",
+                            "%Y-%m-%d %H:%M:%S",
+                        )
+                        marketData = MarketTickerData(symbol, data["LTP"], ltt, exc)
+                    except Exception as e:
+                        logger.error(f"Error parsing ticker data: {e}")
+                    try:
+                        await self.analyser(marketData)
+                    except Exception as e:
+                        logger.error(f"Error analysing ticker data: {e}")
+                else:
+                    logger.info("No security_id, LTP or LTT in data")
 
             if self._subscription_code == marketfeed.Quote:
                 if "security_id" in data:
-                    symbol = DHAN_INSTRUMENTS["symbol"][
-                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
-                    ]
-                    exc = DHAN_INSTRUMENTS["exchange_segment"][
-                        DHAN_INSTRUMENTS["security_id"].index(str(data["security_id"]))
-                    ]
-                    ltt = datetime.strptime(
-                        f"{datetime.today().strftime('%Y-%m-%d')} {data['LTT']}",
-                        "%Y-%m-%d %H:%M:%S",
-                    )
-                    quoteData = MarketQuoteData(
-                        exc,
-                        symbol,
-                        float(data["LTP"]),
-                        int(data["LTQ"]),
-                        ltt,
-                        float(data["avg_price"]),
-                        int(data["volume"]),
-                        int(data["total_sell_quantity"]),
-                        int(data["total_buy_quantity"]),
-                        float(data["open"]),
-                        float(data["close"]),
-                        float(data["high"]),
-                        float(data["low"]),
-                    )
+                    try:
+                        symbol = DHAN_INSTRUMENTS["symbol"][
+                            DHAN_INSTRUMENTS["security_id"].index(
+                                str(data["security_id"])
+                            )
+                        ]
+                        exc = DHAN_INSTRUMENTS["exchange_segment"][
+                            DHAN_INSTRUMENTS["security_id"].index(
+                                str(data["security_id"])
+                            )
+                        ]
+                        ltt = datetime.strptime(
+                            f"{datetime.today().strftime('%Y-%m-%d')} {data['LTT']}",
+                            "%Y-%m-%d %H:%M:%S",
+                        )
+                        quoteData = MarketQuoteData(
+                            exc,
+                            symbol,
+                            float(data["LTP"]),
+                            int(data["LTQ"]),
+                            ltt,
+                            float(data["avg_price"]),
+                            int(data["volume"]),
+                            int(data["total_sell_quantity"]),
+                            int(data["total_buy_quantity"]),
+                            float(data["open"]),
+                            float(data["close"]),
+                            float(data["high"]),
+                            float(data["low"]),
+                        )
+                    except Exception as e:
+                        logger.error(f"Error parsing quote data: {e}")
 
-                    await self.analyser(quoteData)
+                    try:
+                        await self.analyser(quoteData)
+                    except Exception as e:
+                        logger.error(f"Error analysing quote data: {e}")
+                else:
+                    logger.info("No security_id in data")
 
             if self._subscription_code == marketfeed.Depth:
                 if "security_id" in data:
-                    depthData = MarketDepthData()
-                    depthData.exchange_segment = data["exchange_segment"]
-                    depthData.security_id = data["security_id"]
-                    depthData.LTP = data["LTP"]
-                    depthData.bid_quantity = []
-                    depthData.ask_quantity = []
-                    depthData.bid_price = []
-                    depthData.ask_price = []
-                    depthData.bid_orders = []
-                    depthData.ask_orders = []
+                    try:
+                        depthData = MarketDepthData()
+                        depthData.exchange_segment = data["exchange_segment"]
+                        depthData.security_id = data["security_id"]
+                        depthData.LTP = data["LTP"]
+                        depthData.bid_quantity = []
+                        depthData.ask_quantity = []
+                        depthData.bid_price = []
+                        depthData.ask_price = []
+                        depthData.bid_orders = []
+                        depthData.ask_orders = []
 
-                    for orderbook in data["depth"]:
-                        depthData.bid_quantity.append(orderbook["bid_quantity"])
-                        depthData.ask_quantity.append(orderbook["ask_quantity"])
-                        depthData.bid_price.append(orderbook["bid_price"])
-                        depthData.ask_price.append(orderbook["ask_price"])
-                        depthData.bid_orders.append(orderbook["bid_orders"])
-                        depthData.ask_orders.append(orderbook["ask_orders"])
+                        for orderbook in data["depth"]:
+                            depthData.bid_quantity.append(orderbook["bid_quantity"])
+                            depthData.ask_quantity.append(orderbook["ask_quantity"])
+                            depthData.bid_price.append(orderbook["bid_price"])
+                            depthData.ask_price.append(orderbook["ask_price"])
+                            depthData.bid_orders.append(orderbook["bid_orders"])
+                            depthData.ask_orders.append(orderbook["ask_orders"])
+                        await self.analyser(depthData)
 
-                    await self.analyser(depthData)
+                    except Exception as e:
+                        logger.error(f"Error parsing depth data: {e}")
+                else:
+                    logger.info("No security_id in data")

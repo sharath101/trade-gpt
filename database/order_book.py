@@ -29,10 +29,10 @@ class OrderBook(db.Model):
     bo_takeprofit = db.Column(db.Float, nullable=True)  # Bracket order profit value
     bo_stoploss = db.Column(db.Float, nullable=True)  # Bracket order stoploss value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Order(order_id={self.order_id}, symbol={self.symbol})"
 
-    def save(self):
+    def save(self) -> None:
         try:
             with app.app_context():
                 db.session.add(self)
@@ -41,7 +41,7 @@ class OrderBook(db.Model):
             logger.error(f"Error while saving OrderBook: {e}")
 
     @staticmethod
-    def save_all(api_keys: List["OrderBook"]):
+    def save_all(api_keys: List["OrderBook"]) -> None:
         try:
             with app.app_context():
                 for api_key in api_keys:
@@ -50,7 +50,7 @@ class OrderBook(db.Model):
         except Exception as e:
             logger.error(f"Error while saving all OrderBooks: {e}")
 
-    def delete(self):
+    def delete(self) -> None:
         try:
             with app.app_context():
                 if self.id:
@@ -60,7 +60,7 @@ class OrderBook(db.Model):
             logger.error(f"Error while deleting OrderBook: {e}")
 
     @staticmethod
-    def delete_all(api_keys: List["OrderBook"]):
+    def delete_all(api_keys: List["OrderBook"]) -> None:
         try:
             with app.app_context():
                 for api_key in api_keys:
@@ -71,9 +71,25 @@ class OrderBook(db.Model):
             logger.error(f"Error while deleting all OrderBooks {e}")
 
     @staticmethod
-    def filter(**filters):
+    def filter(**filters) -> List["OrderBook"]:
         try:
             with app.app_context():
                 return OrderBook.query.filter_by(**filters).all()
         except Exception as e:
             logger.error(f"Error while filtering OrderBook: {e}")
+
+    @staticmethod
+    def get_all() -> List["OrderBook"]:
+        try:
+            with app.app_context():
+                return OrderBook.query.all()
+        except Exception as e:
+            logger.error(f"Error while getting all OrderBooks: {e}")
+
+    @staticmethod
+    def get_first(**filters) -> "OrderBook":
+        try:
+            with app.app_context():
+                return OrderBook.query.filter_by(**filters).first()
+        except Exception as e:
+            logger.error(f"Error while getting first OrderBook: {e}")

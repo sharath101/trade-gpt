@@ -1,15 +1,11 @@
-import os
-from datetime import datetime
-
+from datetime import datetime, timedelta
 from flask import jsonify, request
 
 from api import app
-from backtesting.backtester import BackTester
 from market_data import marketDataQuote, marketFeedQuote
 from market_data.schedule import schedule_until_sunday
 from database import db
 from database import APIKey, Symbol
-
 from .misc import get_access_token
 
 
@@ -30,11 +26,14 @@ def add_api_key():
     if request.method == "POST":
         key = request.json["key"]
         secret = request.json["secret"]
-        expiry = datetime.strptime(request.json["expiry"], "%Y-%m-%d")
+        expiry = datetime.strptime(request.json["expiry"], "%Y-%m-%d") + timedelta(
+            hours=23
+        )
         platform = request.json["platform"]
         api_key = APIKey(key=key, secret=secret, expiry=expiry, platform=platform)
-        db.session.add(api_key)
-        db.session.commit()
+        if "trading" in request.json:
+            api_key.trading = request.json["trading"]
+        api_key.save()
         return jsonify({"message": "API Key added successfully"})
     return jsonify({"message": "Method not allowed"}), 405
 
@@ -42,7 +41,7 @@ def add_api_key():
 @app.route("/get_api_key", methods=["GET"])
 def get_api_key():
     if request.method == "GET":
-        api_keys = APIKey.query.all()
+        api_keys = APIKey.get_all()
         api_keys = [{"key": key.key, "secret": key.secret} for key in api_keys]
         return jsonify(api_keys)
     return jsonify({"message": "Method not allowed"}), 405
@@ -57,7 +56,7 @@ def start():
 
     marketDataQuote.set_api_key(access_token["key"], access_token["secret"])
 
-    instruments = Symbol.query.all()
+    instruments = Symbol.get_all()
     ins_list = []
     for ins in instruments:
         ins_list.append(ins.symbol)
@@ -81,15 +80,12 @@ def add_symbols():
         exchange = request.json["exchange"]
 
         # Check if symbol already exists
-        existing_symbol = Symbol.query.filter_by(
-            symbol=symbol, exchange=exchange
-        ).first()
+        existing_symbol = Symbol.get_first(symbol=symbol, exchange=exchange)
         if existing_symbol:
             return jsonify({"message": "Symbol already exists"}), 400
 
         symbol = Symbol(symbol=symbol, exchange=exchange)
-        db.session.add(symbol)
-        db.session.commit()
+        symbol.save()
         return jsonify({"message": "Symbol added successfully"})
     return jsonify({"message": "Method not allowed"}), 405
 
@@ -101,13 +97,11 @@ def delete_symbols():
         exchange = request.json["exchange"]
 
         # Check if symbol exists
-        existing_symbol = Symbol.query.filter_by(symbol=symbol, exchange=exchange).all()
+        existing_symbol = Symbol.get_first(symbol=symbol, exchange=exchange)
         if not existing_symbol:
             return jsonify({"message": "Symbol does not exist"}), 400
 
-        for db_symbol in existing_symbol:
-            db.session.delete(db_symbol)
-        db.session.commit()
+        existing_symbol.delete()
         return jsonify({"message": "Symbol deleted successfully"})
     return jsonify({"message": "Method not allowed"}), 405
 
@@ -116,14 +110,3 @@ def delete_symbols():
 def schedule():
     schedule_until_sunday()
     return jsonify({"message": "Scheduled until upcoming Sunday"})
-
-
-@app.route("/backtest", methods=["GET"])
-def backtest():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_file_rel_path = "historical_data/HDFC_with_indicators_.csv"
-    csv_file_abs_path = os.path.join(current_dir, csv_file_rel_path)
-
-    backtester = BackTester(csv_file_abs_path)
-    backtester.backtest()
-    return jsonify({"message": "Started Backtesting"})

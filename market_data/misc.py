@@ -9,12 +9,12 @@ from database import Symbol
 import pickle
 
 
-async def analyser(data: MarketQuoteData):
+async def analyser(data: MarketQuoteData) -> None:
     candle1m = CandleManager(1)
     candle1m.process_tick(data.timestamp, data.price, data.quantity, data.symbol)
 
 
-def backup_current_day():
+def backup_current_day() -> None:
     if not os.path.isdir(
         os.path.join(
             app.config["DATA"], f"backup_{datetime.now().strftime('%Y-%m-%d')}"
@@ -25,8 +25,7 @@ def backup_current_day():
                 app.config["DATA"], f"backup_{datetime.now().strftime('%Y-%m-%d')}"
             )
         )
-    with app.app_context():
-        all_symbols = Symbol.query.all()
+    all_symbols = Symbol.get_all()
     all_keys = {}
     for symbol in all_symbols:
         all_keys[symbol.symbol] = []
@@ -45,7 +44,7 @@ def backup_current_day():
         key30m = f"candle_{symbol.symbol}_30"
         all_keys[symbol.symbol].append(key30m)
 
-    for symbol in all_keys:
+    for symbol in all_symbols:
         backup_data = {}
         for key in all_keys[symbol]:
             backup_data[key] = []
@@ -63,30 +62,32 @@ def backup_current_day():
             pickle.dump(backup_data, f)
 
 
-def delete_old_data():
-    with app.app_context():
-        all_symbols = Symbol.query.all()
-    all_keys = []
-    for symbol in all_symbols:
-        key1m = f"candle_{symbol.symbol}_1"
-        all_keys.append(key1m)
-        key2m = f"candle_{symbol.symbol}_2"
-        all_keys.append(key2m)
-        key3m = f"candle_{symbol.symbol}_3"
-        all_keys.append(key3m)
-        key5m = f"candle_{symbol.symbol}_5"
-        all_keys.append(key5m)
-        key10m = f"candle_{symbol.symbol}_10"
-        all_keys.append(key10m)
-        key15m = f"candle_{symbol.symbol}_15"
-        all_keys.append(key15m)
-        key30m = f"candle_{symbol.symbol}_30"
-        all_keys.append(key30m)
+def delete_old_data() -> None:
+    try:
+        all_symbols = Symbol.get_all()
+        all_keys = []
+        for symbol in all_symbols:
+            key1m = f"candle_{symbol.symbol}_1"
+            all_keys.append(key1m)
+            key2m = f"candle_{symbol.symbol}_2"
+            all_keys.append(key2m)
+            key3m = f"candle_{symbol.symbol}_3"
+            all_keys.append(key3m)
+            key5m = f"candle_{symbol.symbol}_5"
+            all_keys.append(key5m)
+            key10m = f"candle_{symbol.symbol}_10"
+            all_keys.append(key10m)
+            key15m = f"candle_{symbol.symbol}_15"
+            all_keys.append(key15m)
+            key30m = f"candle_{symbol.symbol}_30"
+            all_keys.append(key30m)
 
-    for key in all_keys:
-        candle_data: list = redis_instance.get(key)
-        if candle_data:
-            for candle in candle_data:
-                if candle["time"] <= datetime.now() - timedelta(days=7):
-                    candle_data.remove(candle)
-            redis_instance.set(key, candle_data)
+        for key in all_keys:
+            candle_data: list = redis_instance.get(key)
+            if candle_data:
+                for candle in candle_data:
+                    if candle["time"] <= datetime.now() - timedelta(days=7):
+                        candle_data.remove(candle)
+                redis_instance.set(key, candle_data)
+    except Exception as e:
+        print(f"Error deleting old data: {e}")

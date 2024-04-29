@@ -11,10 +11,10 @@ class APIKey(db.Model):
     platform = db.Column(db.String(100), nullable=False)
     trading = db.Column(db.Boolean, nullable=False, default=True)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"APIKey(key={self.key}, secret={self.secret})"
 
-    def save(self):
+    def save(self) -> None:
         try:
             with app.app_context():
                 db.session.add(self)
@@ -23,7 +23,7 @@ class APIKey(db.Model):
             logger.error(f"Error while saving APIKey: {e}")
 
     @staticmethod
-    def save_all(api_keys: List["APIKey"]):
+    def save_all(api_keys: List["APIKey"]) -> None:
         try:
             with app.app_context():
                 for api_key in api_keys:
@@ -32,7 +32,7 @@ class APIKey(db.Model):
         except Exception as e:
             logger.error(f"Error while saving all APIKeys: {e}")
 
-    def delete(self):
+    def delete(self) -> None:
         try:
             with app.app_context():
                 if self.id:
@@ -42,7 +42,7 @@ class APIKey(db.Model):
             logger.error(f"Error while deleting APIKey: {e}")
 
     @staticmethod
-    def delete_all(api_keys: List["APIKey"]):
+    def delete_all(api_keys: List["APIKey"]) -> None:
         try:
             with app.app_context():
                 for api_key in api_keys:
@@ -53,9 +53,25 @@ class APIKey(db.Model):
             logger.error(f"Error while deleting all APIKeys {e}")
 
     @staticmethod
-    def filter(**filters):
+    def filter(**filters) -> List["APIKey"]:
         try:
             with app.app_context():
                 return APIKey.query.filter_by(**filters).all()
         except Exception as e:
             logger.error(f"Error while filtering APIKey: {e}")
+
+    @staticmethod
+    def get_all() -> List["APIKey"]:
+        try:
+            with app.app_context():
+                return APIKey.query.all()
+        except Exception as e:
+            logger.error(f"Error while getting all APIKeys: {e}")
+
+    @staticmethod
+    def get_first(**filters) -> "APIKey":
+        try:
+            with app.app_context():
+                return APIKey.query.filter_by(**filters).first()
+        except Exception as e:
+            logger.error(f"Error while getting first APIKey: {e}")
