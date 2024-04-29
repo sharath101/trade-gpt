@@ -11,3 +11,4 @@ test.py
 *.db
 data/
 config.py
+*.sqlite3

@@ -1,3 +1,5 @@
+from talipp.ohlcv import OHLCV
+
 from strategy import Strategy
 
 from ..utils import adjust_perc
@@ -8,7 +10,7 @@ class EngulfingStrategy(Strategy):
         super(symbol, backtesting)
         pass
 
-    def analyse(self, candle):
+    def analyse(self, candle: OHLCV):
         self.order_manager.analyse(candle)
         if self.backtesting:
             self.candles.append(candle)

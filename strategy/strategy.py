@@ -1,15 +1,18 @@
-from utils import redis_instance
+from typing import List
 
-from ..order_manager import Order, VirtualOrderManager
+from talipp.ohlcv import OHLCV
+
+from order_manager import Order, OrderManager
+from utils import redis_instance
 
 
 class Strategy:
     def __init__(self, symbol, candle_range, backtesting=False):
         self.backtesting = backtesting
-        self.candles = []
+        self.candles = List[OHLCV]
         self.symbol = symbol
         self.candle_range = candle_range
-        self.order_manager = VirtualOrderManager()
+        self.order_manager = OrderManager()
 
     def fetchData(self):
         if not self.backtesting:

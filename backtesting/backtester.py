@@ -1,5 +1,7 @@
 import csv
 
+from talipp.ohlcv import OHLCV
+
 from strategy import EngulfingStrategy
 
 
@@ -12,12 +14,12 @@ class BackTester:
         with open(self.csv_file_path, mode="r", newline="") as file:
             reader = csv.DictReader(file)
             for row in reader:
-                data = {
-                    "time": row["date"],
-                    "open": row["open"],
-                    "high": row["high"],
-                    "low": row["low"],
-                    "close": row["close"],
-                    "volume": row["volume"],
-                }
+                data = OHLCV(
+                    time=row["date"],
+                    open=row["open"],
+                    high=row["high"],
+                    low=row["low"],
+                    close=row["close"],
+                    volume=row["volume"],
+                )
                 self.strategy.analyse(data)

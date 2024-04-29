@@ -49,11 +49,11 @@ class OrderBookService:
             db.session.commit()
         return created_orders
 
-    def get_order_by_id(self, id: int):
+    def get_order_by_id(self, id: int) -> OrderBook:
         with app.app_context():
             return OrderBook.query.get(id)
 
-    def get_order_by_filter(self, **filters):
+    def get_order_by_filter(self, **filters) -> List[OrderBook]:
         with app.app_context():
             orders = OrderBook.query.filter_by(**filters).all()
             return orders
