@@ -2,7 +2,7 @@ from talipp.ohlcv import OHLCV
 
 from strategy import Strategy
 
-from ..utils import adjust_perc
+from utils import adjust_perc
 
 
 class EngulfingStrategy(Strategy):
@@ -21,10 +21,10 @@ class EngulfingStrategy(Strategy):
         if len(candles) <= 1:
             return
 
-        curr_price = candles[-1]["close"]
+        curr_price = candles[-1].close
         if (
-            candles[-2]["close"] > candles[-2]["open"]
-            and candles[-1]["close"] < candles[-2]["open"]
+            candles[-2].close > candles[-2].open
+            and candles[-1].close < candles[-2].open
         ):
             self.sellOrder(
                 curr_price,
@@ -33,8 +33,8 @@ class EngulfingStrategy(Strategy):
                 adjust_perc(curr_price, 1),
             )
         elif (
-            candles[-2]["open"] > candles[-2]["close"]
-            and candles[-1]["close"] > candles[-2]["open"]
+            candles[-2].open > candles[-2].close
+            and candles[-1].close > candles[-2].open
         ):
             self.buyOrder(
                 curr_price,

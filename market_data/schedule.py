@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from flask import app
+from api import app
 import requests
 from utils import scheduler
-from utils.db_models import MarketHolidays
+from database import MarketHolidays
 from .misc import backup_current_day, delete_old_data
 
 
@@ -53,7 +53,7 @@ def schedule_week():
 
 
 def schedule_until_sunday():
-    for i in range(1, 8):
+    for i in range(7):
         next_day = datetime.now() + timedelta(days=i)
 
         if next_day.weekday() in [5, 6]:

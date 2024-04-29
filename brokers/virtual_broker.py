@@ -1,4 +1,4 @@
-from ..order_manager import Order
+from database.order_book import OrderBook
 from .broker import Broker
 
 
@@ -8,7 +8,7 @@ class VirtualBroker(Broker):
         self.commission_limit = 20
         pass
 
-    def place_order(self, order: Order):
+    def place_order(self, order: OrderBook):
         pass
 
     def calculate_commission(self, value):

@@ -7,8 +7,8 @@ from api import app
 from backtesting.backtester import BackTester
 from market_data import marketDataQuote, marketFeedQuote
 from market_data.schedule import schedule_until_sunday
-from utils import db
-from utils.db_models import APIKey, Symbol
+from database import db
+from database import APIKey, Symbol
 
 from .misc import get_access_token
 

@@ -26,8 +26,8 @@ class Strategy:
             quantity=quantity,
             price=price,
             transaction_type="BUY",
-            bo_takeprofit=takeprofit,
-            bo_stoploss=stoploss,
+            bo_profit_val=takeprofit,
+            bo_stoploss_val=stoploss,
         )
         self.order_manager.place_order(order)
 
@@ -37,7 +37,10 @@ class Strategy:
             quantity=quantity,
             price=price,
             transaction_type="SELL",
-            bo_takeprofit=takeprofit,
-            bo_stoploss=stoploss,
+            bo_profit_val=takeprofit,
+            bo_stoploss_val=stoploss,
         )
         self.order_manager.place_order(order)
+
+    def exit_position(self):
+        self.order_manager.exit_position(self.symbol)

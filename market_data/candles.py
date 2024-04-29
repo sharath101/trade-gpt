@@ -25,11 +25,11 @@ class CandleManager:
         return self._market_open <= timestamp <= self._market_close
 
     def process_tick(self, timestamp: datetime, price: float, volume: int, symbol: str):
-        current_time = timestamp
 
-        last_timestamp = current_time - timedelta(
-            minutes=current_time.minute % self.interval_minutes,
-            seconds=current_time.second,
+        last_timestamp = timestamp - timedelta(
+            minutes=timestamp.minute % self.interval_minutes,
+            seconds=timestamp.second,
+            microseconds=timestamp.microsecond,
         )
 
         current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
@@ -41,7 +41,7 @@ class CandleManager:
 
         current_candle = redis_instance.get(current_candle_key)
         if current_candle:
-            if current_candle["time"] != last_timestamp.strftime("%Y-%m-%d %H:%M:%S"):
+            if current_candle["time"] != last_timestamp:
                 self._close_candle(current_candle, symbol)
                 current_candle = self._open_candle(
                     last_timestamp, price, volume, symbol
@@ -51,7 +51,7 @@ class CandleManager:
 
         if current_candle:
             current_candle = {
-                "time": last_timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "time": last_timestamp,
                 "open": current_candle["open"],
                 "high": max(price, current_candle["high"]),
                 "low": min(price, current_candle["low"]),
@@ -82,7 +82,7 @@ class CandleManager:
         if indicator:
             self.indicators = indicator
         current_candle_data = {
-            "time": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "time": timestamp,
             "open": price,
             "high": price,
             "low": price,

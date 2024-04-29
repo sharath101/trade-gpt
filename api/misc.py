@@ -1,5 +1,4 @@
-from utils.db_models import APIKey
-
+from database import APIKey
 from datetime import datetime, timedelta
 
 

@@ -5,7 +5,7 @@ from api import app
 from .candles import CandleManager
 from .models import MarketQuoteData
 from utils import redis_instance
-from utils.db_models import Symbol
+from database import Symbol
 import pickle
 
 
@@ -87,8 +87,6 @@ def delete_old_data():
         candle_data: list = redis_instance.get(key)
         if candle_data:
             for candle in candle_data:
-                if candle["time"] <= datetime.now().strftime("%Y-%m-%d") - timedelta(
-                    days=7
-                ):
+                if candle["time"] <= datetime.now() - timedelta(days=7):
                     candle_data.remove(candle)
             redis_instance.set(key, candle_data)

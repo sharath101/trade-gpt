@@ -46,7 +46,7 @@ class DhanMarketFeed:
         self._instruments = []
         for instrument in instruments:
             if instrument not in DHAN_INSTRUMENTS["symbol"]:
-                return
+                continue
             else:
                 index = DHAN_INSTRUMENTS["symbol"].index(instrument)
                 security_id = DHAN_INSTRUMENTS["security_id"][index]
