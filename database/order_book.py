@@ -32,50 +32,32 @@ class OrderBook(db.Model):
     def __repr__(self):
         return f"Order(order_id={self.order_id}, symbol={self.symbol})"
 
-
-class OrderBookService:
-    def create_order(self, order: OrderBook):
+    def save(self):
         with app.app_context():
-            db.session.add(order)
+            db.session.add(self)
             db.session.commit()
-        return order
 
-    def create_orders(self, orders: List[OrderBook]):
+    @staticmethod
+    def save_all(orders: List["OrderBook"]):
         with app.app_context():
-            created_orders = []
             for order in orders:
                 db.session.add(order)
-                created_orders.append(order)
             db.session.commit()
-        return created_orders
 
-    def get_order_by_id(self, id: int) -> OrderBook:
+    def delete(self):
         with app.app_context():
-            return OrderBook.query.get(id)
+            if self.id:
+                db.session.delete(self)
+            db.session.commit()
 
-    def get_order_by_filter(self, **filters) -> List[OrderBook]:
+    @staticmethod
+    def delete_all(orders: List["OrderBook"]):
         with app.app_context():
-            orders = OrderBook.query.filter_by(**filters).all()
-            return orders
-
-    def update_order(self, id: int, **kwargs):
-        with app.app_context():
-            order = OrderBook.query.get(id)
-            if order:
-                for key, value in kwargs.items():
-                    setattr(order, key, value)
-                db.session.commit()
-                return order
-            return None
-
-    def delete_order(self, id: int):
-        with app.app_context():
-            order = OrderBook.query.get(id)
-            if order:
+            for order in orders:
                 db.session.delete(order)
-                db.session.commit()
-                return order
-            return None
+            db.session.commit()
 
-
-order_book_service = OrderBookService()
+    @staticmethod
+    def filter(**filters):
+        with app.app_context():
+            return OrderBook.query.filter_by(**filters).all()
