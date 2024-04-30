@@ -3,10 +3,13 @@ from flask import jsonify, request
 
 from api import app
 from market_data import marketDataQuote, marketFeedQuote
+from market_data.constants import DHAN_INSTRUMENTS
+from market_data.misc import backup_current_day, delete_old_data
 from market_data.schedule import schedule_until_sunday
 from database import db
 from database import APIKey, Symbol
 from .misc import get_access_token
+from utils import scheduler
 
 
 def secure_route(route):
@@ -22,24 +25,37 @@ def secure_route(route):
 
 
 @app.route("/add_api_key", methods=["POST"])
-def add_api_key():
+def add_api_key() -> jsonify:
     if request.method == "POST":
-        key = request.json["key"]
-        secret = request.json["secret"]
-        expiry = datetime.strptime(request.json["expiry"], "%Y-%m-%d") + timedelta(
-            hours=23
-        )
-        platform = request.json["platform"]
+        try:
+            key = request.json["key"]
+            secret = request.json["secret"]
+            platform = request.json["platform"]
+            if platform not in ["dhan"]:
+                return jsonify({"message": "Invalid platform"}), 400
+        except Exception as e:
+            return jsonify({"message": "Invalid data provided"}), 400
+
+        try:
+            expiry = datetime.strptime(request.json["expiry"], "%Y-%m-%d") + timedelta(
+                hours=23
+            )
+        except Exception as e:
+            return jsonify({"message": "Invalid expiry date"}), 400
+
         api_key = APIKey(key=key, secret=secret, expiry=expiry, platform=platform)
+
         if "trading" in request.json:
-            api_key.trading = request.json["trading"]
+            if request.json["trading"] == "False":
+                api_key.trading = False
+
         api_key.save()
         return jsonify({"message": "API Key added successfully"})
     return jsonify({"message": "Method not allowed"}), 405
 
 
 @app.route("/get_api_key", methods=["GET"])
-def get_api_key():
+def get_api_key() -> jsonify:
     if request.method == "GET":
         api_keys = APIKey.get_all()
         api_keys = [{"key": key.key, "secret": key.secret} for key in api_keys]
@@ -47,12 +63,13 @@ def get_api_key():
     return jsonify({"message": "Method not allowed"}), 405
 
 
-@app.route("/start")
-def start():
-    platform = "dhan"
+@app.route("/start/<platform>")
+def start(platform) -> jsonify:
+    if platform not in ["dhan"]:
+        return jsonify({"message": "Invalid platform"}), 400
     access_token = get_access_token(platform)
     if access_token is False:
-        return jsonify({"message": "API Key expired"})
+        return jsonify({"message": "API Key expired"}), 400
 
     marketDataQuote.set_api_key(access_token["key"], access_token["secret"])
 
@@ -76,13 +93,19 @@ def stop():
 @app.route("/add_symbols", methods=["POST"])
 def add_symbols():
     if request.method == "POST":
-        symbol = request.json["symbol"]
-        exchange = request.json["exchange"]
+        try:
+            symbol = request.json["symbol"]
+            exchange = request.json["exchange"]
+        except Exception as e:
+            return jsonify({"message": "Invalid data provided"}), 400
 
         # Check if symbol already exists
         existing_symbol = Symbol.get_first(symbol=symbol, exchange=exchange)
         if existing_symbol:
             return jsonify({"message": "Symbol already exists"}), 400
+
+        if symbol not in DHAN_INSTRUMENTS["symbol"]:
+            return jsonify({"message": "Invalid symbol"}), 400
 
         symbol = Symbol(symbol=symbol, exchange=exchange)
         symbol.save()
@@ -93,8 +116,11 @@ def add_symbols():
 @app.route("/delete_symbols", methods=["DELETE"])
 def delete_symbols():
     if request.method == "DELETE":
-        symbol = request.json["symbol"]
-        exchange = request.json["exchange"]
+        try:
+            symbol = request.json["symbol"]
+            exchange = request.json["exchange"]
+        except Exception as e:
+            return jsonify({"message": "Invalid data provided"}), 400
 
         # Check if symbol exists
         existing_symbol = Symbol.get_first(symbol=symbol, exchange=exchange)
@@ -103,6 +129,17 @@ def delete_symbols():
 
         existing_symbol.delete()
         return jsonify({"message": "Symbol deleted successfully"})
+    return jsonify({"message": "Method not allowed"}), 405
+
+
+@app.route("/get_symbols", methods=["GET"])
+def get_symbols():
+    if request.method == "GET":
+        symbols = Symbol.get_all()
+        symbols = [
+            {"symbol": symbol.symbol, "exchange": symbol.exchange} for symbol in symbols
+        ]
+        return jsonify(symbols)
     return jsonify({"message": "Method not allowed"}), 405
 
 
