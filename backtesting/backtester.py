@@ -27,4 +27,5 @@ class BackTester:
                     close=float(row["close"]),
                     volume=float(row["volume"]),
                 )
+
                 self.strategy.analyse(data)

@@ -10,5 +10,5 @@ class Broker(ABC):
         pass
 
     @abstractmethod
-    def calculate_commission(self):
+    def calculate_brokerage(self):
         pass

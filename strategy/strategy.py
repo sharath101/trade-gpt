@@ -20,7 +20,9 @@ class Strategy:
             data = redis_instance.get(redis_key)
             self.candles = data
 
-    def buyOrder(self, price: float, quantity: int, takeprofit: float, stoploss: float):
+    def longOrder(
+        self, price: float, quantity: int, takeprofit: float, stoploss: float
+    ):
         order = Order(
             symbol=self.symbol,
             quantity=quantity,
@@ -32,7 +34,7 @@ class Strategy:
         )
         self.order_manager.place_order(order)
 
-    def sellOrder(
+    def shortOrder(
         self, price: float, quantity: int, takeprofit: float, stoploss: float
     ):
         order = Order(

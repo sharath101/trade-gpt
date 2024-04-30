@@ -27,7 +27,7 @@ class EngulfingStrategy(Strategy):
             candles[-2].close > candles[-2].open
             and candles[-1].close < candles[-2].open
         ):
-            self.sellOrder(
+            self.shortOrder(
                 curr_price,
                 1,
                 adjust_perc(curr_price, -1.0),
@@ -37,7 +37,7 @@ class EngulfingStrategy(Strategy):
             candles[-2].open > candles[-2].close
             and candles[-1].close > candles[-2].open
         ):
-            self.buyOrder(
+            self.longOrder(
                 curr_price,
                 1,
                 adjust_perc(curr_price, 1.0),

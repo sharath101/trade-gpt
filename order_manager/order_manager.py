@@ -28,6 +28,8 @@ class OrderManager:
         self.total_commission = 0
         self.long_orders = 0
         self.short_orders = 0
+        self.total_opened = 0
+        self.total_closed = 0
 
     def place_order(self, order: Order):
         tag = token_hex(5)
@@ -68,9 +70,7 @@ class OrderManager:
                 OrderBook.save_all(open_positions)
             return
 
-        updated_open_positions = []
         for position in open_positions:
-            updated_open_positions.append(position)
             if position.order_status == "PENDING":
                 if (
                     position.transaction_type == "BUY"
@@ -79,29 +79,28 @@ class OrderManager:
                     position.transaction_type == "SELL"
                     and current_low <= position.trigger_price
                 ):
-                    if not self.open_position(position):
-                        updated_open_positions.pop()
+                    self.open_position(position)
 
             elif position.order_status == "TRADED":
                 if position.transaction_type == "BUY":
                     # Issue where both If statements are executed
                     if current_high >= position.bo_takeprofit:
                         self.close_position(position, position.bo_takeprofit)
-                        updated_open_positions.pop()
                     elif current_low <= position.bo_stoploss:
                         self.close_position(position, position.bo_stoploss)
-                        updated_open_positions.pop()
 
                 if position.transaction_type == "SELL":
                     if current_low <= position.bo_takeprofit:
                         self.close_position(position, position.bo_takeprofit)
-                        updated_open_positions.pop()
                     elif current_high >= position.bo_stoploss:
                         self.close_position(position, position.bo_stoploss)
-                        updated_open_positions.pop()
 
         if self.backtesting:
-            self.open_positions = updated_open_positions
+            self.open_positions = [
+                position
+                for position in self.open_positions
+                if position.position_status == "OPEN"
+            ]
         else:
             OrderBook.save_all(open_positions)
 
@@ -118,13 +117,32 @@ class OrderManager:
         self.daily_profit = 0
 
     def close_position(self, position: OrderBook, closing_price):
+        self.total_closed += 1
+        position.position_status = "CLOSED"
+
         if position.order_status != "TRADED":
             position.order_status = "EXPIRED"
             position.position_status = "CLOSED"
+            logger.debug(
+                f"Closing UNTRADED Position (delta: 0) (Balance: {self.balance}) (profit: {self.total_profit})"
+            )
             return
 
-        position.position_status = "CLOSED"
-        self.balance += position.trigger_price * position.quantity
+        position.buy_price = (
+            position.trigger_price
+            if position.transaction_type == "BUY"
+            else closing_price
+        )
+        position.sell_price = (
+            closing_price
+            if position.transaction_type == "SELL"
+            else position.trigger_price
+        )
+
+        commission = self.broker.calculate_brokerage(position)
+        self.total_commission += commission
+        self.balance += position.trigger_price * position.quantity - commission
+        position.order_status = "EXPIRED"
 
         if position.transaction_type == "BUY":
             delta = (closing_price - position.trigger_price) * position.quantity
@@ -145,15 +163,15 @@ class OrderManager:
         )
 
     def open_position(self, position: OrderBook) -> bool:
-        commission = self.broker.calculate_commission(position.trigger_price)
-        total_cost = position.trigger_price * position.quantity + commission
+        total_cost = position.trigger_price * position.quantity
         if total_cost > self.balance:
             logger.warning(f"Insufficient balance for order: {position}")
             position.order_status = "CANCELLED"
+            position.position_status = "CLOSED"
             return False
 
+        self.total_opened += 1
         self.balance -= total_cost
-        self.total_commission += commission
         position.order_status = "TRADED"
         if position.transaction_type == "BUY":
             self.long_orders += 1
