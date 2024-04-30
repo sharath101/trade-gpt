@@ -12,3 +12,6 @@ test.py
 data/
 config.py
 *.sqlite3
+script.py
+memory
+.vscode
