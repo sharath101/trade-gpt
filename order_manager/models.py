@@ -11,20 +11,20 @@ class Order:
     price: float
     transaction_type: Literal["BUY", "SELL"]
     trigger_price: float = 0.0
-    bo_profit_val: float = 0.0
-    bo_stoploss_val: float = 0.0
+    bo_takeprofit: float = 0.0
+    bo_stoploss: float = 0.0
     order_type: str = dhanhq.LIMIT
     product_type: str = dhanhq.INTRA
     exchange: str = dhanhq.NSE
 
     def __post_init__(self):
-        if self.bo_stoploss_val and self.bo_profit_val:
+        if self.bo_stoploss and self.bo_takeprofit:
             self.product_type = dhanhq.BO
             self.order_type = dhanhq.SL
-        elif self.bo_stoploss_val and not self.bo_profit_val:
+        elif self.bo_stoploss and not self.bo_takeprofit:
             self.product_type = dhanhq.CO
             self.order_type = dhanhq.SL
-        elif self.bo_profit_val and not self.bo_stoploss_val:
+        elif self.bo_takeprofit and not self.bo_stoploss:
             self.product_type = dhanhq.BO
             self.order_type = dhanhq.SL
             self.bo_stoploss_val = self.price * 0.01

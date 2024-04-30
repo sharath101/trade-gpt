@@ -1,7 +1,10 @@
+import logging
+
 from flask import Flask
 import os
 
 app = Flask(__name__)
+app.logger.setLevel(logging.INFO)
 logger = app.logger
 logger.setLevel("DEBUG")
 app.config.from_pyfile("config.py")

@@ -10,9 +10,5 @@ class Broker(ABC):
         pass
 
     @abstractmethod
-    def modify_order(self):
-        pass
-
-    @abstractmethod
     def calculate_commission(self):
         pass

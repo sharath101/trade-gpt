@@ -1,13 +1,16 @@
+import logging
 from datetime import datetime, timedelta
+
 from flask import jsonify, request
 
-from api import app
+from api import app, logger
+from backtesting import BackTester
+from database import APIKey, Symbol, db
 from market_data import marketDataQuote, marketFeedQuote
 from market_data.constants import DHAN_INSTRUMENTS
 from market_data.misc import backup_current_day, delete_old_data
 from market_data.schedule import schedule_until_sunday
-from database import db
-from database import APIKey, Symbol
+
 from .misc import get_access_token
 from utils import scheduler
 
@@ -22,6 +25,20 @@ def secure_route(route):
         return jsonify({"message": "Unauthorized"}), 401
 
     return secure_route_decorator
+
+
+@app.before_request
+def set_log_level():
+    log_level_param = request.args.get("log_level")
+    if log_level_param == "error":
+        log_level = logging.ERROR
+    elif log_level_param == "warning":
+        log_level = logging.WARNING
+    elif log_level_param == "info":
+        log_level = logging.INFO
+    else:
+        log_level = logging.DEBUG
+    logger.setLevel(log_level)
 
 
 @app.route("/add_api_key", methods=["POST"])
@@ -147,3 +164,11 @@ def get_symbols():
 def schedule():
     schedule_until_sunday()
     return jsonify({"message": "Scheduled until upcoming Sunday"})
+
+
+@app.route("/backtest", methods=["GET"])
+def backtest():
+    file = "HDFC_with_indicators_.csv"
+    backtester = BackTester(file)
+    backtester.backtest()
+    return jsonify({"message": "Backtesting Started"})

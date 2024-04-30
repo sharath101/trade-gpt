@@ -1,4 +1,5 @@
 from database.order_book import OrderBook
+
 from .broker import Broker
 
 
@@ -12,4 +13,4 @@ class VirtualBroker(Broker):
         pass
 
     def calculate_commission(self, value):
-        return min(self.commision * value, self.commission_limit)
+        return min(self.commision * 0.01 * value, self.commission_limit)
