@@ -48,7 +48,7 @@ def backup_current_day() -> None:
         for symbol in all_symbols:
             try:
                 backup_data = {}
-                for key in all_keys[symbol]:
+                for key in all_keys[symbol.symbol]:
                     backup_data[key] = []
                     candle_data: list = redis_instance.get(key)
                     if not candle_data:
@@ -60,7 +60,9 @@ def backup_current_day() -> None:
                 new_path = os.path.join(
                     app.config["DATA"], f"backup_{datetime.now().strftime('%Y-%m-%d')}"
                 )
-                with open(f"{new_path}/backup_{symbol}.pkl", "wb") as f:
+                with open(
+                    f"{new_path}/backup_{symbol.symbol}_{symbol.exchange}.pkl", "wb"
+                ) as f:
                     pickle.dump(backup_data, f)
             except Exception as e:
                 logger.error(f"Error in backup_current_day symbol {symbol}: {e}")
