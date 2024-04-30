@@ -14,6 +14,8 @@ class OrderBook(db.Model):
     quantity = db.Column(db.Integer, nullable=False)  # Quantity of the stock placed
     price = db.Column(db.Float, nullable=False)  # Price when order was placed
     trigger_price = db.Column(db.Float, nullable=False)  # Price of the order excuted
+    buy_price = db.Column(db.Float, nullable=True)  # Buy price of the stock
+    sell_price = db.Column(db.Float, nullable=True)  # Sell price of the stock
     transaction_type = db.Column(db.String(100), nullable=False)  # Buy or Sell
     order_type = db.Column(db.String(100), nullable=False)  # Market or Limit
     product_type = db.Column(db.String(100), nullable=False)  # Intraday or Delivery
