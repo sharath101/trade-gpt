@@ -16,10 +16,12 @@ class VirtualBroker(Broker):
         amount_buy = order.quantity * order.buy_price
         amount_sell = order.quantity * order.sell_price
         turnover = amount_buy + amount_sell
-        brokerage = 0.0003 * turnover
-        nse_fee = 0.0000322 * turnover
-        sebi_charges = 0.000001 * turnover
-        stt = 0.00025 * amount_sell
-        stamp_duty = 0.00003 * amount_buy
-        gst = 0.18 * (brokerage + nse_fee + sebi_charges)
+        brokerage_buy = min(round((0.0003 * amount_buy), 2), 20)
+        brokerage_sell = min(round((0.0003 * amount_sell), 2), 20)
+        brokerage = brokerage_buy + brokerage_sell
+        nse_fee = round((0.0000322 * turnover), 2)
+        sebi_charges = round((0.000001 * turnover), 2)
+        stt = round((0.00025 * amount_sell), 2)
+        stamp_duty = round((0.00003 * amount_buy), 2)
+        gst = round((0.18 * (brokerage + nse_fee + sebi_charges)), 2)
         return brokerage + nse_fee + sebi_charges + stt + stamp_duty + gst
