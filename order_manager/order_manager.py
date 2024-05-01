@@ -9,7 +9,9 @@ from brokers import VirtualBroker
 from brokers.broker import Broker
 from database.order_book import OrderBook
 
-from .models import Order
+from .models import Order, Stats
+
+# from strategy import Strategy
 
 
 class OrderManager:
@@ -19,17 +21,9 @@ class OrderManager:
         self.balance = balance
         if backtesting:
             self.open_positions: List[OrderBook] = []
+        # self.strategies = List[Strategy] = []
         self.broker: Broker = VirtualBroker()
-        self.trade_wins = 0
-        self.trade_losses = 0
-        self.daily_profit = 0
-        self.days = 0
-        self.total_profit = 0
-        self.total_commission = 0
-        self.long_orders = 0
-        self.short_orders = 0
-        self.total_opened = 0
-        self.total_closed = 0
+        self.stats = Stats()
 
     def place_order(self, order: Order):
         tag = token_hex(5)
@@ -42,6 +36,26 @@ class OrderManager:
             trigger_price=order.trigger_price,
             transaction_type=order.transaction_type,
             order_type=order.order_type or "LIMIT",
+            product_type=order.product_type,
+            order_status="PENDING",
+            position_status="OPEN",
+            bo_takeprofit=order.bo_takeprofit,
+            bo_stoploss=order.bo_stoploss,
+        )
+        self.broker.place_order(order)
+        self.open_positions.append(order)
+
+    def close_order(self, order: Order):
+        tag = token_hex(5)
+        order = OrderBook(
+            correlation_id=tag,
+            symbol=order.symbol,
+            exchange=order.exchange or "NSE",
+            quantity=order.quantity,
+            price=order.price,
+            trigger_price=order.trigger_price,
+            transaction_type=order.transaction_type,
+            order_type="MARKET",
             product_type=order.product_type,
             order_status="PENDING",
             position_status="OPEN",
@@ -109,22 +123,22 @@ class OrderManager:
             # self.broker.close_order()
             self.close_position(position, current_price)
 
-        self.days += 1
-        self.total_profit += self.daily_profit
+        self.stats.days += 1
+        self.stats.total_profit += self.stats.daily_profit
         logger.info(
-            f"\nDay {self.days} : Day Profit={self.daily_profit}  ||  Total Profit={self.total_profit}   ||   Net Profit={self.total_profit-self.total_commission}   ||   Balance={self.balance}   ||   long={self.long_orders}   ||   short={self.short_orders}\n"
+            f"\nDay {self.stats.days} : Day Profit={self.stats.daily_profit}  ||  Total Profit={self.stats.total_profit}   ||   Net Profit={self.stats.total_profit-self.stats.total_commission}   ||   Balance={self.balance}   ||   long={self.stats.long_orders}   ||   short={self.stats.short_orders}\n"
         )
-        self.daily_profit = 0
+        self.stats.daily_profit = 0
 
     def close_position(self, position: OrderBook, closing_price):
-        self.total_closed += 1
+        self.stats.total_closed += 1
         position.position_status = "CLOSED"
 
         if position.order_status != "TRADED":
             position.order_status = "EXPIRED"
             position.position_status = "CLOSED"
             logger.debug(
-                f"Closing UNTRADED Position (delta: 0) (Balance: {self.balance}) (profit: {self.total_profit})"
+                f"Closing UNTRADED Position (delta: 0) (Balance: {self.balance}) (profit: {self.stats.total_profit})"
             )
             return
 
@@ -140,44 +154,44 @@ class OrderManager:
         )
 
         commission = self.broker.calculate_brokerage(position)
-        self.total_commission += commission
+        self.stats.total_commission += commission
         self.balance += position.trigger_price * position.quantity - commission
         position.order_status = "EXPIRED"
 
         if position.transaction_type == "BUY":
             delta = (closing_price - position.trigger_price) * position.quantity
-            self.daily_profit += delta
+            self.stats.daily_profit += delta
             self.balance += delta
         if position.transaction_type == "SELL":
             delta = (position.trigger_price - closing_price) * position.quantity
-            self.daily_profit += delta
+            self.stats.daily_profit += delta
             self.balance += delta
 
         if delta > 0:
-            self.trade_wins += 1
+            self.stats.trade_wins += 1
         else:
-            self.trade_losses += 1
+            self.stats.trade_losses += 1
 
         logger.debug(
-            f"Closing {position.transaction_type} Position (delta: {delta}) (Balance: {self.balance}) (profit: {self.total_profit})"
+            f"Closing {position.transaction_type} Position at price {closing_price} (delta: {delta}) (Balance: {self.balance}) (profit: {self.stats.total_profit})"
         )
 
     def open_position(self, position: OrderBook) -> bool:
         total_cost = position.trigger_price * position.quantity
         if total_cost > self.balance:
-            logger.warning(f"Insufficient balance for order: {position}")
+            logger.debug(f"Insufficient balance for order: {position}")
             position.order_status = "CANCELLED"
             position.position_status = "CLOSED"
             return False
 
-        self.total_opened += 1
+        self.stats.total_opened += 1
         self.balance -= total_cost
         position.order_status = "TRADED"
         if position.transaction_type == "BUY":
-            self.long_orders += 1
+            self.stats.long_orders += 1
         else:
-            self.short_orders += 1
+            self.stats.short_orders += 1
         logger.debug(
-            f"{position.transaction_type} Order Placed at cost {total_cost} (Balance: {self.balance})"
+            f"{position.transaction_type} Order Placed at price {position.trigger_price},  cost {total_cost} (Balance: {self.balance})"
         )
         return True
