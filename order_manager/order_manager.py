@@ -20,7 +20,7 @@ class OrderManager:
         self.initial_balance = balance
         self.balance = balance
         if backtesting:
-            self.open_positions: List[OrderBook] = []
+            self.current_position: OrderBook = None
         # self.strategies = List[Strategy] = []
         self.broker: Broker = VirtualBroker()
         self.stats = Stats()
@@ -42,34 +42,41 @@ class OrderManager:
             bo_takeprofit=order.bo_takeprofit,
             bo_stoploss=order.bo_stoploss,
         )
-        self.broker.place_order(order)
-        self.open_positions.append(order)
+        if self.current_position is None:
+            self.broker.place_order(order)
+            self.current_position = order
+        elif self.current_position.transaction_type != order.transaction_type:
+            self.close_position(self.current_position, order.price)
+            self.broker.place_order(order)
+            self.current_position = order
 
-    def close_order(self, order: Order):
-        tag = token_hex(5)
-        order = OrderBook(
-            correlation_id=tag,
-            symbol=order.symbol,
-            exchange=order.exchange or "NSE",
-            quantity=order.quantity,
-            price=order.price,
-            trigger_price=order.trigger_price,
-            transaction_type=order.transaction_type,
-            order_type="MARKET",
-            product_type=order.product_type,
-            order_status="PENDING",
-            position_status="OPEN",
-            bo_takeprofit=order.bo_takeprofit,
-            bo_stoploss=order.bo_stoploss,
-        )
-        self.broker.place_order(order)
-        self.open_positions.append(order)
+    # def close_order(self, order: Order):
+    #     tag = token_hex(5)
+    #     order = OrderBook(
+    #         correlation_id=tag,
+    #         symbol=order.symbol,
+    #         exchange=order.exchange or "NSE",
+    #         quantity=order.quantity,
+    #         price=order.price,
+    #         trigger_price=order.trigger_price,
+    #         transaction_type=order.transaction_type,
+    #         order_type="MARKET",
+    #         product_type=order.product_type,
+    #         order_status="PENDING",
+    #         position_status="OPEN",
+    #         bo_takeprofit=order.bo_takeprofit,
+    #         bo_stoploss=order.bo_stoploss,
+    #     )
+    #     self.broker.place_order(order)
+    #     self.open_positions.append(order)
 
     def analyse(self, data: OHLCV):
-        if self.backtesting:
-            open_positions: List[OrderBook] = self.open_positions
-        else:
-            open_positions: List[OrderBook] = OrderBook.filter(position_status="OPEN")
+        # if self.backtesting:
+        position: OrderBook = self.current_position
+        if position is None:
+            return
+        # else:
+        #     open_positions: List[OrderBook] = OrderBook.filter(position_status="OPEN")
         current_price = data.close
         current_high = data.high
         current_low = data.low
@@ -77,46 +84,50 @@ class OrderManager:
         market_closing_threshold = time(15, 20, 0)
         current_time = data.time.time()
         if current_time > market_closing_threshold:
-            self.close_all_positions(open_positions, current_price)
-            if self.backtesting:
-                self.open_positions = []
-            else:
-                OrderBook.save_all(open_positions)
-            return
+            self.close_all_positions([position], current_price)
+            self.current_position = None
+            # self.close_all_positions(open_positions, current_price)
+            # if self.backtesting:
+            #     self.open_positions = []
+            # else:
+            #     OrderBook.save_all(open_positions)
+            # return
 
-        for position in open_positions:
-            if position.order_status == "PENDING":
-                if (
-                    position.transaction_type == "BUY"
-                    and current_high >= position.trigger_price
-                ) or (
-                    position.transaction_type == "SELL"
-                    and current_low <= position.trigger_price
-                ):
-                    self.open_position(position)
+        # for position in open_positions:
+        if position.order_status == "PENDING":
+            if (
+                position.transaction_type == "BUY"
+                and current_high >= position.trigger_price
+            ) or (
+                position.transaction_type == "SELL"
+                and current_low <= position.trigger_price
+            ):
+                self.open_position(position)
 
-            elif position.order_status == "TRADED":
-                if position.transaction_type == "BUY":
-                    # Issue where both If statements are executed
-                    if current_high >= position.bo_takeprofit:
-                        self.close_position(position, position.bo_takeprofit)
-                    elif current_low <= position.bo_stoploss:
-                        self.close_position(position, position.bo_stoploss)
+        elif position.order_status == "TRADED":
+            if position.transaction_type == "BUY":
+                # Issue where both If statements are executed
+                if current_high >= position.bo_takeprofit:
+                    self.close_position(position, position.bo_takeprofit)
+                elif current_low <= position.bo_stoploss:
+                    self.close_position(position, position.bo_stoploss)
 
-                if position.transaction_type == "SELL":
-                    if current_low <= position.bo_takeprofit:
-                        self.close_position(position, position.bo_takeprofit)
-                    elif current_high >= position.bo_stoploss:
-                        self.close_position(position, position.bo_stoploss)
+            if position.transaction_type == "SELL":
+                if current_low <= position.bo_takeprofit:
+                    self.close_position(position, position.bo_takeprofit)
+                elif current_high >= position.bo_stoploss:
+                    self.close_position(position, position.bo_stoploss)
 
-        if self.backtesting:
-            self.open_positions = [
-                position
-                for position in self.open_positions
-                if position.position_status == "OPEN"
-            ]
-        else:
-            OrderBook.save_all(open_positions)
+        if position.position_status != "OPEN":
+            self.current_position = None
+        # if self.backtesting:
+        #     self.open_positions = [
+        #         position
+        #         for position in self.open_positions
+        #         if position.position_status == "OPEN"
+        #     ]
+        # else:
+        #     OrderBook.save_all(open_positions)
 
     def close_all_positions(self, open_positions: List[OrderBook], current_price):
         for position in open_positions:
@@ -125,9 +136,7 @@ class OrderManager:
 
         self.stats.days += 1
         self.stats.total_profit += self.stats.daily_profit
-        logger.info(
-            f"\nDay {self.stats.days} : Day Profit={self.stats.daily_profit}  ||  Total Profit={self.stats.total_profit}   ||   Net Profit={self.stats.total_profit-self.stats.total_commission}   ||   Balance={self.balance}   ||   long={self.stats.long_orders}   ||   short={self.stats.short_orders}\n"
-        )
+        logger.info(f"{self.stats} Balance: {self.balance}")
         self.stats.daily_profit = 0
 
     def close_position(self, position: OrderBook, closing_price):

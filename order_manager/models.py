@@ -69,4 +69,4 @@ class Stats:
     #         self.trigger_price = self.price * 1.01
 
     def __repr__(self):
-        return "\nDay {self.days} : Day Profit={self.daily_profit}  ||  Total Profit={self.total_profit}   ||   Net Profit={self.total_profit-self.total_commission}   ||   Balance={self.balance}   ||   long={self.long_orders}   ||   short={self.short_orders}\n"
+        return f"\nDay {self.days} : Day Profit={self.daily_profit}  ||  Total Profit={self.total_profit}   ||   Net Profit={self.total_profit-self.total_commission}   ||   long={self.long_orders}   ||   short={self.short_orders}\n"
