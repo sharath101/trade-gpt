@@ -4,7 +4,7 @@ from datetime import datetime
 
 from talipp.ohlcv import OHLCV
 
-from strategy import EngulfingStrategy
+from strategy import EngulfingStrategy, MACDStrategy
 
 
 class BackTester:
@@ -13,7 +13,7 @@ class BackTester:
         csv_file_rel_path = f"historical_data/{file}"
         csv_file_abs_path = os.path.join(current_dir, csv_file_rel_path)
         self.csv_file_path = csv_file_abs_path
-        self.strategy = EngulfingStrategy("HDFCBANK", 5, 20000, True)
+        self.strategy = MACDStrategy("HDFCBANK", 5, 20000, True)
 
     def backtest(self):
         with open(self.csv_file_path, mode="r", newline="") as file:
