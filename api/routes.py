@@ -10,9 +10,9 @@ from market_data import marketDataQuote, marketFeedQuote
 from market_data.constants import DHAN_INSTRUMENTS
 from market_data.misc import backup_current_day, delete_old_data
 from market_data.schedule import schedule_until_sunday
+from utils import scheduler
 
 from .misc import get_access_token
-from utils import scheduler
 
 
 def secure_route(route):
@@ -81,7 +81,7 @@ def get_api_key() -> jsonify:
 
 
 @app.route("/start/<platform>")
-def start(platform) -> jsonify:
+async def start(platform) -> jsonify:
     if platform not in ["dhan"]:
         return jsonify({"message": "Invalid platform"}), 400
     access_token = get_access_token(platform)
@@ -96,7 +96,8 @@ def start(platform) -> jsonify:
         ins_list.append(ins.symbol)
     marketDataQuote.instruments = ins_list
 
-    marketFeedQuote.start()
+    await marketDataQuote.connect()
+    # marketFeedQuote.start()
 
     return jsonify({"output": "Market data running"})
 

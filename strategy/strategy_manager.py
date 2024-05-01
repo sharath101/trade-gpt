@@ -1,25 +1,37 @@
 from typing import List
+
 from talipp.ohlcv import OHLCV
 
-from order_manager.models import Order
-from .strategy import Strategy
-from utils import redis_instance
 from api import logger
+from order_manager.models import Order
+from utils import redis_instance
+
+from .strategy import Strategy
 
 
 class StrategyManager:
     symbol: str
     candle_range: int
     backtesting: bool = False
+    stategies: List[Strategy] = []
 
-    def __init__(self) -> None:
-        self.all_stategies: List[Strategy] = []
+    def __init__(
+        self,
+        symbol: str,
+        candle_range: int,
+        strategies: List[Strategy],
+        backtesing: bool,
+    ):
+        self.symbol = symbol
+        self.candle_range = candle_range
+        self.backtesting = backtesing
+        self.strategies = strategies
 
     def add_strategy(self, strategy: Strategy) -> None:
-        self.all_stategies.append(strategy)
+        self.strategies.append(strategy)
 
     def remove_strategy(self, strategy: Strategy) -> None:
-        self.all_stategies.remove(strategy)
+        self.strategies.remove(strategy)
 
     def fetch_current_candle(self, candle) -> OHLCV:
         try:
@@ -50,9 +62,10 @@ class StrategyManager:
             return None
         current_order = None
         current_confidence = 0
-        for strategy in self.all_stategies:
+        for strategy in self.strategies:
             order, confidence = strategy.analyse(candle)
             if order:
+                order.symbol = self.symbol
                 logger.info(
                     f"Strategy {strategy.__class__.__name__} generated order: {order}, with confidence: {confidence}"
                 )
@@ -60,24 +73,24 @@ class StrategyManager:
                     current_order = order
                     current_confidence = confidence
         if current_confidence > 0.1:
-            for strategy in self.all_stategies:
+            for strategy in self.strategies:
                 strategy.order_status = "PENDING"
                 strategy.current_order = current_order
             return current_order
         return None
 
     def traded(self) -> None:
-        for strategy in self.all_stategies:
+        for strategy in self.strategies:
             strategy.order_status = "TRADED"
 
     def cancelled(self) -> None:
-        for strategy in self.all_stategies:
+        for strategy in self.strategies:
             strategy.order_status = "CANCELLED"
 
     def closed(self) -> None:
-        for strategy in self.all_stategies:
+        for strategy in self.strategies:
             strategy.order_status = "CLOSED"
 
     def rejected(self) -> None:
-        for strategy in self.all_stategies:
+        for strategy in self.strategies:
             strategy.order_status = "REJECTED"

@@ -1,45 +1,31 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from typing import List, Literal
 
 from talipp.ohlcv import OHLCV
 
-from order_manager import Order, OrderManager
+from order_manager import Order
 from utils import redis_instance
 
 
-class Strategy(ABCMeta):
+class Strategy:
     current_position: Literal["LONG", "SHORT", "NONE"] = "NONE"
     order_status: Literal["PENDING", "TRADED", "CANCELLED", "CLOSED", "REJECTED"] = (
         "PENDING"
     )
     current_order: Order = None
 
-    def __init__(
-        self,
-        symbol: str,
-        candle_range: int,
-        backtesting: bool = False,
-    ):
-        self.backtesting = backtesting
+    def __init__(self):
         self.candles: List[OHLCV] = []
-        self.symbol = symbol
-        self.candle_range = candle_range
 
     @abstractmethod
-    def analyse(self, candle: OHLCV) -> tuple[Order, float]:
+    def analyse(self, candle: OHLCV) -> tuple[Order | None, float]:
         pass
-
-    def fetchData(self):
-        if not self.backtesting:
-            redis_key = f"candle_{self.symbol}_{self.candle_range}"
-            data = redis_instance.get(redis_key)
-            self.candles = data
 
     def longOrder(
         self, price: float, quantity: int, takeprofit: float, stoploss: float
     ) -> Order:
         order = Order(
-            symbol=self.symbol,
+            symbol="idk",
             quantity=quantity,
             price=price,
             trigger_price=price,
@@ -54,7 +40,7 @@ class Strategy(ABCMeta):
         self, price: float, quantity: int, takeprofit: float, stoploss: float
     ) -> Order:
         order = Order(
-            symbol=self.symbol,
+            symbol="idk",
             quantity=quantity,
             price=price,
             trigger_price=price,
@@ -78,7 +64,7 @@ class Strategy(ABCMeta):
             else:
                 order_type = "MARKET"
             order = Order(
-                symbol=self.symbol,
+                symbol="idk",
                 quantity=quantity,
                 price=price,
                 trigger_price=0,
@@ -94,7 +80,7 @@ class Strategy(ABCMeta):
             else:
                 order_type = "MARKET"
             order = Order(
-                symbol=self.symbol,
+                symbol="idk",
                 quantity=quantity,
                 price=price,
                 trigger_price=0,
