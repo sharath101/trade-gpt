@@ -167,9 +167,9 @@ def schedule():
     return jsonify({"message": "Scheduled until upcoming Sunday"})
 
 
-@app.route("/backtest", methods=["GET"])
-def backtest():
-    file = "HDFC_with_indicators_.csv"
-    backtester = BackTester(file)
+@app.route("/backtest/<stock>", methods=["GET"])
+def backtest(stock):
+    file = f"{stock}_with_indicators_.csv"
+    backtester = BackTester(file, stock)
     backtester.backtest()
     return jsonify({"message": "Backtesting Started"})

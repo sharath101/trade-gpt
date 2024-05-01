@@ -17,7 +17,7 @@ from .models import Order, Stats
 class OrderManager:
     def __init__(self, symbols, candle_interval, balance, backtesting=False):
         self.symbols: Dict[str, StrategyManager] = {}
-        strategies: List[Strategy] = [MACDStrategy(), EngulfingStrategy()]
+        strategies: List[Strategy] = [MACDStrategy()]
         for symbol in symbols:
             self.symbols[symbol] = StrategyManager(
                 symbol, candle_interval, strategies, backtesting
