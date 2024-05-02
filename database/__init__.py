@@ -9,6 +9,7 @@ from .api_key import APIKey
 from .market_holidays import MarketHolidays
 from .order_book import OrderBook
 from .symbol import Symbol
+from .dhan_order_book import DhanOrderBook
 
 engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
 connection = engine.connect()

@@ -26,6 +26,10 @@ class MACDStrategy(Strategy):
             return None, 0
         if self.technical_indicators[-4] is None:
             return None, 0
+        if self.technical_indicators[-1].macd is None:
+            return None, 0
+        if self.technical_indicators[-2].signal is None:
+            return None, 0
         if (
             self.technical_indicators[-1].macd > 0
             and min(
