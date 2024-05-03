@@ -12,3 +12,11 @@ class Broker(ABC):
     @abstractmethod
     def calculate_brokerage(self):
         pass
+
+    @abstractmethod
+    def cancel_order(self):
+        pass
+
+    @abstractmethod
+    def analyse(self):
+        pass

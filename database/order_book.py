@@ -1,35 +1,67 @@
-from typing import List
+from typing import List, Literal
 
 from api import app, logger
 from database import db
 
 
 class OrderBook(db.Model):
+    # Primary key in database
     id = db.Column(db.Integer, primary_key=True)  # Primary key in database
-    correlation_id = db.Column(db.String(100), nullable=False)  # Correlation ID
-    client_id = db.Column(db.String(100), nullable=False)  # Client ID from the client
-    order_id = db.Column(db.String(100), nullable=False)  # Order ID from the broker
-    symbol = db.Column(db.String(100), nullable=False)  # Symbol of the stock
-    exchange = db.Column(db.String(100), nullable=False)  # Exchange of the stock
-    quantity = db.Column(db.Integer, nullable=False)  # Quantity of the stock placed
-    price = db.Column(db.Float, nullable=False)  # Price when order was placed
-    trigger_price = db.Column(db.Float, nullable=False)  # Price of the order excuted
-    buy_price = db.Column(db.Float, nullable=True)  # Buy price of the stock
-    sell_price = db.Column(db.Float, nullable=True)  # Sell price of the stock
-    transaction_type = db.Column(db.String(100), nullable=False)  # Buy or Sell
-    order_type = db.Column(db.String(100), nullable=False)  # Market or Limit
-    product_type = db.Column(db.String(100), nullable=False)  # Intraday or Delivery
-    order_status = db.Column(
-        db.String(100), nullable=False
-    )  # Order status (TRANSIT PENDING REJECTED CANCELLED TRADED EXPIRED)
-    position_status = db.Column(
-        db.String(100), nullable=True
-    )  # Position Status (OPEN CLOSED)
-    order_created = db.Column(db.DateTime, nullable=True)  # Order created timestamp
-    order_updated = db.Column(db.DateTime, nullable=True)  # Order updated timestamp
-    exchange_timestamp = db.Column(db.DateTime, nullable=True)  # Exchange timestamp
-    bo_takeprofit = db.Column(db.Float, nullable=True)  # Bracket order profit value
-    bo_stoploss = db.Column(db.Float, nullable=True)  # Bracket order stoploss value
+
+    # Correlation ID
+    correlation_id: str = db.Column(db.String(25), nullable=False)
+
+    # Symbol of the stock
+    symbol: str = db.Column(db.String(20), nullable=False)
+
+    # Exchange of the stock
+    exchange: Literal["NSE_EQ"] = db.Column(
+        db.String(20), nullable=False, default="NSE_EQ"
+    )
+
+    # Quantity of the stock placed
+    quantity: int = db.Column(db.Integer, nullable=False)
+
+    # Price at which the order is requested to execute
+    price: float = db.Column(db.Float, nullable=False, default=0.0)
+
+    # Price of the order executed at exchange
+    trigger_price: float = db.Column(db.Float, nullable=False, default=0.0)
+
+    # Buy price of the stock
+    buy_price: float = db.Column(db.Float, nullable=True)
+
+    # Sell price of the stock
+    sell_price: float = db.Column(db.Float, nullable=True)
+
+    # Buy or Sell
+    transaction_type: Literal["BUY", "SELL"] = db.Column(db.String(100), nullable=False)
+
+    # Order type (MARKET, LIMIT, CO, BO)
+    order_type: Literal["MARKET", "LIMIT", "STOP_LOSS", "STOP_LOSS_MARKET"] = db.Column(
+        db.String(100), nullable=False, default="MARKET"
+    )  # Market or Limit
+
+    # Product type (CNC, INTRADAY, STOP_LOSS, STOP_LOSS_MARKET)
+    product_type: Literal["CNC", "INTRADAY", "MARGIN", "CO", "BO", "MTF"] = db.Column(
+        db.String(100), nullable=False, default="INTRADAY"
+    )
+
+    # Order status (TRANSIT PENDING REJECTED CANCELLED TRADED EXPIRED)
+    order_status: Literal[
+        "TRANSIT", "PENDING", "REJECTED", "CANCELLED", "TRADED", "EXPIRED"
+    ] = db.Column(db.String(100), nullable=False, default="PENDING")
+
+    # Position Status (OPEN CLOSED)
+    position_status: Literal["OPEN", "CLOSE"] = db.Column(
+        db.String(100), nullable=True, default="OPEN"
+    )
+
+    # Bracket order profit value
+    bo_takeprofit: float = db.Column(db.Float, nullable=True)
+
+    # Bracket order stoploss value
+    bo_stoploss: float = db.Column(db.Float, nullable=True)
 
     def __repr__(self) -> str:
         return f"Order(order_id={self.order_id}, symbol={self.symbol})"

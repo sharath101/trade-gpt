@@ -5,14 +5,13 @@ from flask import jsonify, request
 
 from api import app, logger
 from backtesting import BackTester
-from database import APIKey, Symbol, db
+from database import APIKey, Symbol, DhanOrderBook
+from database.order_book import OrderBook
 from market_data import marketDataQuote, marketFeedQuote
 from market_data.constants import DHAN_INSTRUMENTS
-from market_data.misc import backup_current_day, delete_old_data
 from market_data.schedule import schedule_until_sunday
-from utils import scheduler
-
 from .misc import get_access_token
+from brokers import DhanBroker
 
 
 def secure_route(route):
@@ -96,8 +95,7 @@ async def start(platform) -> jsonify:
         ins_list.append(ins.symbol)
     marketDataQuote.instruments = ins_list
 
-    await marketDataQuote.connect()
-    # marketFeedQuote.start()
+    marketFeedQuote.start()
 
     return jsonify({"output": "Market data running"})
 
@@ -173,3 +171,17 @@ def backtest(stock):
     backtester = BackTester(file, stock)
     backtester.backtest()
     return jsonify({"message": "Backtesting Started"})
+
+
+@app.route("/postback/dhan", methods=["POST"])
+def postback():
+    data = request.json
+    if data["dhanClientId"] and data["orderId"]:
+        order = DhanOrderBook.get_first(
+            client_id=data["dhanClientId"], order_id=data["orderId"]
+        )
+        if order:
+            order.order_status = data["status"]
+            order.save()
+            return jsonify({"message": "Postback received"})
+    return jsonify({"message": "Postback received"})

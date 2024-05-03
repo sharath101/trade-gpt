@@ -13,7 +13,7 @@ class RedisManager:
             self.r.set(key, byte_value)
         except Exception as e:
             logger.error(f"Error setting value in redis: {e}")
-            raise (f"Error setting value in redis: {e}")
+            raise (RuntimeError, f"Error setting value in redis: {e}")
 
     def get(self, key):
         try:
@@ -25,4 +25,4 @@ class RedisManager:
                 return None
         except Exception as e:
             logger.error(f"Error getting value from redis: {e}")
-            raise (f"Error setting value in redis: {e}")
+            raise (RuntimeError, f"Error getting value from redis: {e}")

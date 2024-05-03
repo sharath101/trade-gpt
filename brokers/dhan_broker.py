@@ -231,3 +231,6 @@ class DhanBroker(Broker):
         except Exception as e:
             logger.error(f"Error fetching security ID for symbol {symbol}: {e}")
             raise e
+
+    def analyse(self):
+        return super().analyse()
