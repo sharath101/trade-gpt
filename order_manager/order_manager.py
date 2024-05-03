@@ -14,7 +14,7 @@ class OrderManager:
     """The OrderManager class is responsible for managing the orders for different symbols,
     across different brokers. Simulated P&L will ba calculated in VirtualBroker"""
 
-    def __init__(self, symbols, candle_interval, backtesting=False):
+    def __init__(self, symbols, candle_interval, balance=20000, backtesting=False):
         """Initializes the OrderManager with the given symbols and candle interval.
         Different symbols can have different strategies. This will be initialized here.
         """
@@ -29,19 +29,21 @@ class OrderManager:
         if backtesting:
             self._open_positions: List[OrderBook] = []
 
-        self.brokers: List[Broker] = [VirtualBroker()]
+        self.brokers: List[Broker] = [VirtualBroker(self, balance)]
 
-    def next(self, data: float, timestamp: time):
+    def next(self, current_price: float, timestamp: time):
         """This method is called for each new data point on each symbol.
         It runs the strategies for each symbol"""
 
         assert self.one_position_per_symbol()
         for symbol in self.symbols:
-            order: Order = self.symbols[symbol].run_strategies(data)
+            order: Order = self.symbols[symbol].run_strategies(current_price)
             if order is not None:
+                order.symbol = symbol
+                order.exchange = "NSE_EQ"
                 self.place_order(order)
 
-        self.analyse(data, timestamp)
+        self.analyse(current_price, timestamp)
 
     @property
     def open_positions(self):
@@ -142,6 +144,17 @@ class OrderManager:
             transaction_type=("SELL" if position.transaction_type == "BUY" else "BUY"),
             order_type="LIMIT",
             product_type="INTRADAY",
+            position_status="CLOSED",
+            buy_price=(
+                position.buy_price
+                if position.transaction_type == "BUY"
+                else closing_price
+            ),
+            sell_price=(
+                closing_price
+                if position.transaction_type == "BUY"
+                else position.sell_price
+            ),
         )
         for broker in self.brokers:
             broker.place_order(new_order)
