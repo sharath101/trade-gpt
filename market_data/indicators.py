@@ -1,6 +1,6 @@
 from talipp.indicators import *
 from talipp.ohlcv import OHLCV
-from api import logger
+import logging as logger
 
 
 class IndicatorManager:

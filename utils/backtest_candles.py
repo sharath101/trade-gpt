@@ -1,30 +1,20 @@
+from datetime import datetime, timedelta, time
+from talipp.ohlcv import OHLCV
 import logging as logger
 
-from datetime import datetime, timedelta
-from talipp.ohlcv import OHLCV
-from .indicators import IndicatorManager
-from utils import redis_instance
+from market_data.indicators import IndicatorManager
+from utils import redis_instance_backtest as redis_instance
 
 
-class CandleManager:
+class BacktestCandleManager:
     def __init__(self, interval_minutes: int):
         self.interval_minutes: int = interval_minutes
         self.indicators: IndicatorManager = IndicatorManager()
-        self._market_open: datetime = datetime.now().replace(
-            hour=9, minute=15, second=0, microsecond=0
-        )
-        self._market_close: datetime = datetime.now().replace(
-            hour=15, minute=30, second=0, microsecond=0
-        )
+        self._market_open: time = time(9, 15, 0)
+        self._market_close: time = time(15, 30, 0)
 
     def is_market_open(self, timestamp: datetime) -> bool:
-        self._market_open: datetime = datetime.now().replace(
-            hour=9, minute=15, second=0, microsecond=0
-        )
-        self._market_close: datetime = datetime.now().replace(
-            hour=15, minute=30, second=0, microsecond=0
-        )
-        return self._market_open <= timestamp <= self._market_close
+        return self._market_open <= timestamp.time() <= self._market_close
 
     def process_tick(
         self, timestamp: datetime, price: float, volume: int, symbol: str

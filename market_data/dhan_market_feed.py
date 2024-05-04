@@ -1,12 +1,13 @@
 import struct
 import time
+from datetime import datetime
+import logging as logger
+import websockets
 from dhanhq import marketfeed, DhanFeed
 from dhanhq.marketfeed import DhanSDKHelper
-import websockets
-from .models import MarketDepthData, MarketQuoteData, MarketTickerData
+
+from dataclass import MarketDepthData, MarketQuoteData, MarketTickerData
 from .constants import DHAN_INSTRUMENTS
-from datetime import datetime
-from api import logger
 
 
 class MarketFeed(DhanFeed):

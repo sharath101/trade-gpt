@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from api import logger
+import logging as logger
 import requests
+
 from utils import scheduler
 from database import MarketHolidays
 from .misc import backup_current_day, delete_old_data

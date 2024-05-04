@@ -1,7 +1,6 @@
 import csv
 import os
 from datetime import datetime
-
 from talipp.ohlcv import OHLCV
 
 from order_manager import OrderManager

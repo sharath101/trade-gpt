@@ -26,3 +26,17 @@ class RedisManager:
         except Exception as e:
             logger.error(f"Error getting value from redis: {e}")
             raise (RuntimeError, f"Error getting value from redis: {e}")
+
+
+class BacktestRedis:
+    def __init__(self):
+        self._redis_dict = {}
+
+    def get(self, key):
+        try:
+            return self._redis_dict[key]
+        except KeyError:
+            return None
+
+    def set(self, key, value):
+        self._redis_dict[key] = value

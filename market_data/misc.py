@@ -1,12 +1,13 @@
-from datetime import datetime, timedelta
 import os
+import pickle
+import logging as logger
+from datetime import datetime, timedelta
 
-from api import app, logger
-from .candles import CandleManager
-from .models import MarketQuoteData
+from api import app
+from dataclass import MarketQuoteData
 from utils import redis_instance
 from database import Symbol
-import pickle
+from .candles import CandleManager
 
 
 async def analyser(data: MarketQuoteData) -> None:

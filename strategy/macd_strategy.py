@@ -1,23 +1,16 @@
-from talipp.indicators import MACD
-from talipp.ohlcv import OHLCV
-
-from order_manager import Order
-from strategy import Strategy
+from dataclass import Order
+from baseclasses import Strategy
 from utils import adjust_perc
 
 
 class MACDStrategy(Strategy):
     def __init__(self):
         super().__init__()
-        self.technical_indicators = MACD(12, 26, 9)
         pass
 
-    def analyse(self, candle: OHLCV) -> tuple[Order | None, float]:
-        self.candles.append(candle)
+    def analyse(self, current_price: float) -> tuple[Order | None, float]:
 
-        self.technical_indicators.add(candle.close)
         order = None
-
         if self.technical_indicators[-1] is None:
             return None, 0
         if self.technical_indicators[-2] is None:
@@ -47,11 +40,11 @@ class MACDStrategy(Strategy):
                 order = Order(
                     symbol="idk",
                     quantity=1,
-                    price=candle.close,
+                    price=current_price,
                     transaction_type="BUY",
-                    trigger_price=candle.close,
-                    bo_takeprofit=adjust_perc(candle.close, 2),
-                    bo_stoploss=adjust_perc(candle.close, -0.25),
+                    trigger_price=current_price,
+                    bo_takeprofit=adjust_perc(current_price, 2),
+                    bo_stoploss=adjust_perc(current_price, -0.25),
                 )
 
         elif (
@@ -70,11 +63,11 @@ class MACDStrategy(Strategy):
                 order = Order(
                     symbol="idk",
                     quantity=1,
-                    price=candle.close,
+                    price=current_price,
                     transaction_type="SELL",
-                    trigger_price=candle.close,
-                    bo_takeprofit=adjust_perc(candle.close, -2),
-                    bo_stoploss=adjust_perc(candle.close, 0.25),
+                    trigger_price=current_price,
+                    bo_takeprofit=adjust_perc(current_price, -2),
+                    bo_stoploss=adjust_perc(current_price, 0.25),
                 )
         if order:
             return order, 1

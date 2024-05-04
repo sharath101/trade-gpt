@@ -1,17 +1,18 @@
 import logging
 from datetime import datetime, timedelta
-
 from flask import jsonify, request
+import logging as logger
 
-from api import app, logger
-from backtesting import BackTester
+from api import app
 from database import APIKey, Symbol, DhanOrderBook
-from database.order_book import OrderBook
-from market_data import marketDataQuote, marketFeedQuote
-from market_data.constants import DHAN_INSTRUMENTS
-from market_data.schedule import schedule_until_sunday
+from market_data import (
+    marketDataQuote,
+    marketFeedQuote,
+    DHAN_INSTRUMENTS,
+    schedule_until_sunday,
+)
+from backtesting import BackTester
 from .misc import get_access_token
-from brokers import DhanBroker
 
 
 def secure_route(route):

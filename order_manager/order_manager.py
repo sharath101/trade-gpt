@@ -1,29 +1,31 @@
-from datetime import time
+from datetime import time, datetime
 from secrets import token_hex
 from typing import Dict, List
+import logging as logger
 
-from api import logger
 from brokers import VirtualBroker
-from brokers.broker import Broker
-from database.order_book import OrderBook
-from strategy import EngulfingStrategy, MACDStrategy, Strategy, StrategyManager
-from .models import Order, Stats
+from baseclasses import Broker
+from database import OrderBook
+from strategy import StrategyManager
+from strategy import EngulfingStrategy, MACDStrategy, Strategy
+from dataclass import Order
 
 
 class OrderManager:
     """The OrderManager class is responsible for managing the orders for different symbols,
     across different brokers. Simulated P&L will ba calculated in VirtualBroker"""
 
-    def __init__(self, symbols, candle_interval, balance=20000, backtesting=False):
+    def __init__(self, symbols, balance=20000, backtesting=False):
         """Initializes the OrderManager with the given symbols and candle interval.
         Different symbols can have different strategies. This will be initialized here.
         """
 
         self.symbols: Dict[str, StrategyManager] = {}
         strategies: List[Strategy] = [MACDStrategy()]
+        symbol_balance = balance
         for symbol in symbols:
             self.symbols[symbol] = StrategyManager(
-                symbol, candle_interval, strategies, backtesting
+                symbol, strategies, symbol_balance, backtesting
             )
         self.backtesting = backtesting
         if backtesting:
@@ -31,13 +33,15 @@ class OrderManager:
 
         self.brokers: List[Broker] = [VirtualBroker(self, balance)]
 
-    def next(self, current_price: float, timestamp: time):
+    def next(self, symbol: str, current_price: float, timestamp: datetime, volume: int):
         """This method is called for each new data point on each symbol.
         It runs the strategies for each symbol"""
 
         assert self.one_position_per_symbol()
-        for symbol in self.symbols:
-            order: Order = self.symbols[symbol].run_strategies(current_price)
+        if symbol in self.symbols:
+            order: Order = self.symbols[symbol].run_strategies(
+                symbol, current_price, timestamp, volume
+            )
             if order is not None:
                 order.symbol = symbol
                 order.exchange = "NSE_EQ"

@@ -1,10 +1,8 @@
 from abc import abstractmethod
 from typing import List, Literal
-
 from talipp.ohlcv import OHLCV
 
-from order_manager import Order
-from utils import redis_instance
+from dataclass import Order
 
 
 class Strategy:

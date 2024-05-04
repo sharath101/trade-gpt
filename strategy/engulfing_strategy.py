@@ -1,7 +1,5 @@
-from talipp.ohlcv import OHLCV
-
-from order_manager.models import Order
-from strategy import Strategy
+from dataclass import Order
+from baseclasses import Strategy
 from utils import adjust_perc
 
 
@@ -9,7 +7,7 @@ class EngulfingStrategy(Strategy):
     def __init__(self):
         super().__init__()
 
-    def analyse(self, candle: OHLCV) -> tuple[Order | None, float]:
+    def analyse(self, candle: float) -> tuple[Order | None, float]:
         self.candles.append(candle)
         candles = self.candles
 
