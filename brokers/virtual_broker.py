@@ -1,10 +1,10 @@
 import logging as logger
 from database import OrderBook, VirtualOrderBook
-from baseclasses import Broker
+from baseclasses import Broker, OrderManager as OMBase
 
 
 class VirtualBroker(Broker):
-    def __init__(self, order_manager, balance: float = 20000):
+    def __init__(self, order_manager: OMBase, balance: float = 20000):
         self.order_manager = order_manager
         self.balance = balance
 
@@ -82,14 +82,14 @@ class VirtualBroker(Broker):
                     if order.price <= order.price:
                         order.order_status = "TRADED"
                         self._change_order_status(order, "TRADED")
-                        if order.position_status == "OPEN":
-                            pass
-                        else:
-                            self.balance += (
-                                self._get_margin(order)
-                                - self._calculate_brokerage(order)
-                                + self._get_profit(self._get_order_book(order))
-                            )
+                if self._get_order_book(order).position_status == "OPEN":
+                    pass
+                else:
+                    self.balance += (
+                        self._get_margin(order)
+                        - self._calculate_brokerage(order)
+                        + self._get_profit(self._get_order_book(order))
+                    )
             VirtualOrderBook.save_all(virtual_orders)
 
         except Exception as e:

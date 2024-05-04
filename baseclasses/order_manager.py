@@ -14,7 +14,7 @@ class OrderManager:
         pass
 
     @property
-    def open_positions(self):
+    def open_positions(self) -> List[OrderBook]:
         pass
 
     @open_positions.setter

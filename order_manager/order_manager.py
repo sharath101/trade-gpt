@@ -9,9 +9,10 @@ from database import OrderBook
 from strategy import StrategyManager
 from strategy import EngulfingStrategy, MACDStrategy, Strategy
 from dataclass import Order
+from baseclasses import OrderManager as OMBase
 
 
-class OrderManager:
+class OrderManager(OMBase):
     """The OrderManager class is responsible for managing the orders for different symbols,
     across different brokers. Simulated P&L will ba calculated in VirtualBroker"""
 
@@ -50,14 +51,14 @@ class OrderManager:
         self.analyse(current_price, timestamp)
 
     @property
-    def open_positions(self):
+    def open_positions(self) -> List[OrderBook]:
         if self.backtesting:
             return self._open_positions
         else:
             return OrderBook.filter(position_status="OPEN")
 
     @open_positions.setter
-    def open_positions(self, value: List[OrderBook] | OrderBook):
+    def open_positions(self, value: List[OrderBook] | OrderBook) -> None:
         if type(value) == OrderBook:
             if self.backtesting:
                 if value.position_status == "OPEN":
