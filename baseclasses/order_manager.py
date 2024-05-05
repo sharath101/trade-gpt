@@ -6,6 +6,7 @@ from dataclass import Order
 
 
 class OrderManager:
+    backtesting: bool = False
 
     def __init__(self):
         pass
@@ -19,6 +20,14 @@ class OrderManager:
 
     @open_positions.setter
     def open_positions(self, value: List[OrderBook] | OrderBook):
+        pass
+
+    @property
+    def closing_positions(self) -> List[OrderBook]:
+        pass
+
+    @property
+    def all_positions(self) -> List[OrderBook]:
         pass
 
     def place_order(self, order: Order):

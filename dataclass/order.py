@@ -15,22 +15,5 @@ class Order:
     product_type: str = "INTRADAY"
     exchange: str = "NSE_EQ"
 
-    def __post_init__(self):
-        if self.bo_stoploss and self.bo_takeprofit:
-            self.product_type = "BO"
-            self.order_type = "STOP_LOSS_MARKET"
-        elif self.bo_stoploss and not self.bo_takeprofit:
-            self.product_type = "CO"
-            self.order_type = "STOP_LOSS_MARKET"
-        elif self.bo_takeprofit and not self.bo_stoploss:
-            self.product_type = "BO"
-            self.order_type = "STOP_LOSS_MARKET"
-            self.bo_stoploss_val = self.price * 0.01
-
-        if self.transaction_type == "BUY" and not self.trigger_price:
-            self.trigger_price = self.price * 0.99
-        elif self.transaction_type == "SELL" and not self.trigger_price:
-            self.trigger_price = self.price * 1.01
-
     def __repr__(self):
         return f"Order(transaction_type={self.transaction_type}, symbol={self.symbol}, amount={self.quantity*self.price})"

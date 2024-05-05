@@ -53,9 +53,12 @@ class OrderBook(db.Model):
     ] = db.Column(db.String(100), nullable=False, default="PENDING")
 
     # Position Status (OPEN CLOSED)
-    position_status: Literal["OPEN", "CLOSE"] = db.Column(
+    position_status: Literal["OPENNIG", "OPEN", "CLOSE", "CLOSING"] = db.Column(
         db.String(100), nullable=True, default="OPEN"
     )
+
+    # Position Action (OPEN CLOSE)
+    position_action: Literal["OPEN", "CLOSE"] = db.Column(db.String(100), nullable=True)
 
     # Bracket order profit value
     bo_takeprofit: float = db.Column(db.Float, nullable=True)

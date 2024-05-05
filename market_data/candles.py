@@ -1,9 +1,9 @@
-import logging as logger
-
 from datetime import datetime, timedelta
 from talipp.ohlcv import OHLCV
+
 from .indicators import IndicatorManager
 from utils import redis_instance
+from api import logger
 
 
 class CandleManager:

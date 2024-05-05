@@ -1,8 +1,8 @@
 from secrets import token_hex
 from typing import List
 from dhanhq import dhanhq
-import logging as logger
 
+from api import logger
 from database import APIKey, OrderBook, DhanOrderBook
 from market_data import DHAN_INSTRUMENTS
 from baseclasses import Broker
@@ -58,25 +58,32 @@ class DhanBroker(Broker):
         except Exception as e:
             logger.error(f"Error in cancel_order: {e}")
 
-    def calculate_brokerage(self, order: OrderBook) -> float:
+    @staticmethod
+    def calculate_brokerage(order: OrderBook) -> float:
         """Calculates the brokerage charges for the given order.
         This is only valid for Intraday trades on NSE_EQ."""
-
         try:
-            amount_buy = order.quantity * order.buy_price
-            amount_sell = order.quantity * order.sell_price
-            turnover = amount_buy + amount_sell
-            brokerage_buy = min(round((0.0003 * amount_buy), 2), 20)
-            brokerage_sell = min(round((0.0003 * amount_sell), 2), 20)
-            brokerage = brokerage_buy + brokerage_sell
-            nse_fee = round((0.0000322 * turnover), 2)
-            sebi_charges = round((0.000001 * turnover), 2)
-            stt = round((0.00025 * amount_sell), 2)
-            stamp_duty = round((0.00003 * amount_buy), 2)
-            gst = round((0.18 * (brokerage + nse_fee + sebi_charges)), 2)
-            return brokerage + nse_fee + sebi_charges + stt + stamp_duty + gst
+            if order.transaction_type == "BUY":
+                amount_buy = order.quantity * order.price
+                turnover = amount_buy
+                brokerage_buy = min(round((0.0003 * amount_buy), 2), 20)
+                nse_fee = round((0.0000322 * turnover), 2)
+                sebi_charges = round((0.000001 * turnover), 2)
+                stamp_duty = round((0.00003 * amount_buy), 2)
+                gst = round((0.18 * (brokerage_buy + nse_fee + sebi_charges)), 2)
+                return brokerage_buy + nse_fee + sebi_charges + stamp_duty + gst
+
+            elif order.transaction_type == "SELL":
+                amount_sell = order.quantity * order.sell_price
+                turnover = amount_sell
+                brokerage_sell = min(round((0.0003 * amount_sell), 2), 20)
+                nse_fee = round((0.0000322 * turnover), 2)
+                sebi_charges = round((0.000001 * turnover), 2)
+                stt = round((0.00025 * amount_sell), 2)
+                gst = round((0.18 * (brokerage_sell + nse_fee + sebi_charges)), 2)
+                return brokerage_sell + nse_fee + sebi_charges + stt + gst
         except Exception as e:
-            logger.error(f"Error in calculate_brokerage: {e}")
+            logger.warning(f"Error in calculate_brokerage: {e}")
             return 0
 
     def close_all_position(self, symbol: str) -> None:

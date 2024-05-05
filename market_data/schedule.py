@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
-import logging as logger
 import requests
 
 from utils import scheduler
 from database import MarketHolidays
 from .misc import backup_current_day, delete_old_data
+from api import logger
 
 
 def schedule_until_sunday() -> None:

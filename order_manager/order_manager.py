@@ -1,7 +1,6 @@
 from datetime import time, datetime
 from secrets import token_hex
 from typing import Dict, List
-import logging as logger
 
 from brokers import VirtualBroker
 from baseclasses import Broker
@@ -10,6 +9,7 @@ from strategy import StrategyManager
 from strategy import EngulfingStrategy, MACDStrategy, Strategy
 from dataclass import Order
 from baseclasses import OrderManager as OMBase
+from api import logger
 
 
 class OrderManager(OMBase):
@@ -26,7 +26,7 @@ class OrderManager(OMBase):
         symbol_balance = balance
         for symbol in symbols:
             self.symbols[symbol] = StrategyManager(
-                symbol, strategies, symbol_balance, backtesting
+                symbol, symbol_balance, strategies, backtesting
             )
         self.backtesting = backtesting
         if backtesting:
@@ -52,17 +52,27 @@ class OrderManager(OMBase):
 
     @property
     def open_positions(self) -> List[OrderBook]:
+        open_positions = []
         if self.backtesting:
-            return self._open_positions
+            all_positions = self._open_positions
         else:
-            return OrderBook.filter(position_status="OPEN")
+            all_positions = OrderBook.get_all()
+        for position in all_positions:
+            if (
+                position.position_status != "CLOSE"
+                and position.position_action == "OPEN"
+            ):
+
+                """Condition to filter active orders intended to open a position"""
+
+                open_positions.append(position)
+        return open_positions
 
     @open_positions.setter
     def open_positions(self, value: List[OrderBook] | OrderBook) -> None:
         if type(value) == OrderBook:
             if self.backtesting:
-                if value.position_status == "OPEN":
-                    self._open_positions.append(value)
+                self._open_positions.append(value)
             else:
                 value.save()
 
@@ -70,10 +80,42 @@ class OrderManager(OMBase):
             if self.backtesting:
                 self._open_positions = []
                 for order in value:
-                    if order.position_status == "OPEN":
-                        self._open_positions.append(order)
+                    self._open_positions.append(order)
             else:
                 OrderBook.save_all(value)
+
+    @property
+    def closing_positions(self):
+        closing_positions = []
+        if self.backtesting:
+            all_positions = self._open_positions
+        else:
+            all_positions = OrderBook.get_all()
+        for position in all_positions:
+            if (
+                position.position_status == "CLOSING"
+                and position.position_action == "CLOSE"
+            ):
+
+                """Condition to filter active orders intended to close a position"""
+
+                closing_positions.append(position)
+        return closing_positions
+
+    @property
+    def all_positions(self) -> List[OrderBook]:
+        open_positions = []
+        if self.backtesting:
+            all_positions = self._open_positions
+        else:
+            all_positions = OrderBook.get_all()
+        for position in all_positions:
+            if position.position_status != "CLOSE":
+
+                """Condition to filter active orders"""
+
+                open_positions.append(position)
+        return open_positions
 
     def place_order(self, order: Order):
         tag = token_hex(9)
@@ -88,30 +130,33 @@ class OrderManager(OMBase):
             order_type=order.order_type or "LIMIT",
             product_type=order.product_type or "INTRADAY",
             order_status="TRANSIT",
-            position_status="OPEN",
+            position_status="OPENING",
+            position_action="OPEN",
             bo_takeprofit=order.bo_takeprofit,
             bo_stoploss=order.bo_stoploss,
             buy_price=order.price if order.transaction_type == "BUY" else None,
             sell_price=None if order.transaction_type == "BUY" else order.price,
         )
 
+        # List of open positions for the symbol (OPENING, OPEN, CLOSING)
         symbol_orders = [
             position
             for position in self.open_positions
             if position.symbol == order.symbol
         ]
+
         assert len(symbol_orders) <= 1
         if len(symbol_orders) == 0:
-            self.open_positions = order
             for broker in self.brokers:
                 broker.place_order(order)
+            self.open_positions = order
         elif order.transaction_type != symbol_orders[0].transaction_type:
             self.close_position(symbol_orders[0], order.price)
 
-    def analyse(self, current_price: float, current_time: time):
+    def analyse(self, current_price: float, current_time: datetime):
         open_positions: List[OrderBook] = self.open_positions
         market_closing_threshold = time(15, 20, 0)
-        if current_time > market_closing_threshold:
+        if current_time.time() > market_closing_threshold:
             self.close_all_positions(open_positions, current_price)
             self.open_positions = open_positions
             return
@@ -123,16 +168,59 @@ class OrderManager(OMBase):
 
     def close_all_positions(self, open_positions: List[OrderBook], current_price):
         for position in open_positions:
-            self.close_position(position, current_price)
+            self.close_position(position, current_price, immediate=True)
 
-    def close_position(self, position: OrderBook, closing_price: float):
-        self.symbols[position.symbol].closed()
-        position.position_status = "CLOSED"
+    def close_position(
+        self, position: OrderBook, closing_price: float, immediate: bool = False
+    ):
 
-        if position.order_status != "TRADED":
-            position.order_status = "CANCELLED"
-            position.position_status = "CLOSED"
+        if position.position_status == "CLOSING":
+            """This implies that the position is already in closing state, so no need to close again.
+            An order is already placed with correlation_id suffix of _close to close this position,
+            so it will be closed automatically when the order is executed. The analyse method will
+            update the position status to CLOSED when that order is executed."""
             return
+
+        self.symbols[position.symbol].closing()
+        position.position_status = "CLOSING"
+
+        if position.order_status == "TRANSIT" or position.order_status == "PENDING":
+            """This imples that the order is not yet traded, so we will cancel the order.
+            The position status at this point must be OPENING, we will update it to CLOSED"""
+
+            try:
+                assert position.position_status == "OPENING"
+            except AssertionError:
+                logger.warning(
+                    f"Position status is not OPENING for position {position.correlation_id}"
+                )
+
+            for broker in self.brokers:
+                broker.cancel_order(position)
+
+            """Note: Currently, not checking if the order
+            was successfully cancelled by broker"""
+
+            position.order_status = "CANCELLED"
+            position.position_status = "CLOSE"
+            self.symbols[position.symbol].closed()
+            return
+
+        elif position.order_status != "TRADED":
+            """If position is not traded, then it is either EXPIRED, REJECTED,
+            CANCELLED, because previously we checked for TRANSIT and PENDING status,
+            in all the above cases, the position status must be CLOSE. This should be
+            implemented in analyse method, but just to be sure, we are updating again."""
+
+            position.position_status = "CLOSE"
+            self.symbols[position.symbol].closed()
+            return
+        
+
+        """ If the position is traded, we will close the order by placing a new order
+        of opposite transaction type. If the immediate flag is set, then the order
+        will be placed as MARKET order, otherwise it will be placed as LIMIT order
+        at requested price."""
 
         if position.transaction_type == "BUY":
             position.sell_price = closing_price
@@ -147,9 +235,10 @@ class OrderManager(OMBase):
             price=closing_price,
             trigger_price=0,
             transaction_type=("SELL" if position.transaction_type == "BUY" else "BUY"),
-            order_type="LIMIT",
+            order_type="LIMIT" if not immediate else "MARKET",
             product_type="INTRADAY",
-            position_status="CLOSED",
+            position_status="CLOSING",
+            position_action="CLOSE",
             buy_price=(
                 position.buy_price
                 if position.transaction_type == "BUY"
@@ -164,6 +253,8 @@ class OrderManager(OMBase):
         for broker in self.brokers:
             broker.place_order(new_order)
 
+        self.open_positions = new_order
+
     def one_position_per_symbol(self):
         symbol_set = set()
         for position in self.open_positions:
@@ -171,3 +262,6 @@ class OrderManager(OMBase):
                 return False
             symbol_set.add(position.symbol)
         return True
+
+
+

@@ -13,10 +13,10 @@ class VirtualOrderBook(db.Model):
     correlation_id: str = db.Column(db.String(25), nullable=False)
 
     # Client ID from the client
-    client_id: str = db.Column(db.String(100), nullable=False)
+    client_id: str = db.Column(db.String(100), nullable=True)
 
     # Order ID from the broker
-    order_id: str = db.Column(db.String(100), nullable=False)
+    order_id: str = db.Column(db.String(100), nullable=True)
 
     # Symbol of the stock
     symbol: str = db.Column(db.String(20), nullable=False)

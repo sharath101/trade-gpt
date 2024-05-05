@@ -1,6 +1,7 @@
 from dataclass import Order
 from baseclasses import Strategy
-from utils import adjust_perc
+from utils import adjust_perc, redis_instance, redis_instance_backtest
+from api import logger
 
 
 class MACDStrategy(Strategy):
@@ -10,33 +11,34 @@ class MACDStrategy(Strategy):
 
     def analyse(self, current_price: float) -> tuple[Order | None, float]:
 
+        all_candles = self.all_candles(5)
+
         order = None
-        if self.technical_indicators[-1] is None:
+        if len(all_candles) < 5:
             return None, 0
-        if self.technical_indicators[-2] is None:
+        if all_candles[-1]["MACD"] is None:
             return None, 0
-        if self.technical_indicators[-3] is None:
+        if all_candles[-2]["MACD"] is None:
             return None, 0
-        if self.technical_indicators[-4] is None:
+        if all_candles[-3]["MACD"] is None:
             return None, 0
-        if self.technical_indicators[-1].macd is None:
+        if all_candles[-4]["MACD"] is None:
             return None, 0
-        if self.technical_indicators[-2].signal is None:
+        if all_candles[-1]["MACD"].macd is None:
+            return None, 0
+        if all_candles[-1]["MACD"].signal is None:
             return None, 0
         if (
-            self.technical_indicators[-1].macd > 0
+            all_candles[-1]["MACD"].macd > 0
             and min(
-                self.technical_indicators[-4].macd,
-                self.technical_indicators[-3].macd,
-                self.technical_indicators[-2].macd,
+                all_candles[-4]["MACD"].macd,
+                all_candles[-3]["MACD"].macd,
+                all_candles[-2]["MACD"].macd,
             )
             < 0
         ):
 
-            if (
-                self.technical_indicators[-1].macd
-                > self.technical_indicators[-1].signal
-            ):
+            if all_candles[-1]["MACD"].macd > all_candles[-1]["MACD"].signal:
                 order = Order(
                     symbol="idk",
                     quantity=1,
@@ -48,18 +50,15 @@ class MACDStrategy(Strategy):
                 )
 
         elif (
-            self.technical_indicators[-1].macd < 0
+            all_candles[-1]["MACD"].macd < 0
             and max(
-                self.technical_indicators[-4].macd,
-                self.technical_indicators[-3].macd,
-                self.technical_indicators[-2].macd,
+                all_candles[-4]["MACD"].macd,
+                all_candles[-3]["MACD"].macd,
+                all_candles[-2]["MACD"].macd,
             )
             > 0
         ):
-            if (
-                self.technical_indicators[-1].macd
-                < self.technical_indicators[-1].signal
-            ):
+            if all_candles[-1]["MACD"].macd < all_candles[-1]["MACD"].signal:
                 order = Order(
                     symbol="idk",
                     quantity=1,

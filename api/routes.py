@@ -1,9 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 from flask import jsonify, request
-import logging as logger
 
-from api import app
+from api import app, logger
 from database import APIKey, Symbol, DhanOrderBook
 from market_data import (
     marketDataQuote,

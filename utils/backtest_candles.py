@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, time
 from talipp.ohlcv import OHLCV
-import logging as logger
 
 from market_data.indicators import IndicatorManager
 from utils import redis_instance_backtest as redis_instance
+from api import logger
 
 
 class BacktestCandleManager:

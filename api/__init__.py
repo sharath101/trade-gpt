@@ -1,12 +1,15 @@
-import logging
-
 from flask import Flask
 import os
+import logging
 
 app = Flask(__name__)
+app.config.from_pyfile("config.py")
+
 logger = app.logger
 logger.setLevel("DEBUG")
-app.config.from_pyfile("config.py")
+handler = logging.FileHandler(app.config["LOG_FILE"])
+logger.addHandler(handler)
+
 
 from baseclasses import *
 from dataclass import *

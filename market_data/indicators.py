@@ -1,6 +1,6 @@
 from talipp.indicators import *
 from talipp.ohlcv import OHLCV
-import logging as logger
+from api import logger
 
 
 class IndicatorManager:
@@ -33,7 +33,7 @@ class IndicatorManager:
             self.KeltnerChannels = KeltnerChannels(10, 10, 10, 10)
             self.KST = KST(10, 10, 10, 10, 10, 10, 10, 10, 10)
             self.KVO = KVO(10, 10)
-            self.MACD = MACD(10, 10, 10)
+            self.MACD = MACD(12, 26, 9)
             self.MassIndex = MassIndex(10, 10, 10)
             self.McGinleyDynamic = McGinleyDynamic(10)
             self.MeanDev = MeanDev(10)
