@@ -49,7 +49,9 @@ class VirtualBroker(Broker):
                 self.balance -= (
                     self.calculate_brokerage(order) + order.quantity * order.price
                 )
-            logger.debug(f"Order placed successfully at {order.price}")
+            logger.debug(
+                f"{order.transaction_type} order placed successfully at {order.price}"
+            )
 
         except Exception as e:
             logger.exception(f"Error in place_order: {e}")
@@ -108,6 +110,10 @@ class VirtualBroker(Broker):
                             order.order_status = "PENDING"
                             self._change_order_status(order, "PENDING")
 
+                else:
+                    order.order_status = "PENDING"
+                    self._change_order_status(order, "PENDING")
+
             VirtualOrderBook.save_all(virtual_orders)
 
             virtual_orders = VirtualOrderBook.filter(order_status="PENDING")
@@ -131,7 +137,8 @@ class VirtualBroker(Broker):
                             self._change_position_status_opener(order, "OPEN")
 
                     elif (
-                        order.transaction_type == "SELL" and order.price >= order.price
+                        order.transaction_type == "SELL"
+                        and order.price >= current_price
                     ):
                         order.order_status = "TRADED"
                         self._change_order_status(order, "TRADED")
@@ -165,6 +172,7 @@ class VirtualBroker(Broker):
                             """Close the position and update the balance"""
                             original_position = self._get_order_book(order)
                             original_position.sell_price = current_price
+                            order.order_status = "LOSS"
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(
@@ -181,6 +189,7 @@ class VirtualBroker(Broker):
                             """Close the position and update the balance"""
                             original_position = self._get_order_book(order)
                             original_position.buy_price = current_price
+                            order.order_status = "LOSS"
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(
@@ -198,6 +207,8 @@ class VirtualBroker(Broker):
                         ):
                             """Close the position and update the balance"""
                             original_position = self._get_order_book(order)
+                            original_position.sell_price = current_price
+                            order.order_status = "WIN"
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -211,6 +222,8 @@ class VirtualBroker(Broker):
                         ):
                             """Close the position and update the balance"""
                             original_position = self._get_order_book(order)
+                            original_position.buy_price = current_price
+                            order.order_status = "WIN"
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -245,7 +258,7 @@ class VirtualBroker(Broker):
         all_positions = self.order_manager.all_positions
         for orders in all_positions:
             if orders.correlation_id == order.correlation_id:
-                orders.order_status = status
+                orders.position_status = status
                 if self.order_manager.backtesting:
                     break
                 orders.save()
@@ -263,7 +276,7 @@ class VirtualBroker(Broker):
                 orders.correlation_id == order.correlation_id.split("_close")[0]
             ):  # This filter makes sure that we are changing the status of the original order
 
-                orders.order_status = status
+                orders.position_status = status
                 if self.order_manager.backtesting:
                     break
                 orders.save()

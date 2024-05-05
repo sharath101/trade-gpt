@@ -50,7 +50,14 @@ class VirtualOrderBook(db.Model):
 
     # Order status (TRANSIT PENDING REJECTED CANCELLED TRADED EXPIRED)
     order_status: Literal[
-        "TRANSIT", "PENDING", "REJECTED", "CANCELLED", "TRADED", "EXPIRED"
+        "TRANSIT",
+        "PENDING",
+        "REJECTED",
+        "CANCELLED",
+        "TRADED",
+        "EXPIRED",
+        "WIN",
+        "LOSS",
     ] = db.Column(db.String(9), nullable=False, default="TRANSIT")
 
     # Order created timestamp
