@@ -38,15 +38,19 @@ class OrderManager(OMBase):
         """This method is called for each new data point on each symbol.
         It runs the strategies for each symbol"""
 
-        assert self.one_position_per_symbol()
-        if symbol in self.symbols:
-            order: Order = self.symbols[symbol].run_strategies(
-                symbol, current_price, timestamp, volume
-            )
-            if order is not None:
-                order.symbol = symbol
-                order.exchange = "NSE_EQ"
-                self.place_order(order)
+        market_closing_threshold = time(15, 15, 0)
+        if timestamp.time() < market_closing_threshold:
+            """Market is open, so we will run the strategies for each symbol"""
+
+            assert self.one_position_per_symbol()
+            if symbol in self.symbols:
+                order: Order = self.symbols[symbol].run_strategies(
+                    symbol, current_price, timestamp, volume
+                )
+                if order is not None:
+                    order.symbol = symbol
+                    order.exchange = "NSE_EQ"
+                    self.place_order(order)
 
         self.analyse(current_price, timestamp)
 
@@ -188,8 +192,7 @@ class OrderManager(OMBase):
             update the position status to CLOSED when that order is executed."""
             return
 
-        self.symbols[position.symbol].closing()
-        position.position_status = "CLOSING"
+       
 
         if position.order_status == "TRANSIT" or position.order_status == "PENDING":
             """This imples that the order is not yet traded, so we will cancel the order.
@@ -223,7 +226,9 @@ class OrderManager(OMBase):
             self.symbols[position.symbol].closed()
             return
         
-
+        self.symbols[position.symbol].closing()
+        position.position_status = "CLOSING"
+        
         """ If the position is traded, we will close the order by placing a new order
         of opposite transaction type. If the immediate flag is set, then the order
         will be placed as MARKET order, otherwise it will be placed as LIMIT order

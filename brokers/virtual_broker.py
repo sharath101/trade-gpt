@@ -103,7 +103,7 @@ class VirtualBroker(Broker):
                             order.order_status = "PENDING"
                             self._change_order_status(order, "PENDING")
                     elif order.transaction_type == "SELL":
-                        if order.trigger_price >= order.price:
+                        if order.trigger_price >= current_price:
                             order.order_status = "PENDING"
                             self._change_order_status(order, "PENDING")
 
@@ -119,7 +119,7 @@ class VirtualBroker(Broker):
 
                     """The followwing code is to check if order is traded or not."""
 
-                    if order.transaction_type == "BUY" and order.price <= current_price:
+                    if order.transaction_type == "BUY" and current_price <= order.price:
                         order.order_status = "TRADED"
                         self._change_order_status(order, "TRADED")
                         if "_close" in order.correlation_id:
@@ -141,7 +141,7 @@ class VirtualBroker(Broker):
 
                     elif (
                         order.transaction_type == "SELL"
-                        and order.price >= current_price
+                        and current_price >= order.price
                     ):
                         order.order_status = "TRADED"
                         self._change_order_status(order, "TRADED")
