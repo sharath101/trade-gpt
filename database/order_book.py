@@ -1,5 +1,5 @@
 from typing import List, Literal
-
+from datetime import datetime
 from api import app, logger
 from database import db
 
@@ -59,6 +59,11 @@ class OrderBook(db.Model):
 
     # Position Action (OPEN CLOSE)
     position_action: Literal["OPEN", "CLOSE"] = db.Column(db.String(100), nullable=True)
+
+    # Order Creation time
+    order_created: datetime = db.Column(
+        db.DateTime, nullable=False, default=datetime.now()
+    )
 
     # Bracket order profit value
     bo_takeprofit: float = db.Column(db.Float, nullable=True)

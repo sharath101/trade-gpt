@@ -58,6 +58,7 @@ class VirtualOrderBook(db.Model):
         "EXPIRED",
         "WIN",
         "LOSS",
+        "CLOSED",
     ] = db.Column(db.String(9), nullable=False, default="TRANSIT")
 
     # Order created timestamp
@@ -158,4 +159,5 @@ class VirtualOrderBook(db.Model):
             product_type=order.product_type,
             bo_takeprofit=order.bo_takeprofit,
             bo_stoploss=order.bo_stoploss,
+            order_created=order.order_created,
         )

@@ -72,7 +72,13 @@ class OrderManager(OMBase):
     def open_positions(self, value: List[OrderBook] | OrderBook) -> None:
         if type(value) == OrderBook:
             if self.backtesting:
-                self._open_positions.append(value)
+                for order in self._open_positions:
+                    if order.correlation_id == value.correlation_id:
+                        self._open_positions.remove(order)
+                        self._open_positions.append(value)
+                        break
+                else:
+                    self._open_positions.append(value)
             else:
                 value.save()
 
@@ -119,7 +125,7 @@ class OrderManager(OMBase):
 
     def place_order(self, order: Order):
         tag = token_hex(9)
-        order = OrderBook(
+        order: OrderBook = OrderBook(
             correlation_id=tag,
             symbol=order.symbol,
             exchange=order.exchange or "NSE_EQ",
@@ -132,6 +138,7 @@ class OrderManager(OMBase):
             order_status="TRANSIT",
             position_status="OPENING",
             position_action="OPEN",
+            order_created=order.timestamp,
             bo_takeprofit=order.bo_takeprofit,
             bo_stoploss=order.bo_stoploss,
             buy_price=order.price if order.transaction_type == "BUY" else None,
@@ -151,27 +158,27 @@ class OrderManager(OMBase):
                 broker.place_order(order)
             self.open_positions = order
         elif order.transaction_type != symbol_orders[0].transaction_type:
-            self.close_position(symbol_orders[0], order.price)
+            self.close_position(symbol_orders[0], order.price, order.order_created)
 
     def analyse(self, current_price: float, current_time: datetime):
         open_positions: List[OrderBook] = self.open_positions
         market_closing_threshold = time(15, 20, 0)
         if current_time.time() > market_closing_threshold:
-            self.close_all_positions(open_positions, current_price)
+            self.close_all_positions(open_positions, current_price, current_time)
             self.open_positions = open_positions
             return
 
         if self.backtesting:
             for broker in self.brokers:
                 if broker.__class__.__name__ == "VirtualBroker":
-                    broker.analyse(current_price)
+                    broker.analyse(current_price, current_time)
 
-    def close_all_positions(self, open_positions: List[OrderBook], current_price):
+    def close_all_positions(self, open_positions: List[OrderBook], current_price, current_time):
         for position in open_positions:
-            self.close_position(position, current_price, immediate=True)
+            self.close_position(position, current_price, current_time, immediate=True)
 
     def close_position(
-        self, position: OrderBook, closing_price: float, immediate: bool = False
+        self, position: OrderBook, closing_price: float, current_time: datetime,immediate: bool = False
     ):
 
         if position.position_status == "CLOSING":
@@ -239,6 +246,7 @@ class OrderManager(OMBase):
             product_type="INTRADAY",
             position_status="CLOSING",
             position_action="CLOSE",
+            order_created=current_time,
             buy_price=(
                 position.buy_price
                 if position.transaction_type == "BUY"

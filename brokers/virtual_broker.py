@@ -1,4 +1,5 @@
 from typing import List
+from datetime import datetime
 from database import OrderBook, VirtualOrderBook
 from baseclasses import Broker, OrderManager as OMBase
 from api import logger
@@ -45,12 +46,8 @@ class VirtualBroker(Broker):
                     virtual_order
                 ) + self.calculate_brokerage(virtual_order)
 
-            if order.position_status == "OPEN" and order.product_type == "CNC":
-                self.balance -= (
-                    self.calculate_brokerage(order) + order.quantity * order.price
-                )
             logger.debug(
-                f"{order.transaction_type} order placed successfully at {order.price}"
+                f"{virtual_order.transaction_type} order placed at cost {virtual_order.price} at time {virtual_order.order_created}"
             )
 
         except Exception as e:
@@ -92,7 +89,7 @@ class VirtualBroker(Broker):
         except Exception as e:
             logger.error(f"Error in cancel_order: {e}")
 
-    def analyse(self, current_price: float) -> None:
+    def analyse(self, current_price: float, current_time: datetime) -> None:
         """The first section of the code will check order status of all the orders
         having product type as INTRADAY and CNC. The BO and CO order execution will be
         implemented later."""
@@ -131,6 +128,12 @@ class VirtualBroker(Broker):
                                 - self.calculate_brokerage(order)
                                 + self._get_profit(self._get_order_book(order))
                             )
+                            order.order_status = "CLOSED"
+                            order_opener = VirtualOrderBook.get_first(
+                                correlation_id=order.correlation_id.split("_close")[0]
+                            )
+                            order_opener.order_status = "CLOSED"
+                            order_opener.save()
                             self._change_position_status_closer(order, "CLOSE")
                             self._change_position_status_opener(order, "CLOSE")
                         else:
@@ -148,6 +151,12 @@ class VirtualBroker(Broker):
                                 - self.calculate_brokerage(order)
                                 + self._get_profit(self._get_order_book(order))
                             )
+                            order.order_status = "CLOSED"
+                            order_opener = VirtualOrderBook.get_first(
+                                correlation_id=order.correlation_id.split("_close")[0]
+                            )
+                            order_opener.order_status = "CLOSED"
+                            order_opener.save()
                             self._change_position_status_closer(order, "CLOSE")
                             self._change_position_status_opener(order, "CLOSE")
                         else:
@@ -159,10 +168,7 @@ class VirtualBroker(Broker):
 
             virtual_orders = VirtualOrderBook.filter(order_status="TRADED")
             for order in virtual_orders:
-                if (
-                    order.order_status == "TRADED"
-                    and "_close" not in order.correlation_id
-                ):
+                if "_close" not in order.correlation_id:
                     """Check for takeprofit and stoploss conditions"""
                     if order.bo_stoploss:
                         if (
@@ -175,13 +181,14 @@ class VirtualBroker(Broker):
                             order.order_status = "LOSS"
                             self.balance += (
                                 self._get_margin(order)
-                                - self.calculate_brokerage(
-                                    order
-                                )  # This is slightly incorrect
+                                - self.calculate_brokerage(order)
                                 + self._get_profit(original_position)
                             )
                             self._change_sell_price(order, current_price)
                             self._change_position_status_closer(order, "CLOSE")
+                            logger.debug(
+                                f"LOSS in trade as stoploss hit at price {current_price} and time {current_time}"
+                            )
                         elif (
                             order.transaction_type == "SELL"
                             and order.bo_stoploss <= current_price
@@ -192,13 +199,14 @@ class VirtualBroker(Broker):
                             order.order_status = "LOSS"
                             self.balance += (
                                 self._get_margin(order)
-                                - self.calculate_brokerage(
-                                    order
-                                )  # This is slightly incorrect
+                                - self.calculate_brokerage(order)
                                 + self._get_profit(original_position)
                             )
                             self._change_buy_price(order, current_price)
                             self._change_position_status_closer(order, "CLOSE")
+                            logger.debug(
+                                f"LOSS in trade as stoploss hit at price {current_price} and time {current_time}"
+                            )
 
                     if order.bo_takeprofit:
                         if (
@@ -216,6 +224,9 @@ class VirtualBroker(Broker):
                             )
                             self._change_sell_price(order, current_price)
                             self._change_position_status_closer(order, "CLOSE")
+                            logger.debug(
+                                f"WIN in trade as takeprofit hit at price {current_price} and time {current_time}"
+                            )
                         elif (
                             order.transaction_type == "SELL"
                             and order.bo_takeprofit >= current_price
@@ -231,18 +242,23 @@ class VirtualBroker(Broker):
                             )
                             self._change_buy_price(order, current_price)
                             self._change_position_status_closer(order, "CLOSE")
+                            logger.debug(
+                                f"WIN in trade as takeprofit hit at price {current_price} and time {current_time}"
+                            )
 
             VirtualOrderBook.save_all(virtual_orders)
 
         except Exception as e:
             logger.exception(f"Error in analyse: {e}")
 
-    def _change_order_status(self, order: VirtualOrderBook, status: str) -> None:
+    def _change_order_status(
+        self, virtual_order: VirtualOrderBook, status: str
+    ) -> None:
         """This automatically removes all the close positions from the list when backtesting"""
 
         all_positions = self.order_manager.all_positions
         for orders in all_positions:
-            if orders.correlation_id == order.correlation_id:
+            if orders.correlation_id == virtual_order.correlation_id:
                 orders.order_status = status
                 if self.order_manager.backtesting:
                     break

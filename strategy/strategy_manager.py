@@ -59,6 +59,7 @@ class StrategyManager:
                     f"Error running strategy {strategy.__class__.__name__}: {e}"
                 )
         if current_confidence > 0.1:
+            current_order.timestamp = timestamp
             for strategy in self.strategies:
                 strategy.order_status = "TRANSIT"
                 strategy.current_order = current_order
