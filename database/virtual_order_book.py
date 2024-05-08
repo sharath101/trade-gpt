@@ -153,9 +153,7 @@ class VirtualOrderBook(db.Model):
             price=order.price,
             trigger_price=order.trigger_price,
             transaction_type=order.transaction_type,
-            order_type=(
-                "STOP_LOSS_MARKET" if order.product_type in ["BO", "CO"] else "LIMIT"
-            ),
+            order_type=order.order_type,
             product_type=order.product_type,
             bo_takeprofit=order.bo_takeprofit,
             bo_stoploss=order.bo_stoploss,

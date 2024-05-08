@@ -182,7 +182,7 @@ class OrderManager(OMBase):
             self.close_position(position, current_price, current_time, immediate=True)
 
     def close_position(
-        self, position: OrderBook, closing_price: float, current_time: datetime,immediate: bool = False
+        self, position: OrderBook, closing_price: float, current_time: datetime,immediate: bool = True
     ):
 
         if position.position_status == "CLOSING":

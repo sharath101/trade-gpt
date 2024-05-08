@@ -47,7 +47,7 @@ class VirtualBroker(Broker):
                 ) + self.calculate_brokerage(virtual_order)
 
             logger.debug(
-                f"{virtual_order.transaction_type} order placed at cost {virtual_order.price} at time {virtual_order.order_created}"
+                f"{virtual_order.transaction_type}\t {virtual_order.price}\t {virtual_order.order_created}"
             )
 
         except Exception as e:
@@ -115,7 +115,7 @@ class VirtualBroker(Broker):
 
             virtual_orders = VirtualOrderBook.filter(order_status="PENDING")
             for order in virtual_orders:
-                if order.order_status == "PENDING":
+                if order.order_type == "LIMIT":
 
                     """The followwing code is to check if order is traded or not."""
 
@@ -161,6 +161,26 @@ class VirtualBroker(Broker):
                             self._change_position_status_opener(order, "CLOSE")
                         else:
                             self._change_position_status_opener(order, "OPEN")
+
+                elif order.order_type == "MARKET":
+                    order.order_status = "TRADED"
+                    self._change_order_status(order, "TRADED")
+                    if "_close" in order.correlation_id:
+                        self.balance += (
+                            self._get_margin(order)
+                            - self.calculate_brokerage(order)
+                            + self._get_profit(self._get_order_book(order))
+                        )
+                        order.order_status = "CLOSED"
+                        order_opener = VirtualOrderBook.get_first(
+                            correlation_id=order.correlation_id.split("_close")[0]
+                        )
+                        order_opener.order_status = "CLOSED"
+                        order_opener.save()
+                        self._change_position_status_closer(order, "CLOSE")
+                        self._change_position_status_opener(order, "CLOSE")
+                    else:
+                        self._change_position_status_opener(order, "OPEN")
 
             VirtualOrderBook.save_all(virtual_orders)
 
