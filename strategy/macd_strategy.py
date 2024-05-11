@@ -1,7 +1,7 @@
-from dataclass import Order
-from baseclasses import Strategy
-from utils import adjust_perc, redis_instance, redis_instance_backtest
 from api import logger
+from baseclasses import Strategy
+from dataclass import Order
+from utils import adjust_perc
 
 
 class MACDStrategy(Strategy):

@@ -1,30 +1,26 @@
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
+
 from talipp.ohlcv import OHLCV
 
-from .indicators import IndicatorManager
-from utils import redis_instance
 from api import logger
+from utils import redis_instance, redis_instance_backtest
+
+from .indicators import IndicatorManager
 
 
 class CandleManager:
-    def __init__(self, interval_minutes: int):
+    def __init__(self, interval_minutes: int, backtesting=False):
         self.interval_minutes: int = interval_minutes
         self.indicators: IndicatorManager = IndicatorManager()
-        self._market_open: datetime = datetime.now().replace(
-            hour=9, minute=15, second=0, microsecond=0
-        )
-        self._market_close: datetime = datetime.now().replace(
-            hour=15, minute=30, second=0, microsecond=0
-        )
+        self._market_open: time = time(9, 15, 0)
+        self._market_close: time = time(15, 30, 0)
+        if backtesting:
+            self.redis_instance = redis_instance_backtest
+        else:
+            self.redis_instance = redis_instance
 
     def is_market_open(self, timestamp: datetime) -> bool:
-        self._market_open: datetime = datetime.now().replace(
-            hour=9, minute=15, second=0, microsecond=0
-        )
-        self._market_close: datetime = datetime.now().replace(
-            hour=15, minute=30, second=0, microsecond=0
-        )
-        return self._market_open <= timestamp <= self._market_close
+        return self._market_open <= timestamp.time() <= self._market_close
 
     def process_tick(
         self, timestamp: datetime, price: float, volume: int, symbol: str
@@ -40,11 +36,11 @@ class CandleManager:
             current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
             ta_key = f"ta_{symbol}_{self.interval_minutes}"
 
-            indicator = redis_instance.get(ta_key)
+            indicator = self.redis_instance.get(ta_key)
             if indicator:
                 self.indicators = indicator
 
-            current_candle = redis_instance.get(current_candle_key)
+            current_candle = self.redis_instance.get(current_candle_key)
             if current_candle:
                 if current_candle["time"] != last_timestamp:
                     self._close_candle(current_candle, symbol)
@@ -78,8 +74,8 @@ class CandleManager:
                 indicators_dict = self.indicators.get_all()
                 current_candle.update(indicators_dict)
 
-                redis_instance.set(ta_key, self.indicators)
-                redis_instance.set(current_candle_key, current_candle)
+                self.redis_instance.set(ta_key, self.indicators)
+                self.redis_instance.set(current_candle_key, current_candle)
         except Exception as e:
             logger.error(f"Error processing tick: {e}")
 
@@ -90,7 +86,7 @@ class CandleManager:
             if not self.is_market_open(timestamp):
                 return None
             ta_key = f"ta_{symbol}_{self.interval_minutes}"
-            indicator = redis_instance.get(ta_key)
+            indicator = self.redis_instance.get(ta_key)
             if indicator:
                 self.indicators = indicator
             current_candle_data = {
@@ -116,8 +112,8 @@ class CandleManager:
 
             current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
 
-            redis_instance.set(ta_key, self.indicators)
-            redis_instance.set(current_candle_key, current_candle_data)
+            self.redis_instance.set(ta_key, self.indicators)
+            self.redis_instance.set(current_candle_key, current_candle_data)
             return current_candle_data
         except Exception as e:
             logger.error(f"Error opening candle: {e}")
@@ -125,17 +121,17 @@ class CandleManager:
     def _close_candle(self, candle, symbol) -> None:
         try:
             candles_key = f"candle_{symbol}_{self.interval_minutes}"
-            candles_data = redis_instance.get(candles_key)
+            candles_data = self.redis_instance.get(candles_key)
             candles = candles_data if candles_data else []
             candles.append(candle)
-            redis_instance.set(candles_key, candles)
+            self.redis_instance.set(candles_key, candles)
         except Exception as e:
             logger.error(f"Error closing candle: {e}")
 
     def get_candles(self, symbol) -> list:
         try:
             candles_key = f"candle_{symbol}_{self.interval_minutes}"
-            candles_data = redis_instance.get(candles_key)
+            candles_data = self.redis_instance.get(candles_key)
             return candles_data if candles_data else []
         except Exception as e:
             logger.error(f"Error getting candles: {e}")
@@ -144,7 +140,7 @@ class CandleManager:
     def get_latest_candle(self, symbol) -> dict:
         try:
             current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
-            current_candle_data = redis_instance.get(current_candle_key)
+            current_candle_data = self.redis_instance.get(current_candle_key)
             return current_candle_data if current_candle_data else None
         except Exception as e:
             logger.error(f"Error getting latest candle: {e}")

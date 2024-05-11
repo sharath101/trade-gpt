@@ -1,17 +1,17 @@
-from typing import List
 from datetime import datetime
+from typing import List
 
-from dataclass import Order
-from utils import BacktestCandleManager
-from baseclasses import Strategy
 from api import logger
+from baseclasses import Strategy
+from dataclass import Order
+from market_data import CandleManager
 
 
 class StrategyManager:
     symbol: str
     backtesting: bool = False
     stategies: List[Strategy] = []
-    candle_manager = BacktestCandleManager(5)
+    candle_manager = CandleManager(5, True)
 
     def __init__(
         self,

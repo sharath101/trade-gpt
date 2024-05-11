@@ -1,15 +1,14 @@
-from datetime import time, datetime
+from datetime import datetime, time
 from secrets import token_hex
 from typing import Dict, List
 
-from brokers import VirtualBroker
-from baseclasses import Broker
-from database import OrderBook
-from strategy import StrategyManager
-from strategy import EngulfingStrategy, MACDStrategy, Strategy
-from dataclass import Order
-from baseclasses import OrderManager as OMBase
 from api import logger
+from baseclasses import Broker
+from baseclasses import OrderManager as OMBase
+from brokers import VirtualBroker
+from database import OrderBook
+from dataclass import Order
+from strategy import EngulfingStrategy, MACDStrategy, Strategy, StrategyManager
 
 
 class OrderManager(OMBase):

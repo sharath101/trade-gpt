@@ -1,8 +1,10 @@
-from typing import List
 from datetime import datetime
-from database import OrderBook, VirtualOrderBook
-from baseclasses import Broker, OrderManager as OMBase
+from typing import List
+
 from api import logger
+from baseclasses import Broker
+from baseclasses import OrderManager as OMBase
+from database import OrderBook, VirtualOrderBook
 
 
 class VirtualBroker(Broker):
@@ -34,14 +36,14 @@ class VirtualBroker(Broker):
             This process is same for both types of orders - OPEN and CLOSE,
             as both of them will be added to OrderBook"""
 
-            virtual_order = VirtualOrderBook.get_first(
+            virtual_order = VirtualOrderBook.get_first(  # latency
                 correlation_id=order.correlation_id
             )
             self._change_order_status(virtual_order, "TRANSIT")
 
             """Update the balance after placing the order"""
 
-            if order.position_status == "OPEN" or order.position_status == "OPENING":
+            if order.position_status == "OPENING":
                 self.balance -= self._get_margin(
                     virtual_order
                 ) + self.calculate_brokerage(virtual_order)

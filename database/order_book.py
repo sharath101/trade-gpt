@@ -1,5 +1,6 @@
-from typing import List, Literal
 from datetime import datetime
+from typing import List, Literal
+
 from api import app, logger
 from database import db
 
@@ -53,7 +54,7 @@ class OrderBook(db.Model):
     ] = db.Column(db.String(100), nullable=False, default="PENDING")
 
     # Position Status (OPEN CLOSED)
-    position_status: Literal["OPENNIG", "OPEN", "CLOSE", "CLOSING"] = db.Column(
+    position_status: Literal["OPENING", "OPEN", "CLOSE", "CLOSING"] = db.Column(
         db.String(100), nullable=True, default="OPEN"
     )
 
