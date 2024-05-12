@@ -22,6 +22,9 @@ class BackTester:
         self.stock = stock
         self.order_manager = OrderManager([self.stock], 20000, True)
 
+    def connect(self):
+        return self.backtest()
+
     def backtest(self):
         logger.info(f"Backtesting {self.stock}")
         with open(self.csv_file_path, mode="r", newline="") as file:
@@ -47,16 +50,17 @@ class BackTester:
                         "volume": data.volume,
                     },
                 )
+                # time.sleep(0.01)
 
-                # ticker_data = self.generate_tickers(5, data)
-                # total_length = len(ticker_data)
-                # for timestamp, row in ticker_data.iterrows():
-                #     timestamp = timestamp.to_pydatetime()
-                #     current_price = float(row.iloc[0])
-                #     volume = data.volume / total_length
-                #     self.order_manager.next(
-                #         self.stock, current_price, timestamp, volume
-                #     )
+                ticker_data = self.generate_tickers(5, data)
+                total_length = len(ticker_data)
+                for timestamp, row in ticker_data.iterrows():
+                    timestamp = timestamp.to_pydatetime()
+                    current_price = float(row.iloc[0])
+                    volume = data.volume / total_length
+                    self.order_manager.next(
+                        self.stock, current_price, timestamp, volume
+                    )
 
     def generate_tickers(self, interval: int, candle: OHLCV):
         start_time = candle.time.replace(second=0, microsecond=0)
