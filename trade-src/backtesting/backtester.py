@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import os
+import time
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -38,7 +39,7 @@ class BackTester:
                 socketio.emit(
                     "backtest",
                     {
-                        "time": data.time.strftime("%Y-%m-%d %H:%M:%S%z"),
+                        "time": data.time.timestamp(),
                         "open": data.open,
                         "low": data.low,
                         "high": data.close,
