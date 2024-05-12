@@ -3,12 +3,13 @@ import os
 
 from flask import Flask
 from flask_socketio import SocketIO
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config.from_pyfile("config.py")
 
-socketio = SocketIO()
-socketio.init_app(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 logger = app.logger
 logger.setLevel("DEBUG")
