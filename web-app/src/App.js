@@ -49,10 +49,6 @@ export const ChartComponent = (props) => {
         socket.on('disconnect', onDisconnect);
         socket.on('backtest', onBacktestEvent);
 
-        if (candleData.length == 1000) {
-            setcandleData();
-        }
-
         const handleResize = () => {
             chart.applyOptions({
                 width: chartContainerRef.current.clientWidth,
@@ -69,7 +65,7 @@ export const ChartComponent = (props) => {
                 horzLines: { color: '#444' },
             },
             width: chartContainerRef.current.clientWidth,
-            height: 500,
+            height: 800,
         });
         chart.timeScale().fitContent();
 
