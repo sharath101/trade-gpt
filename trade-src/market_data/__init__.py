@@ -1,12 +1,12 @@
-from .dhan_market_feed import *
-from .candles import *
-from .indicators import *
-from .misc import *
-from .schedule import *
-from .constants import *
-
-from utils.processor import Processor
 from utils import scheduler
+from utils.processor import Processor
+
+from .candles import *
+from .constants import *
+from .dhan_market_feed import *
+from .indicators import *
+from .misc import analyser
+from .schedule import *
 
 marketDataQuote = DhanMarketFeed(analyser=analyser)
 marketDataQuote.subscription_code = 17

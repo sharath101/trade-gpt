@@ -1,10 +1,13 @@
+import asyncio
 import csv
 import os
 from datetime import datetime, timedelta
-from talipp.ohlcv import OHLCV
-import pandas as pd
 
-from api import logger
+import pandas as pd
+import websockets
+from talipp.ohlcv import OHLCV
+
+from api import logger, socketio
 from order_manager import OrderManager
 from utils import round_to_nearest_multiple_of_5
 
@@ -17,6 +20,11 @@ class BackTester:
         self.csv_file_path = csv_file_abs_path
         self.stock = stock
         self.order_manager = OrderManager([self.stock], 20000, True)
+
+    # async def send_data_over_websocket(self, data):
+    #     uri = "ws://localhost:3001"
+    #     async with websockets.connect(uri) as websocket:
+    #         await websocket.send(data)
 
     def backtest(self):
         logger.info(f"Backtesting {self.stock}")
@@ -32,15 +40,18 @@ class BackTester:
                     volume=float(row["volume"]),
                 )
 
-                ticker_data = self.generate_tickers(5, data)
-                total_length = len(ticker_data)
-                for timestamp, row in ticker_data.iterrows():
-                    timestamp = timestamp.to_pydatetime()
-                    current_price = float(row.iloc[0])
-                    volume = data.volume / total_length
-                    self.order_manager.next(
-                        self.stock, current_price, timestamp, volume
-                    )
+                socketio.emit("backtest_data", data)
+                # asyncio.run(self.send_data_over_websocket(data))
+
+                # ticker_data = self.generate_tickers(5, data)
+                # total_length = len(ticker_data)
+                # for timestamp, row in ticker_data.iterrows():
+                #     timestamp = timestamp.to_pydatetime()
+                #     current_price = float(row.iloc[0])
+                #     volume = data.volume / total_length
+                #     self.order_manager.next(
+                #         self.stock, current_price, timestamp, volume
+                #     )
 
     def generate_tickers(self, interval: int, candle: OHLCV):
         start_time = candle.time.replace(second=0, microsecond=0)
