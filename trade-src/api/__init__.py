@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.config.from_pyfile("config.py")
 
 CORS(app, resources={r"/*": {"origins": "*"}})
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, async_mode="gevent", cors_allowed_origins="*")
 
 logger = app.logger
 logger.setLevel("DEBUG")
