@@ -1,6 +1,6 @@
 from api import app, logger, socketio
 
 
-@socketio.on("connect", namespace="/web")
+@socketio.on("connect")
 def handle_connect():
-    print("Connected")
+    pass

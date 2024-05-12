@@ -21,11 +21,6 @@ class BackTester:
         self.stock = stock
         self.order_manager = OrderManager([self.stock], 20000, True)
 
-    # async def send_data_over_websocket(self, data):
-    #     uri = "ws://localhost:3001"
-    #     async with websockets.connect(uri) as websocket:
-    #         await websocket.send(data)
-
     def backtest(self):
         logger.info(f"Backtesting {self.stock}")
         with open(self.csv_file_path, mode="r", newline="") as file:
@@ -40,8 +35,17 @@ class BackTester:
                     volume=float(row["volume"]),
                 )
 
-                socketio.emit("backtest_data", data)
-                # asyncio.run(self.send_data_over_websocket(data))
+                socketio.emit(
+                    "backtest",
+                    {
+                        "time": data.time.strftime("%Y-%m-%d %H:%M:%S%z"),
+                        "open": data.open,
+                        "low": data.low,
+                        "high": data.close,
+                        "close": data.close,
+                        "volume": data.volume,
+                    },
+                )
 
                 # ticker_data = self.generate_tickers(5, data)
                 # total_length = len(ticker_data)
