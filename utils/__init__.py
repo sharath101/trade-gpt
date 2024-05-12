@@ -17,4 +17,4 @@ scheduler = BackgroundScheduler(
 redis_instance = RedisManager()
 redis_instance_backtest = BacktestRedis()
 
-from .backtest_candles import BacktestCandleManager
+scheduler.start()

@@ -1,7 +1,5 @@
-from api import app
-from utils import scheduler
+from api import socketio, app
 
 
 if __name__ == "__main__":
-    scheduler.start()
-    app.run(debug=True, use_reloader=False)
+    socketio.run(app)
