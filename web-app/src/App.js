@@ -1,15 +1,20 @@
 import { createChart, ColorType } from 'lightweight-charts';
 import React, { useEffect, useState, useRef } from 'react';
 import data from './constants.js';
-import { w3cwebsocket as W3CWebSocket } from 'websocket';
+import { io } from 'socket.io-client';
 
-const client = new W3CWebSocket('ws://localhost:5000/web');
-const candleData = data.initialData;
+const URL = 'http://localhost:5000';
+
+export const socket = io(URL);
+
+const cData = data.initialData;
 const realTimeData = data.realtimeUpdates;
 
 export const ChartComponent = (props) => {
     // const [candleData, setCandleData] = useState([]);
     // setCandleData(cData);
+    const [isConnected, setIsConnected] = useState(socket.connected);
+    const [candleData, setcandleData] = useState([]);
 
     const {
         // candleData,
@@ -25,19 +30,29 @@ export const ChartComponent = (props) => {
 
     const chartContainerRef = useRef();
 
-    // useEffect(() => {
-    //     client.onopen = () => {
-    //         console.log('WebSocket Client Connected');
-    //     };
-
-    //     client.onmessage = (message) => {
-    //         const data = JSON.parse(message.data);
-    //         console.log(`data: ${data}`);
-    //         setCandleData(data);
-    //     };
-    // }, []);
-
     useEffect(() => {
+        function onConnect() {
+            console.log('connected');
+            setIsConnected(true);
+        }
+
+        function onDisconnect() {
+            console.log('disconnected');
+            setIsConnected(false);
+        }
+
+        function onBacktestEvent(value) {
+            setcandleData((previous) => [...previous, value]);
+        }
+
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        socket.on('backtest', onBacktestEvent);
+
+        if (candleData.length == 1000) {
+            setcandleData();
+        }
+
         const handleResize = () => {
             chart.applyOptions({
                 width: chartContainerRef.current.clientWidth,
@@ -73,22 +88,22 @@ export const ChartComponent = (props) => {
         candleSeries.setData(candleData);
 
         // simulate real-time data
-        function* getNextRealtimeUpdate(realtimeData) {
-            for (const dataPoint of realtimeData) {
-                yield dataPoint;
-            }
-            return null;
-        }
-        const streamingDataProvider = getNextRealtimeUpdate(realTimeData);
+        // function* getNextRealtimeUpdate(realtimeData) {
+        //     for (const dataPoint of realtimeData) {
+        //         yield dataPoint;
+        //     }
+        //     return null;
+        // }
+        // const streamingDataProvider = getNextRealtimeUpdate(realTimeData);
 
-        const intervalID = setInterval(() => {
-            const update = streamingDataProvider.next();
-            if (update.done) {
-                clearInterval(intervalID);
-                return;
-            }
-            candleSeries.update(update.value);
-        }, 100);
+        // const intervalID = setInterval(() => {
+        //     const update = streamingDataProvider.next();
+        //     if (update.done) {
+        //         clearInterval(intervalID);
+        //         return;
+        //     }
+        //     candleSeries.update(update.value);
+        // }, 100);
 
         // window.addEventListener('resize', handleResize);
 
@@ -141,6 +156,9 @@ export const ChartComponent = (props) => {
             window.removeEventListener('resize', handleResize);
 
             chart.remove();
+            socket.off('connect', onConnect);
+            socket.off('disconnect', onDisconnect);
+            socket.off('backtest', onBacktestEvent);
         };
     }, [
         candleData,
