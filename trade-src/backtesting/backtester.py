@@ -1,16 +1,14 @@
-import asyncio
 import csv
 import os
 import time
-from datetime import datetime, timedelta
-
 import pandas as pd
-import websockets
+from datetime import datetime, timedelta
 from talipp.ohlcv import OHLCV
 
-from api import logger, socketio
+from api import logger
 from order_manager import OrderManager
 from utils import round_to_nearest_multiple_of_5
+from utils import redis_instance
 
 
 class BackTester:
@@ -22,10 +20,11 @@ class BackTester:
         self.stock = stock
         self.order_manager = OrderManager([self.stock], 20000, True)
 
-    def connect(self):
+    async def connect(self):
         return self.backtest()
 
     def backtest(self):
+        redis_instance.set("backtest", [])
         logger.info(f"Backtesting {self.stock}")
         with open(self.csv_file_path, mode="r", newline="") as file:
             reader = csv.DictReader(file)
@@ -38,19 +37,22 @@ class BackTester:
                     close=float(row["close"]),
                     volume=float(row["volume"]),
                 )
+                r_data = {
+                    "time": data.time.timestamp(),
+                    "open": data.open,
+                    "high": data.high,
+                    "low": data.open,
+                    "close": data.close,
+                    "volume": data.volume,
+                }
+                redis_data: list = redis_instance.get("backtest")
+                if redis_data:
+                    redis_data.append(r_data)
+                else:
+                    redis_data = [r_data]
+                redis_instance.set("backtest", redis_data)
 
-                socketio.emit(
-                    "backtest",
-                    {
-                        "time": data.time.timestamp(),
-                        "open": data.open,
-                        "low": data.low,
-                        "high": data.close,
-                        "close": data.close,
-                        "volume": data.volume,
-                    },
-                )
-                # time.sleep(0.01)
+                time.sleep(0.1)
 
                 ticker_data = self.generate_tickers(5, data)
                 total_length = len(ticker_data)
