@@ -50,19 +50,30 @@ class BackTester:
                     redis_data.append(r_data)
                 else:
                     redis_data = [r_data]
+
+                if len(redis_data) >= 1000:
+                    backup: list = redis_instance.get("backtest_backup")
+                    if backup:
+                        backup += redis_data
+                        redis_data = []
+                        redis_instance.set("backtest_backup", backup)
+                    else:
+                        redis_instance.set("backtest_backup", redis_data)
+                        redis_data = []
+
                 redis_instance.set("backtest", redis_data)
 
-                time.sleep(0.1)
+                # time.sleep(0.01)
 
-                ticker_data = self.generate_tickers(5, data)
-                total_length = len(ticker_data)
-                for timestamp, row in ticker_data.iterrows():
-                    timestamp = timestamp.to_pydatetime()
-                    current_price = float(row.iloc[0])
-                    volume = data.volume / total_length
-                    self.order_manager.next(
-                        self.stock, current_price, timestamp, volume
-                    )
+                # ticker_data = self.generate_tickers(5, data)
+                # total_length = len(ticker_data)
+                # for timestamp, row in ticker_data.iterrows():
+                #     timestamp = timestamp.to_pydatetime()
+                #     current_price = float(row.iloc[0])
+                #     volume = data.volume / total_length
+                #     self.order_manager.next(
+                #         self.stock, current_price, timestamp, volume
+                #     )
 
     def generate_tickers(self, interval: int, candle: OHLCV):
         start_time = candle.time.replace(second=0, microsecond=0)
