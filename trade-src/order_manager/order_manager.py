@@ -51,7 +51,7 @@ class OrderManager(OMBase):
                     order.exchange = "NSE_EQ"
                     self.place_order(order)
 
-        self.analyse(current_price, timestamp)
+        self.analyse(current_price, timestamp, symbol)
 
     @property
     def open_positions(self) -> List[OrderBook]:
@@ -163,7 +163,7 @@ class OrderManager(OMBase):
         elif order.transaction_type != symbol_orders[0].transaction_type:
             self.close_position(symbol_orders[0], order.price, order.order_created)
 
-    def analyse(self, current_price: float, current_time: datetime):
+    def analyse(self, current_price: float, current_time: datetime, symbol: str):
         open_positions: List[OrderBook] = self.all_positions
         market_closing_threshold = time(15, 20, 0)
         if current_time.time() > market_closing_threshold:
@@ -173,7 +173,7 @@ class OrderManager(OMBase):
         if self.backtesting:
             for broker in self.brokers:
                 if broker.__class__.__name__ == "VirtualBroker":
-                    broker.analyse(current_price, current_time)
+                    broker.analyse(current_price, current_time, symbol)
 
     def close_all_positions(self, open_positions: List[OrderBook], current_price, current_time):
         for position in open_positions:
