@@ -1,14 +1,14 @@
 import csv
 import os
 import time
-import pandas as pd
 from datetime import datetime, timedelta
+
+import pandas as pd
 from talipp.ohlcv import OHLCV
 
 from api import logger
 from order_manager import OrderManager
-from utils import round_to_nearest_multiple_of_5
-from utils import redis_instance
+from utils import redis_instance, round_to_nearest_multiple_of_5
 
 
 class BackTester:
@@ -51,15 +51,15 @@ class BackTester:
                 else:
                     redis_data = [r_data]
 
-                if len(redis_data) >= 1000:
-                    backup: list = redis_instance.get("backtest_backup")
-                    if backup:
-                        backup += redis_data
-                        redis_data = []
-                        redis_instance.set("backtest_backup", backup)
-                    else:
-                        redis_instance.set("backtest_backup", redis_data)
-                        redis_data = []
+                # if len(redis_data) >= 1000:
+                #     backup: list = redis_instance.get("backtest_backup")
+                #     if backup:
+                #         backup += redis_data
+                #         redis_data = []
+                #         redis_instance.set("backtest_backup", backup)
+                #     else:
+                #         redis_instance.set("backtest_backup", redis_data)
+                #         redis_data = []
 
                 redis_instance.set("backtest", redis_data)
 
