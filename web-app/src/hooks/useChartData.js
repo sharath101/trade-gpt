@@ -4,6 +4,10 @@ import { io } from 'socket.io-client';
 const URL = 'http://localhost:5000';
 export const socket = io(URL);
 
+function timeout(delay) {
+    return new Promise((res) => setTimeout(res, delay));
+}
+
 function mergeAndSortArrays(arr1, arr2) {
     const combinedArray = [...arr1, ...arr2];
     combinedArray.sort((a, b) => a.time - b.time);
@@ -18,18 +22,17 @@ function mergeAndSortArrays(arr1, arr2) {
     return uniqueArray;
 }
 
-export function useChartData(timeWindow) {
+export function useChartData() {
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [allCandleData, setAllCandleData] = useState([]);
-    // const [candleData, setCandleData] = useState([]);
+    const [timeWindow, setTimeWindow] = useState({ start: 0, end: 0 });
 
     useEffect(() => {
         if (isConnected) {
         }
         function onConnect() {
             setIsConnected(true);
-            console.log('connected');
-            socket.emit('backtest', { start: -1 });
+            socket.emit('backtest', { start: 0, end: 0});
         }
 
         function onDisconnect() {
@@ -38,19 +41,15 @@ export function useChartData(timeWindow) {
 
         function onBacktest(value) {
             if (value && value.data && value.data.length) {
-                // const newarr = mergeAndSortArrays(allCandleData, value.data);
-                setAllCandleData((previousData) => value.data);
-                console.log(`after merge: ${allCandleData.length}`);
+                const newarr = mergeAndSortArrays(allCandleData, value.data);
+                setAllCandleData(newarr);
+                socket.emit('backtest_next', { last: newarr[newarr.length-1].time, num: 2 });
             }
-            let last_timestamp = -1;
-            if (allCandleData.length) {
-                last_timestamp =
-                    allCandleData[allCandleData.length - 1]['time'];
+            else {
+                timeout(1);
+                socket.emit('backtest_next', { last: allCandleData[allCandleData.length-1].time, num: 2 });
             }
-            socket.emit('backtest', {
-                start: timeWindow.start - 1000,
-                end: timeWindow.end + 1000,
-            });
+            
         }
 
         socket.on('connect', onConnect);
@@ -62,7 +61,13 @@ export function useChartData(timeWindow) {
             socket.off('disconnect', onDisconnect);
             socket.off('backtest', onBacktest);
         };
-    }, [allCandleData, isConnected]);
+    }, [allCandleData, isConnected, timeWindow]);
 
-    return { candleData: allCandleData };
+    // Emit the timeWindow whenever it changes
+    useEffect(() => {
+        socket.emit('backtest', { start: timeWindow.start, end: timeWindow.end });
+    }, [timeWindow]);
+
+    return { candleData: allCandleData, setTimeWindow };
 }
+

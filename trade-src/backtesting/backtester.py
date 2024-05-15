@@ -26,6 +26,7 @@ class BackTester:
         return self.backtest()
 
     def backtest(self):
+        redis_instance.set("backtest_backup", [])
         redis_instance.set("backtest", [])
         logger.info(f"Backtesting {self.stock}")
         with open(self.csv_file_path, mode="r", newline="") as file:

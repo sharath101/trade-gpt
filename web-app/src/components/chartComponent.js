@@ -1,16 +1,10 @@
 import { createChart } from 'lightweight-charts';
 import { useEffect, useState, useRef } from 'react';
-import { io } from 'socket.io-client';
 import { useChartData } from '../hooks/useChartData';
 
-function timeout(delay) {
-    return new Promise((res) => setTimeout(res, delay));
-}
 
 export const ChartComponent = () => {
-    const [timeWindow, setTimeWindow] = useState({});
-    const { candleData } = useChartData(timeWindow);
-    console.log(`return: ${candleData.length}`);
+    const { candleData, setTimeWindow } = useChartData();
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
 
@@ -54,18 +48,23 @@ export const ChartComponent = () => {
         }
         window.addEventListener('resize', handleResize);
 
-        function handleVisibleTimeRangeChange(newVisibleTimeRange) {
+        const handleVisibleTimeRangeChange = (newVisibleTimeRange) => {
             if (newVisibleTimeRange === null) {
                 console.error('VisibleTimeRange is null');
                 return;
             }
-            console.log(newVisibleTimeRange);
-            setTimeWindow({
-                start: newVisibleTimeRange.from - 1000,
-                end: newVisibleTimeRange.to + 1000,
-            });
-        }
-
+            console.log(newVisibleTimeRange.from);
+            const adjustedTimeWindow = {
+                start: (newVisibleTimeRange.from - 432000),
+                end: (newVisibleTimeRange.to + 5000),
+            };
+    
+            // Update state with the adjusted time window
+            setTimeWindow(adjustedTimeWindow);
+    
+            // Fetch new data based on adjustedTimeWindow and update candleData
+        };
+        
         chartRef.current.chart
             .timeScale()
             .subscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange);
