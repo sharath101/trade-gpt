@@ -51,7 +51,7 @@ class OrderManager(OMBase):
                     order.exchange = "NSE_EQ"
                     self.place_order(order)
 
-        self.analyse(current_price, timestamp)
+        self.analyse(current_price, timestamp, symbol)
 
     @property
     def open_positions(self) -> List[OrderBook]:
@@ -73,7 +73,7 @@ class OrderManager(OMBase):
 
     @open_positions.setter
     def open_positions(self, value: List[OrderBook] | OrderBook) -> None:
-        if type(value) == OrderBook:
+        if isinstance(value, OrderBook):
             if self.backtesting:
                 for order in self._open_positions:
                     if order.correlation_id == value.correlation_id:
@@ -85,7 +85,7 @@ class OrderManager(OMBase):
             else:
                 value.save()
 
-        elif type(value) == List[OrderBook]:
+        elif isinstance(value, list):
             if self.backtesting:
                 self._open_positions = []
                 for order in value:
@@ -163,22 +163,22 @@ class OrderManager(OMBase):
         elif order.transaction_type != symbol_orders[0].transaction_type:
             self.close_position(symbol_orders[0], order.price, order.order_created)
 
-    def analyse(self, current_price: float, current_time: datetime):
-        open_positions: List[OrderBook] = self.open_positions
+    def analyse(self, current_price: float, current_time: datetime, symbol: str):
+        open_positions: List[OrderBook] = self.all_positions
         market_closing_threshold = time(15, 20, 0)
         if current_time.time() > market_closing_threshold:
             self.close_all_positions(open_positions, current_price, current_time)
-            self.open_positions = open_positions
             return
 
         if self.backtesting:
             for broker in self.brokers:
                 if broker.__class__.__name__ == "VirtualBroker":
-                    broker.analyse(current_price, current_time)
+                    broker.analyse(current_price, current_time, symbol)
 
     def close_all_positions(self, open_positions: List[OrderBook], current_price, current_time):
         for position in open_positions:
             self.close_position(position, current_price, current_time, immediate=True)
+            self.open_positions = position
 
     def close_position(
         self, position: OrderBook, closing_price: float, current_time: datetime,immediate: bool = True

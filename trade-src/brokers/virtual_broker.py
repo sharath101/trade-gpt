@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Literal
 
 from api import logger
 from baseclasses import Broker
@@ -12,6 +12,8 @@ class VirtualBroker(Broker):
     def __init__(self, order_manager: OMBase, balance: float = 20000):
         self.order_manager = order_manager
         self.balance = balance
+        if self.order_manager.backtesting:
+            self._virtual_db: List[VirtualOrderBook] = []
 
     def place_order(self, order: OrderBook) -> None:
         try:
@@ -36,9 +38,7 @@ class VirtualBroker(Broker):
             This process is same for both types of orders - OPEN and CLOSE,
             as both of them will be added to OrderBook"""
 
-            virtual_order = VirtualOrderBook.get_first(  # latency
-                correlation_id=order.correlation_id
-            )
+            virtual_order = self.get_virtual_order(correlation_id=order.correlation_id)
             self._change_order_status(virtual_order, "TRANSIT")
 
             """Update the balance after placing the order"""
@@ -60,9 +60,7 @@ class VirtualBroker(Broker):
             """Fetch database and check if the order is in TRANSIT or PENDING status.
             If order is in any other status, it cannot be cancelled."""
 
-            virtual_order = VirtualOrderBook.get_first(
-                correlation_id=order.correlation_id
-            )
+            virtual_order = self.get_virtual_order(correlation_id=order.correlation_id)
             if not virtual_order:
                 logger.warning(f"Order not found in virtual orders")
                 return
@@ -81,7 +79,7 @@ class VirtualBroker(Broker):
                         virtual_order
                     ) + self.calculate_brokerage(virtual_order)
 
-                virtual_order.save()
+                self.set_virtual_orders(virtual_order)
                 return True
             else:
                 logger.debug(
@@ -91,13 +89,9 @@ class VirtualBroker(Broker):
         except Exception as e:
             logger.error(f"Error in cancel_order: {e}")
 
-    def analyse(self, current_price: float, current_time: datetime) -> None:
-        """The first section of the code will check order status of all the orders
-        having product type as INTRADAY and CNC. The BO and CO order execution will be
-        implemented later."""
-
+    def analyse_transit_orders(self, current_price: float, symbol: str):
         try:
-            virtual_orders = VirtualOrderBook.filter(order_status="TRANSIT")
+            virtual_orders = self.filter_virtual_orders(status="TRANSIT", symbol=symbol)
             for order in virtual_orders:
                 if order.trigger_price:
                     if order.transaction_type == "BUY":
@@ -113,9 +107,13 @@ class VirtualBroker(Broker):
                     order.order_status = "PENDING"
                     self._change_order_status(order, "PENDING")
 
-            VirtualOrderBook.save_all(virtual_orders)
+            self.set_virtual_orders(virtual_orders)
+        except Exception as e:
+            logger.error("Error in analyse_transit_orders: {e}")
 
-            virtual_orders = VirtualOrderBook.filter(order_status="PENDING")
+    def analyse_pending_orders(self, current_price: float, symbol: str):
+        try:
+            virtual_orders = self.filter_virtual_orders(status="PENDING", symbol=symbol)
             for order in virtual_orders:
                 if order.order_type == "LIMIT":
 
@@ -184,11 +182,17 @@ class VirtualBroker(Broker):
                     else:
                         self._change_position_status_opener(order, "OPEN")
 
-            VirtualOrderBook.save_all(virtual_orders)
+            self.set_virtual_orders(virtual_orders)
+        except Exception as e:
+            logger.error("Error in analyse_pending_orders: {e}")
 
+    def analyse_traded_orders(
+        self, current_price: float, current_time: datetime, symbol: str
+    ):
+        try:
             """The following code is to check for stoploss and takeprofit conditions"""
 
-            virtual_orders = VirtualOrderBook.filter(order_status="TRADED")
+            virtual_orders = self.filter_virtual_orders(status="TRADED", symbol=symbol)
             for order in virtual_orders:
                 if "_close" not in order.correlation_id:
                     """Check for takeprofit and stoploss conditions"""
@@ -201,6 +205,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.sell_price = current_price
                             order.order_status = "LOSS"
+                            order.order_updated - current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -219,6 +224,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.buy_price = current_price
                             order.order_status = "LOSS"
+                            order.order_updated - current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -239,6 +245,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.sell_price = current_price
                             order.order_status = "WIN"
+                            order.order_updated - current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -257,6 +264,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.buy_price = current_price
                             order.order_status = "WIN"
+                            order.order_updated - current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -268,10 +276,66 @@ class VirtualBroker(Broker):
                                 f"WIN in trade as takeprofit hit at price {current_price} and time {current_time}"
                             )
 
-            VirtualOrderBook.save_all(virtual_orders)
+            self.set_virtual_orders(virtual_orders)
+        except Exception as e:
+            logger.error("Error in analyse_traded_orders: {e}")
 
+    def analyse(
+        self, current_price: float, current_time: datetime, symbol: str
+    ) -> None:
+        try:
+            self.analyse_transit_orders(current_price, symbol)
+            self.analyse_pending_orders(current_price, symbol)
+            self.analyse_traded_orders(current_price, current_time, symbol)
         except Exception as e:
             logger.exception(f"Error in analyse: {e}")
+
+    def filter_virtual_orders(
+        self, status: Literal["TRANSIT", "PENDING", "TRADED"], symbol: str
+    ) -> List[VirtualOrderBook]:
+        all_traded: List[VirtualOrderBook] = []
+        if self.order_manager.backtesting:
+            all_values = self._virtual_db
+            for value in all_values:
+                if value.order_status == status and value.symbol == symbol:
+                    all_traded.append(value)
+            return all_traded
+        else:
+            return VirtualOrderBook.filter(order_status=status, symbol=symbol)
+
+    def get_virtual_order(self, correlation_id: str) -> VirtualOrderBook:
+        if self.order_manager.backtesting:
+            all_orders = self._virtual_db
+            for value in all_orders:
+                if value.correlation_id == correlation_id:
+                    return value
+            else:
+                return None
+        else:
+            VirtualOrderBook.get_first(correlation_id=correlation_id)
+
+    def set_virtual_orders(self, order: VirtualOrderBook | List[VirtualOrderBook]):
+        if isinstance(order, VirtualOrderBook):
+            if self.order_manager.backtesting:
+                for value in self._virtual_db:
+                    if value.correlation_id == order.correlation_id:
+                        self._virtual_db.remove(value)
+                        self._virtual_db.append(order)
+                else:
+                    self._virtual_db.append(order)
+            else:
+                order.save()
+        elif isinstance(order, list):
+            if self.order_manager.backtesting:
+                for position in order:
+                    for value in self._virtual_db:
+                        if value.correlation_id == position.correlation_id:
+                            self._virtual_db.remove(value)
+                            self._virtual_db.append(position)
+                    else:
+                        self._virtual_db.append(position)
+            else:
+                VirtualOrderBook.save_all(order)
 
     def _change_order_status(
         self, virtual_order: VirtualOrderBook, status: str
@@ -387,7 +451,7 @@ class VirtualBroker(Broker):
         """Since this is a virtual broker, we will not be placing orders on any external platform.
         We will just save the order to the database."""
         try:
-            order.save()
+            self.set_virtual_orders(order)
             return True
         except Exception as e:
             logger.error(f"Error placing virtual order on client_id {client_id}: {e}")

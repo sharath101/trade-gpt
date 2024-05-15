@@ -73,7 +73,7 @@ class OrderBook(db.Model):
     bo_stoploss: float = db.Column(db.Float, nullable=True)
 
     def __repr__(self) -> str:
-        return f"Order(order_id={self.order_id}, symbol={self.symbol})"
+        return f"Order(action={self.position_action}, symbol={self.symbol})"
 
     def save(self) -> None:
         try:
