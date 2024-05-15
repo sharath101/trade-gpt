@@ -1,14 +1,14 @@
 import csv
 import os
 import time
-import pandas as pd
 from datetime import datetime, timedelta
+
+import pandas as pd
 from talipp.ohlcv import OHLCV
 
 from api import logger
 from order_manager import OrderManager
-from utils import round_to_nearest_multiple_of_5
-from utils import redis_instance
+from utils import redis_instance, round_to_nearest_multiple_of_5
 
 
 class BackTester:
