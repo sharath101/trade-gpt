@@ -50,8 +50,6 @@ export const ChartComponent = () => {
 
         // Update chart data whenever candleData changes
         if (candleData && candleData.length) {
-            console.log('gonna go');
-            console.log(candleData);
             chartRef.current.candleSeries.setData(candleData);
         }
         window.addEventListener('resize', handleResize);

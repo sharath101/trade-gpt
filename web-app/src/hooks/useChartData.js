@@ -4,6 +4,20 @@ import { io } from 'socket.io-client';
 const URL = 'http://localhost:5000';
 export const socket = io(URL);
 
+function mergeAndSortArrays(arr1, arr2) {
+    const combinedArray = [...arr1, ...arr2];
+    combinedArray.sort((a, b) => a.time - b.time);
+    const uniqueTimestamps = new Set();
+    const uniqueArray = [];
+    for (const item of combinedArray) {
+        if (!uniqueTimestamps.has(item.time)) {
+            uniqueArray.push(item);
+            uniqueTimestamps.add(item.time);
+        }
+    }
+    return uniqueArray;
+}
+
 export function useChartData(timeWindow) {
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [allCandleData, setAllCandleData] = useState([]);
@@ -24,16 +38,8 @@ export function useChartData(timeWindow) {
 
         function onBacktest(value) {
             if (value && value.data && value.data.length) {
-                const uniqueTimestamps = new Set(
-                    allCandleData.map((candle) => candle.time)
-                );
-                const newData = value.data.filter(
-                    (newCandle) => !uniqueTimestamps.has(newCandle.time)
-                );
-                setAllCandleData((previousData) => [
-                    ...previousData,
-                    ...newData,
-                ]);
+                // const newarr = mergeAndSortArrays(allCandleData, value.data);
+                setAllCandleData((previousData) => value.data);
                 console.log(`after merge: ${allCandleData.length}`);
             }
             let last_timestamp = -1;
@@ -42,8 +48,8 @@ export function useChartData(timeWindow) {
                     allCandleData[allCandleData.length - 1]['time'];
             }
             socket.emit('backtest', {
-                start: timeWindow.start,
-                end: timeWindow.end,
+                start: timeWindow.start - 1000,
+                end: timeWindow.end + 1000,
             });
         }
 
