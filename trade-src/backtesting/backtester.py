@@ -19,6 +19,8 @@ class BackTester:
         self.csv_file_path = csv_file_abs_path
         self.stock = stock
         self.order_manager = OrderManager([self.stock], 20000, True)
+        self.num_orders = 0
+        self.user = "johndoe"
 
     async def connect(self):
         return self.backtest()
@@ -38,21 +40,21 @@ class BackTester:
                     volume=float(row["volume"]),
                 )
                 r_data = {
-                    "time": data.time.timestamp(),
+                    "time": data.time.timestamp(),  # type: ignore
                     "open": data.open,
                     "high": data.high,
                     "low": data.open,
                     "close": data.close,
                     "volume": data.volume,
                 }
-                redis_data: list = redis_instance.get("backtest")
+                redis_data: list = redis_instance.get("backtest")  # type: ignore
                 if redis_data:
                     redis_data.append(r_data)
                 else:
                     redis_data = [r_data]
 
                 if len(redis_data) >= 1000:
-                    backup: list = redis_instance.get("backtest_backup")
+                    backup: list = redis_instance.get("backtest_backup")  # type: ignore
                     if backup:
                         backup += redis_data
                         redis_data = []
@@ -63,17 +65,33 @@ class BackTester:
 
                 redis_instance.set("backtest", redis_data)
 
-                # time.sleep(0.01)
+                ticker_data = self.generate_tickers(5, data)
+                total_length = len(ticker_data)
+                for timestamp, row in ticker_data.iterrows():
+                    timestamp = timestamp.to_pydatetime()  # type: ignore
+                    current_price = float(row.iloc[0])
+                    volume = data.volume / total_length  # type: ignore
+                    self.order_manager.next(
+                        self.stock, current_price, timestamp, volume
+                    )
 
-                # ticker_data = self.generate_tickers(5, data)
-                # total_length = len(ticker_data)
-                # for timestamp, row in ticker_data.iterrows():
-                #     timestamp = timestamp.to_pydatetime()
-                #     current_price = float(row.iloc[0])
-                #     volume = data.volume / total_length
-                #     self.order_manager.next(
-                #         self.stock, current_price, timestamp, volume
-                #     )
+    def update_positions(self, candle):
+        for broker in self.order_manager.brokers:
+            if broker.__class__.__name__ == "VirtualBroker":
+                virtual_broker = broker
+        else:
+            virtual_broker = None
+
+        all_orders = virtual_broker._virtual_db
+        if self.num_orders == len(all_orders):
+            return
+
+        redis_key = f"backtest_positions_{self.user}"
+        positions_redis = redis_instance.get(redis_key)
+        if positions_redis:
+            pass
+        else:
+            redis_instance.set(redis_key, all_orders)
 
     def generate_tickers(self, interval: int, candle: OHLCV):
         start_time = candle.time.replace(second=0, microsecond=0)

@@ -39,18 +39,19 @@ class VirtualBroker(Broker):
             as both of them will be added to OrderBook"""
 
             virtual_order = self.get_virtual_order(correlation_id=order.correlation_id)
-            self._change_order_status(virtual_order, "TRANSIT")
+            if virtual_order:
+                self._change_order_status(virtual_order, "TRANSIT")
 
-            """Update the balance after placing the order"""
+                """Update the balance after placing the order"""
 
-            if order.position_status == "OPENING":
-                self.balance -= self._get_margin(
-                    virtual_order
-                ) + self.calculate_brokerage(virtual_order)
+                if order.position_status == "OPENING":
+                    self.balance -= self._get_margin(
+                        virtual_order
+                    ) + self.calculate_brokerage(virtual_order)
 
-            logger.debug(
-                f"{virtual_order.transaction_type}\t {virtual_order.price}\t {virtual_order.order_created}"
-            )
+                logger.debug(
+                    f"{virtual_order.transaction_type}\t {virtual_order.price}\t {virtual_order.order_created}"
+                )
 
         except Exception as e:
             logger.exception(f"Error in place_order: {e}")
@@ -80,12 +81,12 @@ class VirtualBroker(Broker):
                     ) + self.calculate_brokerage(virtual_order)
 
                 self.set_virtual_orders(virtual_order)
-                return True
+                return
             else:
                 logger.debug(
                     f"Order cannot be cancelled as it is already traded or rejected"
                 )
-                return False
+                return
         except Exception as e:
             logger.error(f"Error in cancel_order: {e}")
 
@@ -109,7 +110,7 @@ class VirtualBroker(Broker):
 
             self.set_virtual_orders(virtual_orders)
         except Exception as e:
-            logger.error("Error in analyse_transit_orders: {e}")
+            logger.error(f"Error in analyse_transit_orders: {e}")
 
     def analyse_pending_orders(self, current_price: float, symbol: str):
         try:
@@ -129,11 +130,13 @@ class VirtualBroker(Broker):
                                 + self._get_profit(self._get_order_book(order))
                             )
                             order.order_status = "CLOSED"
-                            order_opener = VirtualOrderBook.get_first(
+                            order_opener = self.get_virtual_order(
                                 correlation_id=order.correlation_id.split("_close")[0]
                             )
+                            if order_opener is None:
+                                raise
                             order_opener.order_status = "CLOSED"
-                            order_opener.save()
+                            self.set_virtual_orders(order_opener)
                             self._change_position_status_closer(order, "CLOSE")
                             self._change_position_status_opener(order, "CLOSE")
                         else:
@@ -152,11 +155,13 @@ class VirtualBroker(Broker):
                                 + self._get_profit(self._get_order_book(order))
                             )
                             order.order_status = "CLOSED"
-                            order_opener = VirtualOrderBook.get_first(
+                            order_opener = self.get_virtual_order(
                                 correlation_id=order.correlation_id.split("_close")[0]
                             )
+                            if order_opener is None:
+                                raise
                             order_opener.order_status = "CLOSED"
-                            order_opener.save()
+                            self.set_virtual_orders(order_opener)
                             self._change_position_status_closer(order, "CLOSE")
                             self._change_position_status_opener(order, "CLOSE")
                         else:
@@ -172,11 +177,13 @@ class VirtualBroker(Broker):
                             + self._get_profit(self._get_order_book(order))
                         )
                         order.order_status = "CLOSED"
-                        order_opener = VirtualOrderBook.get_first(
+                        order_opener = self.get_virtual_order(
                             correlation_id=order.correlation_id.split("_close")[0]
                         )
+                        if order_opener is None:
+                            raise
                         order_opener.order_status = "CLOSED"
-                        order_opener.save()
+                        self.set_virtual_orders(order_opener)
                         self._change_position_status_closer(order, "CLOSE")
                         self._change_position_status_opener(order, "CLOSE")
                     else:
@@ -184,7 +191,7 @@ class VirtualBroker(Broker):
 
             self.set_virtual_orders(virtual_orders)
         except Exception as e:
-            logger.error("Error in analyse_pending_orders: {e}")
+            logger.error(f"Error in analyse_pending_orders: {e}")
 
     def analyse_traded_orders(
         self, current_price: float, current_time: datetime, symbol: str
@@ -205,7 +212,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.sell_price = current_price
                             order.order_status = "LOSS"
-                            order.order_updated - current_time
+                            order.order_updated = current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -224,7 +231,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.buy_price = current_price
                             order.order_status = "LOSS"
-                            order.order_updated - current_time
+                            order.order_updated = current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -245,7 +252,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.sell_price = current_price
                             order.order_status = "WIN"
-                            order.order_updated - current_time
+                            order.order_updated = current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -264,7 +271,7 @@ class VirtualBroker(Broker):
                             original_position = self._get_order_book(order)
                             original_position.buy_price = current_price
                             order.order_status = "WIN"
-                            order.order_updated - current_time
+                            order.order_updated = current_time
                             self.balance += (
                                 self._get_margin(order)
                                 - self.calculate_brokerage(order)
@@ -278,7 +285,7 @@ class VirtualBroker(Broker):
 
             self.set_virtual_orders(virtual_orders)
         except Exception as e:
-            logger.error("Error in analyse_traded_orders: {e}")
+            logger.exception(f"Error in analyse_traded_orders: {e}")
 
     def analyse(
         self, current_price: float, current_time: datetime, symbol: str
@@ -303,7 +310,7 @@ class VirtualBroker(Broker):
         else:
             return VirtualOrderBook.filter(order_status=status, symbol=symbol)
 
-    def get_virtual_order(self, correlation_id: str) -> VirtualOrderBook:
+    def get_virtual_order(self, correlation_id: str) -> VirtualOrderBook | None:
         if self.order_manager.backtesting:
             all_orders = self._virtual_db
             for value in all_orders:
@@ -332,13 +339,18 @@ class VirtualBroker(Broker):
                         if value.correlation_id == position.correlation_id:
                             self._virtual_db.remove(value)
                             self._virtual_db.append(position)
+                            break
                     else:
                         self._virtual_db.append(position)
             else:
                 VirtualOrderBook.save_all(order)
 
     def _change_order_status(
-        self, virtual_order: VirtualOrderBook, status: str
+        self,
+        virtual_order: VirtualOrderBook,
+        status: Literal[
+            "TRANSIT", "PENDING", "REJECTED", "CANCELLED", "TRADED", "EXPIRED"
+        ],
     ) -> None:
         """This automatically removes all the close positions from the list when backtesting"""
 
@@ -346,14 +358,13 @@ class VirtualBroker(Broker):
         for orders in all_positions:
             if orders.correlation_id == virtual_order.correlation_id:
                 orders.order_status = status
-                if self.order_manager.backtesting:
-                    break
-                orders.save()
                 break
         self.order_manager.open_positions = all_positions
 
     def _change_position_status_closer(
-        self, order: VirtualOrderBook, status: str
+        self,
+        order: VirtualOrderBook,
+        status: Literal["OPENING", "OPEN", "CLOSE", "CLOSING"],
     ) -> None:
         """This automatically removes all the close positions from the list when backtesting"""
 
@@ -361,14 +372,13 @@ class VirtualBroker(Broker):
         for orders in all_positions:
             if orders.correlation_id == order.correlation_id:
                 orders.position_status = status
-                if self.order_manager.backtesting:
-                    break
-                orders.save()
                 break
         self.order_manager.open_positions = all_positions
 
     def _change_position_status_opener(
-        self, order: VirtualOrderBook, status: str
+        self,
+        order: VirtualOrderBook,
+        status: Literal["OPENING", "OPEN", "CLOSE", "CLOSING"],
     ) -> None:
         """This automatically removes all the close positions from the list when backtesting"""
 
@@ -379,9 +389,6 @@ class VirtualBroker(Broker):
             ):  # This filter makes sure that we are changing the status of the original order
 
                 orders.position_status = status
-                if self.order_manager.backtesting:
-                    break
-                orders.save()
                 break
         self.order_manager.open_positions = all_positions
 
@@ -392,9 +399,6 @@ class VirtualBroker(Broker):
         for orders in all_positions:
             if orders.correlation_id == order.correlation_id:
                 orders.sell_price = price
-                if self.order_manager.backtesting:
-                    break
-                orders.save()
                 break
         self.order_manager.open_positions = all_positions
 
@@ -405,9 +409,6 @@ class VirtualBroker(Broker):
         for orders in all_positions:
             if orders.correlation_id == order.correlation_id:
                 orders.buy_price = price
-                if self.order_manager.backtesting:
-                    break
-                orders.save()
                 break
         self.order_manager.open_positions = all_positions
 
@@ -443,11 +444,13 @@ class VirtualBroker(Broker):
                 stt = round((0.00025 * amount_sell), 2)
                 gst = round((0.18 * (brokerage_sell + nse_fee + sebi_charges)), 2)
                 return brokerage_sell + nse_fee + sebi_charges + stt + gst
+            else:
+                raise
         except Exception as e:
             logger.warning(f"Error calculating brokerage: {e}")
             return 0
 
-    def _place_order(self, order: VirtualOrderBook, client_id: str) -> None:
+    def _place_order(self, order: VirtualOrderBook, client_id: str) -> bool:
         """Since this is a virtual broker, we will not be placing orders on any external platform.
         We will just save the order to the database."""
         try:
@@ -463,3 +466,5 @@ class VirtualBroker(Broker):
         for orders in self.order_manager.all_positions:
             if orders.correlation_id == order.correlation_id:
                 return orders
+        else:
+            raise

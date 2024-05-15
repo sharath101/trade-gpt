@@ -247,6 +247,7 @@ class OrderManager(OMBase):
             trigger_price=0,
             transaction_type=("SELL" if position.transaction_type == "BUY" else "BUY"),
             order_type="LIMIT" if not immediate else "MARKET",
+            order_status="TRANSIT",
             product_type="INTRADAY",
             position_status="CLOSING",
             position_action="CLOSE",

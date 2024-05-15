@@ -77,7 +77,7 @@ class VirtualOrderBook(db.Model):
     bo_stoploss: float = db.Column(db.Float, nullable=True)
 
     def __repr__(self) -> str:
-        return f"Order(order_id={self.order_id}, symbol={self.symbol})"
+        return f"Order(order_id={self.order_id}, symbol={self.symbol}, status={self.order_status})"
 
     def save(self) -> None:
         try:
@@ -154,6 +154,7 @@ class VirtualOrderBook(db.Model):
             trigger_price=order.trigger_price,
             transaction_type=order.transaction_type,
             order_type=order.order_type,
+            order_status=order.order_status,
             product_type=order.product_type,
             bo_takeprofit=order.bo_takeprofit,
             bo_stoploss=order.bo_stoploss,

@@ -45,8 +45,6 @@ class MACDStrategy(Strategy):
                     price=current_price,
                     transaction_type="BUY",
                     trigger_price=current_price,
-                    bo_takeprofit=adjust_perc(current_price, 2),
-                    bo_stoploss=adjust_perc(current_price, -0.25),
                 )
 
         elif (
@@ -65,8 +63,6 @@ class MACDStrategy(Strategy):
                     price=current_price,
                     transaction_type="SELL",
                     trigger_price=current_price,
-                    bo_takeprofit=adjust_perc(current_price, -2),
-                    bo_stoploss=adjust_perc(current_price, 0.25),
                 )
         if order:
             return order, 1
