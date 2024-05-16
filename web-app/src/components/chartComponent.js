@@ -1,5 +1,5 @@
 import { createChart } from 'lightweight-charts';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useChartData } from '../hooks/useChartData';
 
 
@@ -53,7 +53,6 @@ export const ChartComponent = () => {
                 console.error('VisibleTimeRange is null');
                 return;
             }
-            console.log(newVisibleTimeRange.from);
             const adjustedTimeWindow = {
                 start: (newVisibleTimeRange.from - 432000),
                 end: (newVisibleTimeRange.to + 5000),
@@ -72,7 +71,7 @@ export const ChartComponent = () => {
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [candleData]);
+    }, [candleData, setTimeWindow]);
 
     return <div ref={chartContainerRef} />;
 };

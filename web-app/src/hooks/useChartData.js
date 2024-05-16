@@ -26,10 +26,9 @@ export function useChartData() {
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [allCandleData, setAllCandleData] = useState([]);
     const [timeWindow, setTimeWindow] = useState({ start: 0, end: 0 });
+    let next_data = {};
 
     useEffect(() => {
-        if (isConnected) {
-        }
         function onConnect() {
             setIsConnected(true);
             socket.emit('backtest', { start: 0, end: 0});
@@ -43,11 +42,14 @@ export function useChartData() {
             if (value && value.data && value.data.length) {
                 const newarr = mergeAndSortArrays(allCandleData, value.data);
                 setAllCandleData(newarr);
-                socket.emit('backtest_next', { last: newarr[newarr.length-1].time, num: 2 });
+                socket.emit('backtest_next', { last: newarr[newarr.length-1].time, num: 10 });
+                timeout(50);
+                next_data = { last: newarr[newarr.length-1].time, num: 10 };
             }
             else {
-                timeout(1);
-                socket.emit('backtest_next', { last: allCandleData[allCandleData.length-1].time, num: 2 });
+                timeout(50);
+                next_data = { last: allCandleData[allCandleData.length-1].time, num: 10 };
+                socket.emit('backtest_next', next_data);
             }
             
         }
