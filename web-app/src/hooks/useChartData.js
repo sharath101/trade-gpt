@@ -8,10 +8,6 @@ function timeout(delay) {
     return new Promise((res) => setTimeout(res, delay));
 }
 
-async function delay_ms(ms) {
-    await timeout(ms);
-}
-
 function mergeAndSortArrays(arr1, arr2) {
     const combinedArray = [...arr1, ...arr2];
     combinedArray.sort((a, b) => a.time - b.time);
@@ -41,10 +37,13 @@ export function useWebsocket() {
             if (value && value.data && value.data.length) {
                 const newarr = mergeAndSortArrays(largerCandleData, value.data);
                 setLargerCandleData(newarr);
+                timeout(100).then(() => {
+                    setRetryData((previous) => ({retry: !previous.retry}));
+                });
             }
             else {
-                timeout(1000).then(() => {
-                    setRetryData({retry: true});
+                timeout(100).then(() => {
+                    setRetryData((previous) => ({retry: !previous.retry}));
                 });
             }
         }

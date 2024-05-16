@@ -16,6 +16,7 @@ export const ChartComponent = () => {
                         textColor: 'black',
                         background: { type: 'solid', color: 'white' },
                     },
+                    crosshair: 0,
                     width: chartContainerRef.current.clientWidth,
                     height: window.innerHeight,
                 };
@@ -38,11 +39,25 @@ export const ChartComponent = () => {
                 topColor: '#2962FF',
                 bottomColor: 'rgba(41, 98, 255, 0.28)',
             });
-            chartRef.current = { chart, candleSeries };
+            const areaSeries = chart.addAreaSeries({
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+                lineColor: 'transparent',
+                topColor: 'rgba(56, 33, 110,0.6)',
+                bottomColor: 'rgba(56, 33, 110, 0.1)',
+            });
+
+            chartRef.current = { chart, candleSeries, areaSeries};
         }
 
         if (candleData && candleData.length) {
+            const lineData = candleData.map(datapoint => ({
+                time: datapoint.time,
+                value: (datapoint.close + datapoint.open) / 2,
+            }));
+
             chartRef.current.candleSeries.setData(candleData);
+            chartRef.current.areaSeries.setData(lineData);
         }
         window.addEventListener('resize', handleResize);
 
