@@ -8,6 +8,10 @@ function timeout(delay) {
     return new Promise((res) => setTimeout(res, delay));
 }
 
+async function delay_ms(ms) {
+    await timeout(ms);
+}
+
 function mergeAndSortArrays(arr1, arr2) {
     const combinedArray = [...arr1, ...arr2];
     combinedArray.sort((a, b) => a.time - b.time);
@@ -22,54 +26,100 @@ function mergeAndSortArrays(arr1, arr2) {
     return uniqueArray;
 }
 
-export function useChartData() {
-    const [isConnected, setIsConnected] = useState(socket.connected);
-    const [allCandleData, setAllCandleData] = useState([]);
-    const [timeWindow, setTimeWindow] = useState({ start: 0, end: 0 });
-    let next_data = {};
+export function useWebsocket() {
+    const [largerCandleData, setLargerCandleData] = useState(() => {
+        return [];
+    });
+    const [retryData, setRetryData] = useState({});
 
     useEffect(() => {
         function onConnect() {
-            setIsConnected(true);
             socket.emit('backtest', { start: 0, end: 0});
-        }
-
-        function onDisconnect() {
-            setIsConnected(false);
         }
 
         function onBacktest(value) {
             if (value && value.data && value.data.length) {
-                const newarr = mergeAndSortArrays(allCandleData, value.data);
-                setAllCandleData(newarr);
-                socket.emit('backtest_next', { last: newarr[newarr.length-1].time, num: 10 });
-                timeout(50);
-                next_data = { last: newarr[newarr.length-1].time, num: 10 };
+                const newarr = mergeAndSortArrays(largerCandleData, value.data);
+                setLargerCandleData(newarr);
             }
             else {
-                timeout(50);
-                next_data = { last: allCandleData[allCandleData.length-1].time, num: 10 };
-                socket.emit('backtest_next', next_data);
+                timeout(1000).then(() => {
+                    setRetryData({retry: true});
+                });
             }
-            
         }
-
         socket.on('connect', onConnect);
-        socket.on('disconnect', onDisconnect);
         socket.on('backtest', onBacktest);
 
         return () => {
             socket.off('connect', onConnect);
-            socket.off('disconnect', onDisconnect);
             socket.off('backtest', onBacktest);
         };
-    }, [allCandleData, isConnected, timeWindow]);
 
-    // Emit the timeWindow whenever it changes
-    useEffect(() => {
-        socket.emit('backtest', { start: timeWindow.start, end: timeWindow.end });
-    }, [timeWindow]);
 
-    return { candleData: allCandleData, setTimeWindow };
+    }, [largerCandleData]);
+
+    return { largerCandleData, retryData }
+
 }
 
+export function useChartData() {
+    const [candleData, setCandleData] = useState(() => {
+        return [];
+    });
+    const [newRequest, setNewRequest] = useState(() => {
+        return {start: 0, end: 0};
+    });
+    const [winPosition, setWinPosition] = useState(() => {
+        return {start: 0, end: 0};
+    });
+    const {largerCandleData, retryData} = useWebsocket();
+
+    useEffect(() => {
+        // Check largerCandleData if required data is available
+        // Set candleData to required window (with some buffer)
+        // winPosition is the position in window user currently looking at
+        let [from] = largerCandleData.filter((val) => {
+            return val.time === winPosition.start
+        });
+        let [to]= largerCandleData.filter((val) => {
+            return val.time === winPosition.end
+        });
+        
+        if (largerCandleData.length) {
+            // Get the 100 candles on the left if buffer is smaller than 100 candles
+            if (from && from.index - largerCandleData[0].index <= 300 && largerCandleData[0].index) {
+                setNewRequest((previous) => ({
+                    start: largerCandleData[0].index - 300 <= 0 ? 0 : largerCandleData[0].index - 300, 
+                    end: largerCandleData[0].index
+                }));
+            }
+
+            // Get the  candles on the right if buffer is smaller than 100 candles
+            if (to && largerCandleData[largerCandleData.length-1].index - to.index <= 100) {
+                setNewRequest((previous) => ({
+                    start: largerCandleData[largerCandleData.length-1].index + 1, 
+                    end: largerCandleData[largerCandleData.length-1].index + 101
+                }));
+            }
+            setCandleData((previous) => (largerCandleData));
+        }
+        else {
+            setNewRequest((previous) => ({
+                start: null, 
+                end: null
+            }));
+
+        }
+        return () => {
+
+        };
+    }, [ largerCandleData, winPosition]);
+
+    useEffect(() => {
+        // Fetch reqeust new data from server
+        socket.emit("backtest", {"start": newRequest.start, "end": newRequest.end})
+    }, [newRequest, retryData])
+
+    return { candleData, setWinPosition};
+}

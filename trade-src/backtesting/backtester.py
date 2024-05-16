@@ -44,7 +44,7 @@ class BackTester:
                     "time": data.time.timestamp(),  # type: ignore
                     "open": data.open,
                     "high": data.high,
-                    "low": data.open,
+                    "low": data.low,
                     "close": data.close,
                     "volume": data.volume,
                 }

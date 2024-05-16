@@ -4,7 +4,7 @@ import { useChartData } from '../hooks/useChartData';
 
 
 export const ChartComponent = () => {
-    const { candleData, setTimeWindow } = useChartData();
+    const { candleData, setWinPosition } = useChartData();
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
 
@@ -17,21 +17,20 @@ export const ChartComponent = () => {
                         background: { type: 'solid', color: 'white' },
                     },
                     width: chartContainerRef.current.clientWidth,
-                    height: window.innerHeight, // Adjust chart height to window height
+                    height: window.innerHeight,
                 };
                 chartRef.current.chart.applyOptions(chartOptions);
             }
         };
 
         if (!chartRef.current) {
-            // Create the chart instance if it doesn't exist
             const chartOptions = {
                 layout: {
                     textColor: 'black',
                     background: { type: 'solid', color: 'white' },
                 },
                 width: chartContainerRef.current.clientWidth,
-                height: window.innerHeight, // Adjust chart height to window height
+                height: window.innerHeight,
             };
             const chart = createChart(chartContainerRef.current, chartOptions);
             const candleSeries = chart.addCandlestickSeries({
@@ -39,10 +38,9 @@ export const ChartComponent = () => {
                 topColor: '#2962FF',
                 bottomColor: 'rgba(41, 98, 255, 0.28)',
             });
-            chartRef.current = { chart, candleSeries }; // Save chart instance to the ref
+            chartRef.current = { chart, candleSeries };
         }
 
-        // Update chart data whenever candleData changes
         if (candleData && candleData.length) {
             chartRef.current.candleSeries.setData(candleData);
         }
@@ -54,14 +52,11 @@ export const ChartComponent = () => {
                 return;
             }
             const adjustedTimeWindow = {
-                start: (newVisibleTimeRange.from - 432000),
-                end: (newVisibleTimeRange.to + 5000),
+                start: newVisibleTimeRange.from,
+                end: newVisibleTimeRange.to,
             };
-    
-            // Update state with the adjusted time window
-            setTimeWindow(adjustedTimeWindow);
-    
-            // Fetch new data based on adjustedTimeWindow and update candleData
+
+            setWinPosition(adjustedTimeWindow);
         };
         
         chartRef.current.chart
@@ -69,9 +64,12 @@ export const ChartComponent = () => {
             .subscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange);
 
         return () => {
+            chartRef.current.chart
+            .timeScale()
+            .unsubscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange);
             window.removeEventListener('resize', handleResize);
         };
-    }, [candleData, setTimeWindow]);
+    }, [candleData, setWinPosition]);
 
     return <div ref={chartContainerRef} />;
 };

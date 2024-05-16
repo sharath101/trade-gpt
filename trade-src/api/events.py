@@ -14,71 +14,56 @@ def handle_connect(data):
 def handle_backtest_all(data):
     window = 1000
     try:
-        start = data["start"]
+        start_index = data["start"]
     except:
-        start = 0
+        start_index = None
     try:
-        end = data["end"]
+        end_index = data["end"]
     except:
-        end = 0
+        end_index = None
+    if start_index == None and end_index == None:
+        redis_data: list = get_all_data()
+        new_list = redis_data[-window:]
+        s_i = redis_data.index(new_list[0])
+        for candle in new_list:
+            candle["index"] = s_i
+            s_i += 1
+        socketio.emit("backtest", {"data": new_list})
+        return
 
-    redis_data: list = get_all_data()
+    elif start_index == 0 and end_index:
 
-    if redis_data and len(redis_data) > 0:
-        start_index = binary_search(redis_data, start)
-        end_index = binary_search(redis_data, end)
-        if start_index > end_index:
+        redis_data: list = get_all_data()
+        if len(redis_data) >= end_index:
+            new_list = redis_data[:end_index]
+            s_i = 0
+            for candle in new_list:
+                candle["index"] = s_i
+                s_i += 1
+
+            socketio.emit("backtest", {"data": new_list})
+            return
+        else:
+            new_list = redis_data
+            s_i = 0
+            for candle in new_list:
+                candle["index"] = s_i
+                s_i += 1
+            socketio.emit("backtest", {"data": new_list})
+
+    elif start_index and end_index:
+        redis_data: list = get_all_data()
+        if end_index - start_index > len(redis_data):
+            logger.warning("UI is asking more data that we have")
             socketio.emit("backtest", None)
             return
-
-        if start_index == 0 and end_index == 0:
-            new_list = redis_data
-            if len(new_list) > window:
-                new_list = redis_data[-1000:-1]
-            else:
-                new_list = redis_data
-
-        elif start_index and end_index:
-            new_list = redis_data[start_index : end_index + 1]
-
-        elif start_index and not end_index:
-            new_list = redis_data[start_index:]
-            if len(new_list) > window:
-                new_list = redis_data[start_index : start_index + window]
-            else:
-                new_list = redis_data[start_index:]
-
-        elif not start_index and end_index:
-            new_list = redis_data[:end_index]
-            if len(new_list) > window:
-                new_list = redis_data[end_index - window : end_index]
-            else:
-                new_list = redis_data[:end_index]
-        socketio.emit("backtest", {"data": new_list})
-    else:
-        socketio.emit("backtest", None)
-
-
-@socketio.on("backtest_next")
-def handle_backtest_next(data):
-    try:
-        last_timestamp = data["last"]
-    except:
-        return
-    try:
-        quantity = data["num"]
-    except:
-        quantity = 1
-    if last_timestamp:
-        redis_data: list = get_all_data()
-        start_index = binary_search(redis_data, last_timestamp)
-        if start_index == len(redis_data):
-            socketio.emit("backtest", None)
-        elif start_index < len(redis_data) and len(redis_data) - start_index > quantity:
-            new_list = redis_data[start_index : start_index + quantity]
-            socketio.emit("backtest", {"data": new_list})
         else:
-            socketio.emit("backtest", None)
+            new_list = redis_data[start_index:end_index]
+            s_i = start_index
+            for candle in new_list:
+                candle["index"] = s_i
+                s_i += 1
+            socketio.emit("backtest", {"data": new_list})
 
 
 def get_all_data():
@@ -112,6 +97,6 @@ def binary_search(arr, target):
     return low
 
 
-# @socketio.on_error_default
-# def handle_error_default(e):
-#     logger.error(f"Error in WebSocket IO: {e}")
+@socketio.on_error_default
+def handle_error_default(e):
+    logger.error(f"Error in WebSocket IO: {e}")
