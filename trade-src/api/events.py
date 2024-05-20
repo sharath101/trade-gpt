@@ -13,73 +13,39 @@ def handle_connect(data):
 @socketio.on("backtest")
 def handle_backtest_all(data):
     window = 1000
-    try:
-        start_index = data["start"]
-    except:
-        start_index = None
-    try:
-        end_index = data["end"]
-    except:
-        end_index = None
+    start_index = data.get("start")
+    end_index = data.get("end")
+    redis_data: list = get_all_backtest_candles()
+
     if start_index == None and end_index == None:
-        redis_data: list = get_all_data()
-        new_list = redis_data[-window:]
-        s_i = redis_data.index(new_list[0])
-        for candle in new_list:
-            candle["index"] = s_i
-            s_i += 1
-        socketio.emit("backtest", {"data": new_list})
-        return
+        candle_list = redis_data[-window:]
+        s_i = redis_data.index(candle_list[0])
 
     elif start_index == 0 and end_index:
-
-        redis_data: list = get_all_data()
-        if len(redis_data) >= end_index:
-            new_list = redis_data[:end_index]
-            s_i = 0
-            for candle in new_list:
-                candle["index"] = s_i
-                s_i += 1
-
-            socketio.emit("backtest", {"data": new_list})
-            return
-        else:
-            new_list = redis_data
-            s_i = 0
-            for candle in new_list:
-                candle["index"] = s_i
-                s_i += 1
-            socketio.emit("backtest", {"data": new_list})
+        candle_list = redis_data[: min(end_index, len(redis_data))]
+        s_i = 0
 
     elif start_index and end_index:
-        redis_data: list = get_all_data()
         if end_index - start_index > len(redis_data):
             logger.warning("UI is asking more data that we have")
             socketio.emit("backtest", None)
             return
         else:
-            new_list = redis_data[start_index:end_index]
+            candle_list = redis_data[start_index:end_index]
             s_i = start_index
-            for candle in new_list:
-                candle["index"] = s_i
-                s_i += 1
-            socketio.emit("backtest", {"data": new_list})
-
-
-def get_all_data():
-    backup: list = redis_instance.get("backtest_backup")
-    backtest: list = redis_instance.get("backtest")
-
-    if backup:
-        pass
     else:
-        backup = []
+        socketio.emit("backtest", None)
+        return
 
-    if backtest:
-        pass
-    else:
-        backtest = []
+    for candle in candle_list:
+        candle["index"] = s_i
+        s_i += 1
+    socketio.emit("backtest", {"data": candle_list})
 
+
+def get_all_backtest_candles():
+    backup: list = redis_instance.get("backtest_backup") or []
+    backtest: list = redis_instance.get("backtest") or []
     return backup + backtest
 
 
