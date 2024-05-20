@@ -13,6 +13,7 @@ from market_data import (
     schedule_until_sunday,
 )
 from utils import Processor
+
 from .misc import get_access_token
 
 
@@ -171,8 +172,11 @@ def schedule():
 def backtest(stock):
     file = f"{stock}_with_indicators_.csv"
     backtester = BackTester(file, stock)
-    new_process = Processor(backtester)
-    new_process.start()
+    if app.config["PYTHON_ENV"] == "PROD":
+        new_process = Processor(backtester)
+        new_process.start()
+    else:
+        backtester.backtest()
     return jsonify({"message": "Backtesting Started"})
 
 

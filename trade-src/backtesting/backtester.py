@@ -76,24 +76,6 @@ class BackTester:
                         self.stock, current_price, timestamp, volume
                     )
 
-    def update_positions(self, candle):
-        for broker in self.order_manager.brokers:
-            if broker.__class__.__name__ == "VirtualBroker":
-                virtual_broker = broker
-        else:
-            virtual_broker = None
-
-        all_orders = virtual_broker._virtual_db
-        if self.num_orders == len(all_orders):
-            return
-
-        redis_key = f"backtest_positions_{self.user}"
-        positions_redis = redis_instance.get(redis_key)
-        if positions_redis:
-            pass
-        else:
-            redis_instance.set(redis_key, all_orders)
-
     def generate_tickers(self, interval: int, candle: OHLCV):
         start_time = candle.time.replace(second=0, microsecond=0)
         end_time = start_time + timedelta(minutes=interval - 1, seconds=55)
