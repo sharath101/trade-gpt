@@ -1,6 +1,9 @@
 import pickle
-from api import logger
+from typing import Dict, List
+
 import redis
+
+from api import logger
 
 
 class RedisManager:
@@ -30,7 +33,7 @@ class RedisManager:
 
 class BacktestRedis:
     def __init__(self):
-        self._redis_dict = {}
+        self._redis_dict: Dict[str, List[dict]] = {}
 
     def get(self, key):
         try:

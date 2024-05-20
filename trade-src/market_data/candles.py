@@ -9,9 +9,11 @@ from .indicators import IndicatorManager
 
 
 class CandleManager:
-    def __init__(self, interval_minutes: int, backtesting=False):
+    def __init__(
+        self, interval_minutes: int, backtesting=False, indicators={"MACD": [12, 26, 9]}
+    ):
         self.interval_minutes: int = interval_minutes
-        self.indicators: IndicatorManager = IndicatorManager()
+        self.indicators: IndicatorManager = IndicatorManager(indicators)
         self._market_open: time = time(9, 15, 0)
         self._market_close: time = time(15, 30, 0)
         if backtesting:

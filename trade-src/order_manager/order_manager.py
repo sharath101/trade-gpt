@@ -172,8 +172,7 @@ class OrderManager(OMBase):
 
         if self.backtesting:
             for broker in self.brokers:
-                if broker.__class__.__name__ == "VirtualBroker":
-                    broker.analyse(current_price, current_time, symbol)
+                broker.analyse(current_price, current_time, symbol)
 
     def close_all_positions(self, open_positions: List[OrderBook], current_price, current_time):
         for position in open_positions:
