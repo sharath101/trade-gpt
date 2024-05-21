@@ -11,7 +11,6 @@ class StrategyManager:
     symbol: str
     backtesting: bool = False
     stategies: List[Strategy] = []
-    candle_manager = CandleManager(5, True, {"MACD": [12, 26, 9]})
 
     def __init__(
         self,
@@ -20,6 +19,8 @@ class StrategyManager:
         strategies: List[Strategy],
         backtesing: bool,
     ):
+
+        self.candle_manager = CandleManager(5, True, {"MACD": [12, 26, 9]})
         self.symbol = symbol
         self.backtesting = backtesing
         self.strategies = strategies
