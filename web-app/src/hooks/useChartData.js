@@ -27,6 +27,7 @@ export function useWebsocket() {
         return [];
     });
     const [retryData, setRetryData] = useState({});
+    const [gotData, setGotData] = useState({});
 
     useEffect(() => {
         function onConnect() {
@@ -34,11 +35,13 @@ export function useWebsocket() {
         }
 
         function onBacktest(value) {
+            console.log(value);
             if (value && value.data && value.data.length) {
                 const newarr = mergeAndSortArrays(largerCandleData, value.data);
                 setLargerCandleData(newarr);
                 timeout(100).then(() => {
                     setRetryData((previous) => ({retry: !previous.retry}));
+                    setGotData((previous) => ({retry: !previous.retry}));
                 });
             }
             else {
@@ -58,7 +61,7 @@ export function useWebsocket() {
 
     }, [largerCandleData]);
 
-    return { largerCandleData, retryData }
+    return { largerCandleData, retryData,  gotData}
 
 }
 
@@ -72,7 +75,7 @@ export function useChartData() {
     const [winPosition, setWinPosition] = useState(() => {
         return {start: 0, end: 0};
     });
-    const {largerCandleData, retryData} = useWebsocket();
+    const {largerCandleData, retryData, gotData} = useWebsocket();
 
     useEffect(() => {
         // Check largerCandleData if required data is available
@@ -113,12 +116,13 @@ export function useChartData() {
         return () => {
 
         };
-    }, [ largerCandleData, winPosition]);
+    }, [ largerCandleData, winPosition, gotData]);
 
     useEffect(() => {
         // Fetch reqeust new data from server
+        console.log("spamming");
         socket.emit("backtest", {"start": newRequest.start, "end": newRequest.end})
-    }, [newRequest, retryData])
+    }, [newRequest])
 
     return { candleData, setWinPosition};
 }

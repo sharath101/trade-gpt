@@ -41,7 +41,7 @@ export const ChartComponent = () => {
             });
             const areaSeries = chart.addAreaSeries({
                 lastValueVisible: false,
-                crosshairMarkerVisible: false,
+                //crosshairMarkerVisible: false,
                 lineColor: 'transparent',
                 topColor: 'rgba(56, 33, 110,0.6)',
                 bottomColor: 'rgba(56, 33, 110, 0.1)',
