@@ -6,7 +6,7 @@ class StrategyImporter:
     def __init__(self):
         pass
 
-    def parse(self, code):
+    def parse(self, code, user_files):
         errors = []
         suspicious = []
 
@@ -19,12 +19,18 @@ class StrategyImporter:
 
         # Visitor class to analyze the AST nodes
         class CodeAnalyzer(ast.NodeVisitor):
+            def __init__(self, user_files):
+                self.user_files = user_files
+
             def visit_Import(self, node):
-                suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
+                for alias in node.names:
+                    if alias.name not in self.user_files and alias.name + ".py" not in self.user_files:
+                        suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
                 self.generic_visit(node)
 
-            def visit_ImportFrom(self, node):
-                suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
+            def visit_ImportFrom(self, node):                
+                if node.module not in self.user_files and node.module + ".py" not in self.user_files:
+                    suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
                 self.generic_visit(node)
 
             def visit_Exec(self, node):
@@ -40,7 +46,13 @@ class StrategyImporter:
                     suspicious.append(f"Suspicious function call: {ast.dump(node)}")
                 self.generic_visit(node)
 
-        analyzer = CodeAnalyzer()
+            def visit_ClassDef(self, node):
+                for base in node.bases:
+                    if isinstance(base, ast.Name) and base.id == 'Strategy':  # Change 'BaseClass' to your base class name
+                        suspicious.append(f"Class {node.name} inherits from Strategy")
+                self.generic_visit(node)
+
+        analyzer = CodeAnalyzer(user_files)
         analyzer.visit(tree)
 
         return errors, suspicious

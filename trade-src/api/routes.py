@@ -1,9 +1,12 @@
 import logging
+import os
+import subprocess
+import uuid
+import shutil
 from datetime import datetime, timedelta
 
 from flask import jsonify, request, render_template
-import subprocess
-import ast
+
 
 from api import app, logger
 from backtesting import BackTester
@@ -209,18 +212,74 @@ def add_strategy():
     return "OK"
 
 
-@app.route("/run", methods=["POST"])
-def run():
-    code = request.json.get('code')
-    strategy_importer = StrategyImporter()
-    errors, sus = strategy_importer.parse(code)
-    if len(errors) + len(sus):
-        return jsonify({'errors': errors, 'suspicious': sus})
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    data = request.get_json()
+    files = data.get('files', {})
 
-    else:
-        try:
-            result = subprocess.run(['python3', '-c', code], capture_output=True, text=True, check=True)
-            output = result.stdout
-        except subprocess.CalledProcessError as e:
-            output = e.stderr
-        return jsonify({'errors': errors, 'suspicious': sus, 'output': output})
+    if 'main.py' not in files:
+        return jsonify({'error': 'At least one file must be named main.py', 'errors': {}, 'suspicious': {}})
+
+    errors = {}
+    suspicious = {}
+    strategy_importer = StrategyImporter()
+
+    for filename, code in files.items():
+        file_errors, file_suspicious = strategy_importer.parse(code, files.keys())
+        errors[filename] = file_errors
+        suspicious[filename] = file_suspicious
+    return jsonify({'errors': errors, 'suspicious': suspicious})
+
+
+@app.route('/run', methods=['POST'])
+def run_code():
+    data = request.get_json()
+    files = data.get('files', {})
+
+    errors = {}
+    suspicious = {}
+
+    strategy_importer = StrategyImporter()
+
+    if 'main.py' not in files:
+        return jsonify({'error': 'At least one file must be named main.py', 'errors': {}, 'suspicious': {}})
+
+    # Analyze each file first
+    for filename, code in files.items():
+        file_errors, file_suspicious = strategy_importer.parse(code, files.keys())
+        errors[filename] = file_errors
+        suspicious[filename] = file_suspicious
+
+    # If there are errors, do not run the code
+    if any(errors.values()) or any(suspicious.values()):
+        return jsonify({'errors': errors, 'suspicious': suspicious, 'output': '', 'error': 'Code contains errors. Fix them before running.'})
+
+    # Create a unique directory for the user session
+    session_id = str(uuid.uuid4())
+    session_dir = os.path.join(app.config['DATA'], session_id)
+    os.makedirs(session_dir)
+
+    # Save each file
+    for filename, code in files.items():
+        with open(os.path.join(session_dir, filename), 'w') as f:
+            f.write(code)
+
+    try:
+        # Run the main file inside a Docker container or a subprocess
+        result = subprocess.run(
+            ['python', os.path.join(session_dir, 'main.py')],
+            capture_output=True,
+            text=True,
+            cwd=session_dir,
+            timeout=10
+        )
+        output = result.stdout
+        error = result.stderr
+    except subprocess.TimeoutExpired:
+        output = ""
+        error = "Error: Code execution timed out"
+    finally:
+        # Clean up the user's files
+        shutil.rmtree(session_dir)
+    
+    return jsonify({'errors': errors, 'suspicious': suspicious, 'output': output, 'error': error})
