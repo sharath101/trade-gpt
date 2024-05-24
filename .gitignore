@@ -41,3 +41,5 @@ yarn-error.log*
 .yarn-integrity
 
 .DS_Store
+
+strategy_object_store
