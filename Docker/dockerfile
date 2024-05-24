@@ -1,0 +1,17 @@
+FROM alpine:latest
+
+RUN mkdir app
+
+COPY Docker/requirements.txt app
+
+RUN apk update && \
+    apk add python3 && \
+    apk add py3-pip && \
+    cd app && \
+    python3 -m venv venv && \
+    source ./venv/bin/activate && \
+    pip3 install -r requirements.txt
+
+COPY ../strategy-src app
+
+ENTRYPOINT [ "/app/venv/bin/python", "/app/strategy/main.py" ]
