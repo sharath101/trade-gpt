@@ -77,7 +77,6 @@ class IndicatorManager:
                     logger.warning(f"Indicator {indicator} is not recognized.")
             except Exception as e:
                 logger.error(f"Error initializing {indicator}: {e}")
-        print("asdas")
 
     def add(self, olhcv: OHLCV) -> None:
         for name, indicator in self.indicators.items():

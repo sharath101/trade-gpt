@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime, timedelta
 
-from flask import jsonify, request
+from flask import jsonify, request, render_template
+import subprocess
+import ast
 
 from api import app, logger
 from backtesting import BackTester
@@ -13,7 +15,7 @@ from market_data import (
     schedule_until_sunday,
 )
 from utils import Processor
-
+from strategy import StrategyImporter
 from .misc import get_access_token
 
 
@@ -41,6 +43,10 @@ def set_log_level():
     else:
         log_level = logging.DEBUG
     logger.setLevel(log_level)
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 
 @app.route("/add_api_key", methods=["POST"])
@@ -192,3 +198,29 @@ def postback():
             order.save()
             return jsonify({"message": "Postback received"})
     return jsonify({"message": "Postback received"})
+
+
+@app.route("/add_startegy", methods=["POST"])
+def add_strategy():
+    from strategy.strategy_builder import StrategyImporter
+    data = request.json
+    si = StrategyImporter()
+    si.importclass(data["strategy"])
+    return "OK"
+
+
+@app.route("/run", methods=["POST"])
+def run():
+    code = request.json.get('code')
+    strategy_importer = StrategyImporter()
+    errors, sus = strategy_importer.parse(code)
+    if len(errors) + len(sus):
+        return jsonify({'errors': errors, 'suspicious': sus})
+
+    else:
+        try:
+            result = subprocess.run(['python3', '-c', code], capture_output=True, text=True, check=True)
+            output = result.stdout
+        except subprocess.CalledProcessError as e:
+            output = e.stderr
+        return jsonify({'errors': errors, 'suspicious': sus, 'output': output})

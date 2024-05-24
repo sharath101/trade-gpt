@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Builder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .CodeMirror { height: 400px; border: 1px solid #ccc; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Strategy Builder</h1>
+    <textarea id="editor" placeholder="Write your Python code here..."></textarea>
+    <button onclick="analyzeCode()">Analyze</button>
+    <div id="results"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/closebrackets.min.js"></script>
+    <script>
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'python',
+            theme: 'material-darker',
+            lineNumbers: true,
+            autoCloseBrackets: true,
+        });
+
+        async function analyzeCode() {
+            const code = editor.getValue();
+            const response = await fetch('/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: code })
+            });
+            const result = await response.json();
+            displayResults(result);
+        }
+
+        function displayResults(result) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (result.errors.length > 0) {
+                const errorList = document.createElement('ul');
+                errorList.innerText = 'Errors:';
+                result.errors.forEach(error => {
+                    const listItem = document.createElement('li');
+                    listItem.innerText = error;
+                    errorList.appendChild(listItem);
+                });
+                resultsDiv.appendChild(errorList);
+            }
+
+            if (result.suspicious.length > 0) {
+                const suspiciousList = document.createElement('ul');
+                suspiciousList.innerText = 'Suspicious Constructs:';
+                result.suspicious.forEach(susp => {
+                    const listItem = document.createElement('li');
+                    listItem.innerText = susp;
+                    suspiciousList.appendChild(listItem);
+                });
+                resultsDiv.appendChild(suspiciousList);
+            }
+
+            if (result.errors.length === 0 && result.suspicious.length === 0) {
+                resultsDiv.innerText = result.output;
+            }
+        }
+    </script>
+</body>
+</html>
