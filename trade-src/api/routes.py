@@ -18,7 +18,7 @@ from market_data import (
     schedule_until_sunday,
 )
 from strategy import StrategyImporter
-from utils import Processor
+from utils import Processor, deploy_container
 
 from .misc import get_access_token
 
@@ -183,12 +183,23 @@ def schedule():
 def backtest(stock):
     file = f"{stock}_with_indicators_.csv"
     backtester = BackTester(file, stock)
-    if app.config["PYTHON_ENV"] == "PROD":
-        new_process = Processor(backtester)
-        new_process.start()
-    else:
-        backtester.backtest()
-    return jsonify({"message": "Backtesting Started"})
+    startegy_names = StrategyBook.get_all()
+    file_data = startegy_names[0].folder_loc
+    strat_dic = os.path.join(app.config['UPLOAD_FOLDER'], file_data)
+    session_id = str(uuid.uuid4())
+    volumes = {
+        "/home/aman-singh/trade-gpt-data/New Strategy": {
+            'bind': '/app/strategy',
+            'mode': 'ro',
+        }
+    }
+    conatiner = deploy_container('money:1', session_id, volumes=volumes)
+    # if app.config["PYTHON_ENV"] == "PROD":
+    #     new_process = Processor(backtester)
+    #     new_process.start()
+    # else:
+    #     backtester.backtest()
+    return jsonify({"message": f"Backtesting Started {conatiner.id}"})
 
 
 @app.route("/postback/dhan", methods=["POST"])

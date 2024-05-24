@@ -6,6 +6,7 @@ from api.config import SQLALCHEMY_DATABASE_URI
 from .redis_manager import RedisManager, BacktestRedis
 from .common import *
 from .processor import Processor
+from .dockerd import *
 
 jobstores = {"default": SQLAlchemyJobStore(url=SQLALCHEMY_DATABASE_URI)}
 executors = {"default": ThreadPoolExecutor(20), "processpool": ProcessPoolExecutor(5)}
