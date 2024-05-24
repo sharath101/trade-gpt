@@ -24,13 +24,15 @@ class StrategyImporter:
 
             def visit_Import(self, node):
                 for alias in node.names:
-                    if alias.name not in self.user_files and alias.name + ".py" not in self.user_files:
-                        suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
+                    if alias.name:
+                        if alias.name not in self.user_files and alias.name + ".py" not in self.user_files:
+                            suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
                 self.generic_visit(node)
 
-            def visit_ImportFrom(self, node):                
-                if node.module not in self.user_files and node.module + ".py" not in self.user_files:
-                    suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
+            def visit_ImportFrom(self, node):   
+                if node.module:             
+                    if node.module not in self.user_files and node.module + ".py" not in self.user_files:
+                        suspicious.append(f"Suspicious import statement: {ast.dump(node)}")
                 self.generic_visit(node)
 
             def visit_Exec(self, node):
