@@ -20,9 +20,12 @@
         <h1 class="my-4">Python Code Analyzer and Runner</h1>
         <div id="file-editors" class="mb-3">
             <div class="file-container card p-3 mb-3">
-                <input type="text" class="form-control filename" placeholder="Filename (e.g., main.py)">
+                <input type="text" class="form-control filename" placeholder="main.py", value="main.py">
                 <textarea class="code-editor" placeholder="Write your Python code here..."></textarea>
-            </div>
+                <div class="text-end mt-2">
+                    <button class="btn btn-danger" onclick="deleteFile(this)">Delete</button>
+                </div>
+            </div>            
         </div>
         <button class="btn btn-primary mb-3" onclick="addFile()">Add File</button>
         <button class="btn btn-warning mb-3" onclick="analyzeCode()">Analyze</button>
@@ -40,6 +43,9 @@
             fileContainer.innerHTML = `
                 <input type="text" class="form-control filename" placeholder="Filename (e.g., module.py)">
                 <textarea class="code-editor" placeholder="Write your Python code here..."></textarea>
+                <div class="text-end mt-2">
+                    <button class="btn btn-danger" onclick="deleteFile(this)">Delete</button>
+                </div>
             `;
             document.getElementById('file-editors').appendChild(fileContainer);
             initializeCodeMirror(fileContainer.querySelector('.code-editor'));
@@ -52,6 +58,11 @@
                 lineNumbers: true,
                 autoCloseBrackets: true,
             });
+        }
+
+        function deleteFile(button) {
+            const fileContainer = button.closest('.file-container');
+            fileContainer.remove();
         }
 
         document.querySelectorAll('.code-editor').forEach(editor => initializeCodeMirror(editor));

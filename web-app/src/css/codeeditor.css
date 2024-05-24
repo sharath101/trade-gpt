@@ -1,0 +1,153 @@
+.app-container {
+    display: flex;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+  }
+  
+  .sidebar {
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  .file-tree {
+    overflow-y: auto;
+  }
+  
+  .file {
+    cursor: pointer;
+    padding: 10px;
+  }
+  
+  .file:hover {
+    background-color: #444;
+  }
+  
+  .file.active {
+    background-color: #555;
+  }
+  
+  .close-btn {
+    cursor: pointer;
+    float: right;
+  }
+  
+  .add-file {
+    cursor: pointer;
+    padding: 10px;
+    text-align: center;
+    color: #ccc;
+  }
+  
+  .editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .editor-toolbar {
+    background-color: #1d1c1c;
+    padding: 10px;
+  }
+  
+  .editor-toolbar button {
+    margin-right: 10px;
+  }
+  
+  .editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #1d1c1c;
+  }
+  
+  .editor-content {
+    display: none;
+    flex: 1;
+  }
+  
+  .editor-content.active {
+    display: block;
+  }
+  
+  .filename {
+    width: 20%;
+    background-color: #1d1c1c;
+    border-color: #494949;
+    padding: 10px;
+    margin-bottom: 10px;
+    color: #fff;
+  }
+
+  .output-pane {
+    border-top: 1px solid #1d1c1c;
+    background-color: #1d1c1c;
+    padding: 10px;
+    height: 100%;
+  }
+  
+  .output {
+    color: aliceblue;
+    background-color: #1d1c1c;
+    border: 1px solid #1d1c1c;
+    width: 98%;
+    height: 90%;
+    padding: 10px;
+    position: relative;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+  }
+
+  textarea {
+    position: fixed;
+    left:10px; top:10px;
+    width:  calc(100vw - 20px);      /* calc and viewport to the rescue */
+    height: calc(100vh - 20px);
+    resize: none;
+  }
+  
+  .output-handle {
+    background-color: #1d1c1c;
+    cursor: row-resize; /* Cursor changes to a resize cursor */
+    height: 10px;
+    width: 100%;
+    position: relative;
+    bottom: 0;
+    left: 0;
+  }
+  
+  .output pre {
+    margin: 0;
+    white-space: pre-wrap; /* Wrap long lines */
+  }
+  
+  .CodeMirror {
+    height: calc(95%);
+  }
+  
+  .cm-s-darcula {
+    background-color: #2b2b2b !important;
+    color: #ccc !important;
+  }
+  
+  .cm-s-darcula .CodeMirror-gutters {
+    background-color: #2b2b2b !important;
+  }
+  
+  .cm-s-darcula .CodeMirror-linenumber {
+    color: #777 !important;
+  }
+  
+  .cm-s-darcula .CodeMirror-cursor {
+    border-color: #ccc !important;
+  }
+  
+  .cm-s-darcula .CodeMirror-selected {
+    background-color: #454545 !important;
+  }
+  
