@@ -1,24 +1,25 @@
 import logging
 import os
+import shutil
 import subprocess
 import uuid
-import shutil
 from datetime import datetime, timedelta
 
-from flask import jsonify, request, render_template
-
+from flask import jsonify, render_template, request
+from werkzeug.utils import secure_filename
 
 from api import app, logger
 from backtesting import BackTester
-from database import APIKey, DhanOrderBook, Symbol
+from database import APIKey, DhanOrderBook, StrategyBook, Symbol
 from market_data import (
     DHAN_INSTRUMENTS,
     marketDataQuote,
     marketFeedQuote,
     schedule_until_sunday,
 )
-from utils import Processor
 from strategy import StrategyImporter
+from utils import Processor
+
 from .misc import get_access_token
 
 
@@ -46,6 +47,7 @@ def set_log_level():
     else:
         log_level = logging.DEBUG
     logger.setLevel(log_level)
+
 
 @app.route("/")
 def index():
@@ -203,22 +205,19 @@ def postback():
     return jsonify({"message": "Postback received"})
 
 
-@app.route("/add_startegy", methods=["POST"])
-def add_strategy():
-    from strategy.strategy_builder import StrategyImporter
-    data = request.json
-    si = StrategyImporter()
-    si.importclass(data["strategy"])
-    return "OK"
-
-
 @app.route("/analyze", methods=["POST"])
 def analyze():
     data = request.get_json()
-    files = data.get('files', {})
+    files = data.get("files", {})
 
-    if 'main.py' not in files:
-        return jsonify({'error': 'At least one file must be named main.py', 'errors': {}, 'suspicious': {}})
+    if "main.py" not in files:
+        return jsonify(
+            {
+                "error": "At least one file must be named main.py",
+                "errors": {},
+                "suspicious": {},
+            }
+        )
 
     errors = {}
     suspicious = {}
@@ -228,21 +227,27 @@ def analyze():
         file_errors, file_suspicious = strategy_importer.parse(code, files.keys())
         errors[filename] = file_errors
         suspicious[filename] = file_suspicious
-    return jsonify({'errors': errors, 'suspicious': suspicious})
+    return jsonify({"errors": errors, "suspicious": suspicious})
 
 
-@app.route('/run', methods=['POST'])
+@app.route("/run", methods=["POST"])
 def run_code():
     data = request.get_json()
-    files = data.get('files', {})
+    files = data.get("files", {})
 
     errors = {}
     suspicious = {}
 
     strategy_importer = StrategyImporter()
 
-    if 'main.py' not in files:
-        return jsonify({'error': 'At least one file must be named main.py', 'errors': {}, 'suspicious': {}})
+    if "main.py" not in files:
+        return jsonify(
+            {
+                "error": "At least one file must be named main.py",
+                "errors": {},
+                "suspicious": {},
+            }
+        )
 
     # Analyze each file first
     for filename, code in files.items():
@@ -252,26 +257,33 @@ def run_code():
 
     # If there are errors, do not run the code
     if any(errors.values()) or any(suspicious.values()):
-        return jsonify({'errors': errors, 'suspicious': suspicious, 'output': '', 'error': 'Code contains errors. Fix them before running.'})
+        return jsonify(
+            {
+                "errors": errors,
+                "suspicious": suspicious,
+                "output": "",
+                "error": "Code contains errors. Fix them before running.",
+            }
+        )
 
     # Create a unique directory for the user session
     session_id = str(uuid.uuid4())
-    session_dir = os.path.join(app.config['DATA'], session_id)
+    session_dir = os.path.join(app.config["DATA"], session_id)
     os.makedirs(session_dir)
 
     # Save each file
     for filename, code in files.items():
-        with open(os.path.join(session_dir, filename), 'w') as f:
+        with open(os.path.join(session_dir, filename), "w") as f:
             f.write(code)
 
     try:
         # Run the main file inside a Docker container or a subprocess
         result = subprocess.run(
-            ['python', os.path.join(session_dir, 'main.py')],
+            ["python", os.path.join(session_dir, "main.py")],
             capture_output=True,
             text=True,
             cwd=session_dir,
-            timeout=10
+            timeout=10,
         )
         output = result.stdout
         error = result.stderr
@@ -281,5 +293,64 @@ def run_code():
     finally:
         # Clean up the user's files
         shutil.rmtree(session_dir)
-    
-    return jsonify({'errors': errors, 'suspicious': suspicious, 'output': output, 'error': error})
+
+    return jsonify(
+        {"errors": errors, "suspicious": suspicious, "output": output, "error": error}
+    )
+
+
+def allowed_file(filename):
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
+    )
+
+
+@app.route("/upload_strategy", methods=["POST"])
+def add_strategy():
+    try:
+        strategy_name = request.form.get("strategy_name")
+        indicators = request.form.getlist("indicators")
+        description = request.form.get("description")
+        folder_loc = f"{strategy_name}"
+
+        if not all([strategy_name, indicators]):
+            return jsonify({"error": "Missing required parameters"}), 400
+
+        folder_path = os.path.join(app.config["UPLOAD_FOLDER"], folder_loc)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        files = request.files.getlist("files")
+        if not files:
+            return jsonify({"error": "No files provided"}), 400
+
+        file_data = {}
+        for file in files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(
+                    os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename)
+                )
+                with open(
+                    os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename), "r"
+                ) as f:
+                    file_data[filename] = f.read()
+
+        new_strategy = StrategyBook(
+            strategy_name=strategy_name,
+            indicators=indicators,
+            folder_loc=folder_loc,
+            description=description,
+            files=file_data,
+        )
+
+        new_strategy.save()
+
+        return jsonify({"message": "Strategy created successfully!"}), 201
+
+    except KeyError as e:
+        return jsonify({"error": f"Missing required parameter: {e}"}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
