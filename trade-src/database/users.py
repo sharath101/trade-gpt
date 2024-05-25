@@ -1,8 +1,9 @@
-from api import app, logger
-from typing import List
-import jwt
 from datetime import datetime, timedelta
+from typing import List
 
+import jwt
+
+from api import app, logger
 from database import db
 
 
@@ -10,7 +11,7 @@ class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(500), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
-    name = db.Column(db.DateTime, nullable=True)
+    name = db.Column(db.String, nullable=True)
 
     def __repr__(self) -> str:
         return f"Users(email={self.email}, name={self.name})"
@@ -22,6 +23,7 @@ class Users(db.Model):
                 db.session.commit()
         except Exception as e:
             logger.error(f"Error while saving Users: {e}")
+            raise RuntimeError(f"Error while saving Users: {e}")
 
     @staticmethod
     def save_all(api_keys: List["Users"]) -> None:
@@ -84,15 +86,11 @@ class Users(db.Model):
         """
         try:
             payload = {
-                'exp': datetime.now() + timedelta(days=0, seconds=5),
-                'iat': datetime.now(),
-                'sub': user_id
+                "exp": datetime.now() + timedelta(days=0, seconds=5),
+                "iat": datetime.now(),
+                "sub": user_id,
             }
-            return jwt.encode(
-                payload,
-                app.config.get('SECRET_KEY'),
-                algorithm='HS256'
-            )
+            return jwt.encode(payload, app.config.get("SECRET_KEY"), algorithm="HS256")
         except Exception as e:
             return e
 
@@ -104,9 +102,9 @@ class Users(db.Model):
         :return: integer|string
         """
         try:
-            payload = jwt.decode(auth_token, app.config.get('SECRET_KEY'))
+            payload = jwt.decode(auth_token, app.config.get("SECRET_KEY"))
 
-            return Users.get_first(id=payload['sub'])
+            return Users.get_first(id=payload["sub"])
         except jwt.ExpiredSignatureError:
             return False
         except jwt.InvalidTokenError:
