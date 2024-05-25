@@ -12,6 +12,6 @@ RUN apk update && \
     source ./venv/bin/activate && \
     pip3 install -r requirements.txt
 
-COPY ../strategy-src app
+COPY . app
 
 ENTRYPOINT [ "/app/venv/bin/python", "/app/strategy/main.py" ]
