@@ -19,34 +19,7 @@ from market_data import (
 )
 from strategy import StrategyImporter
 from utils import Processor, deploy_container
-
 from .misc import get_access_token
-
-
-def secure_route(route):
-    def secure_route_decorator(*args, **kwargs):
-        if request.headers.get("Authorization") is None:
-            return jsonify({"message": "Unauthorized"}), 401
-        if request.headers.get("Authorization") == "Bearer 1234":
-            a = route(*args, **kwargs)
-            return a
-        return jsonify({"message": "Unauthorized"}), 401
-
-    return secure_route_decorator
-
-
-@app.before_request
-def set_log_level():
-    log_level_param = request.args.get("log_level")
-    if log_level_param == "error":
-        log_level = logging.ERROR
-    elif log_level_param == "warning":
-        log_level = logging.WARNING
-    elif log_level_param == "info":
-        log_level = logging.INFO
-    else:
-        log_level = logging.DEBUG
-    logger.setLevel(log_level)
 
 
 @app.route("/")

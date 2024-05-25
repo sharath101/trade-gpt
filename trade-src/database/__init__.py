@@ -12,6 +12,7 @@ from .symbol import Symbol
 from .dhan_order_book import DhanOrderBook
 from .virtual_order_book import VirtualOrderBook
 from .strategy_book import StrategyBook
+from .users import Users
 
 engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
 connection = engine.connect()
