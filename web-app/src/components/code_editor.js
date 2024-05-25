@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Editor } from '@monaco-editor/react';
 import '../css/codeeditor.css';
 
-export const CodeEditor = () => {
+export const CodeEditor = ({setPage}) => {
     const [files, setFiles] = useState([
         { id: 1, filename: 'main.py', code: '' },
     ]);

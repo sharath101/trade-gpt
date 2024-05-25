@@ -105,7 +105,8 @@ class Users(db.Model):
         """
         try:
             payload = jwt.decode(auth_token, app.config.get('SECRET_KEY'))
-            return payload['sub']
+
+            return Users.get_first(id=payload['sub'])
         except jwt.ExpiredSignatureError:
             return False
         except jwt.InvalidTokenError:

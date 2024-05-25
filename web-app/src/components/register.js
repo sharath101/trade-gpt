@@ -29,7 +29,7 @@ function Copyright(props) {
 
 const defaultTheme = createTheme();
 
-export function SignInSide({setPage}) {
+export function Register({setPage}) {
     const handleSubmit = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -40,7 +40,7 @@ export function SignInSide({setPage}) {
             password: data.get('password')
         }
         
-        const response = await fetch('http://localhost:5000/login', {
+        const response = await fetch('http://localhost:5000/register', {
             method: 'POST',
             body: JSON.stringify(loginData),
             headers: {
@@ -49,8 +49,21 @@ export function SignInSide({setPage}) {
         });
         const result = await response.json();
         if (result.status == 'success') {
-          localStorage.setItem("auth", response.headers.get("Authorization"))
-          setPage("dashboard")
+            // Now login using the same credentials if registration was successful
+            const response = await fetch('http://localhost:5000/login', {
+                method: 'POST',
+                body: JSON.stringify(loginData),
+                headers: {
+                'Content-Type': 'application/json'
+                }
+            });
+            const result = await response.json();
+            if (result.status == 'success') {
+                localStorage.setItem("auth", response.headers.get("Authorization"))
+                setPage("dashboard")
+            }
+
+          
         }
     };
 
@@ -70,9 +83,19 @@ export function SignInSide({setPage}) {
               <LockOutlinedIcon />
             </Avatar>
             <Typography component="h1" variant="h5">
-              Sign in
+              Register
             </Typography>
             <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 1 }}>
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="name"
+                label="name"
+                type="name"
+                id="name"
+                autoComplete="name"
+              />
               <TextField
                 margin="normal"
                 required
@@ -103,13 +126,13 @@ export function SignInSide({setPage}) {
               </Button>
               <Grid container>
                 <Grid item xs>
-                <Button variant="outlined" color="secondary" onClick={()=>{setPage("register")}}>
+                <Button variant="outlined" color="secondary" onClick={()=>{setPage("login")}}>
                     Forgot Password
                   </Button>
                 </Grid>
                 <Grid item>
-                  <Button variant="outlined" color="secondary" onClick={()=>{setPage("register")}}>
-                    Sign Up
+                  <Button variant="outlined" color="secondary" onClick={()=>{setPage("login")}}>
+                    Sign In
                   </Button>
                 </Grid>
               </Grid>
