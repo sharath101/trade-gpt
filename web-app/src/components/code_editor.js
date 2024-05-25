@@ -6,6 +6,9 @@ export const CodeEditor = () => {
     const [files, setFiles] = useState([
         { id: 1, filename: 'main.py', code: '' },
     ]);
+    const [strategyName, setStrategyName] = useState('');
+    const [indicators, setIndicators] = useState('');
+    const [description, setDescription] = useState('');
     const [activeFileId, setActiveFileId] = useState(1);
     const [output, setOutput] = useState({
         error: null,
@@ -139,8 +142,8 @@ export const CodeEditor = () => {
     const uploadStrategy = async () => {
         try {
             const data = {
-                strategy_name: 'New Strategy',
-                indicators: { Indicator1: 'prm', Indicator2: 'prm2' },
+                strategy_name: strategyName,
+                indicators: indicators,
                 description: 'Your Strategy Description',
             };
 
@@ -212,6 +215,24 @@ export const CodeEditor = () => {
             </div>
             <div className='editor-container'>
                 <div className='editor-toolbar'>
+                    <label htmlFor='strategy_name'>Strategy Name:</label>
+                    <input
+                        type='text'
+                        id='strategy_name'
+                        value={strategyName}
+                        onChange={(e) => setStrategyName(e.target.value)}
+                        placeholder='Enter strategy name'
+                    />
+
+                    <label htmlFor='indicators'>Indicators:</label>
+                    <input
+                        type='text'
+                        id='indicators'
+                        value={indicators}
+                        onChange={(e) => setIndicators(e.target.value)}
+                        placeholder='Enter strategy name'
+                    />
+
                     <button className='btn' onClick={analyzeCode}>
                         Analyze
                     </button>
