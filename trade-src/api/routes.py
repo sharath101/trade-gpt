@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 import subprocess
@@ -8,7 +7,7 @@ from datetime import datetime, timedelta
 from flask import jsonify, render_template, request
 from werkzeug.utils import secure_filename
 
-from api import app, logger
+from api import app
 from backtesting import BackTester
 from database import APIKey, DhanOrderBook, StrategyBook, Symbol
 from market_data import (
@@ -18,7 +17,7 @@ from market_data import (
     schedule_until_sunday,
 )
 from strategy import StrategyImporter
-from utils import Processor, deploy_container
+from utils import deploy_container
 from .misc import get_access_token
 
 

@@ -7,6 +7,7 @@ import socketio as s
 from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
 app.config.from_pyfile("config.py")
@@ -17,13 +18,15 @@ socketio = SocketIO(
     app, async_mode="gevent", cors_allowed_origins="*", client_manager=client_manager
 )
 
+bcrypt = Bcrypt(app)
+
 logger = app.logger
 logger.setLevel("DEBUG")
-# handler = logging.FileHandler(app.config["LOG_FILE"])
-# logger.addHandler(handler)
+handler = logging.FileHandler(app.config["LOG_FILE"])
+logger.addHandler(handler)
 
 
-from api import events, routes
+from api import events, routes, auth
 from backtesting import *
 from baseclasses import *
 from brokers import *

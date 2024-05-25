@@ -1,6 +1,4 @@
-from flask import request
-
-from api import app, logger, socketio
+from api import logger, socketio
 from utils import redis_instance
 
 
