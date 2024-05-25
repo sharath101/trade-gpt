@@ -86,8 +86,8 @@ class Users(db.Model):
         """
         try:
             payload = {
-                "exp": datetime.now() + timedelta(days=0, seconds=5),
-                "iat": datetime.now(),
+                "exp": datetime.utcnow() + timedelta(days=0, minutes=5),
+                "iat": datetime.utcnow(),
                 "sub": user_id,
             }
             return jwt.encode(payload, app.config.get("SECRET_KEY"), algorithm="HS256")
@@ -102,7 +102,7 @@ class Users(db.Model):
         :return: integer|string
         """
         try:
-            payload = jwt.decode(auth_token, app.config.get("SECRET_KEY"))
+            payload = jwt.decode(auth_token, app.config.get("SECRET_KEY"), algorithms=["HS256"])
 
             return Users.get_first(id=payload["sub"])
         except jwt.ExpiredSignatureError:

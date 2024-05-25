@@ -1,7 +1,31 @@
+from functools import wraps
 from flask import jsonify, make_response, request
 
 from api import app, bcrypt, logger
 from database import Users
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        data = request.headers['Authorization']
+        token = str.replace(str(data), 'Bearer ', '')
+        if not token:
+            return jsonify({"status": "failure", 'message': 'Token is missing'}), 200
+        user = Users.decode_auth_token(token)
+        if not user:
+            return jsonify({"status": "failure", 'message': 'User not found'}), 200
+        response = f(*args, **kwargs)
+        auth_token = user.encode_auth_token(user.id)
+
+        server_response = make_response(jsonify(response), 200)
+
+        server_response.headers["Authorization"] = auth_token
+        server_response.headers["Access-Control-Expose-Headers"] = "Authorization"
+
+        return server_response
+    
+    return decorated
 
 
 @app.route("/login", methods=["POST"])
@@ -81,3 +105,9 @@ def register():
         response = make_response(jsonify(response_data), 200)
 
         return response
+
+
+@app.route("/check_login")
+@token_required
+def check_login():
+    return {"status": "success"}
