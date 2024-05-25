@@ -9,7 +9,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
-import Fab from '@mui/material/Fab'
+import Card from '@mui/material/Card'
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 function Copyright(props) {
@@ -56,6 +56,16 @@ export function SignInSide({setPage}) {
 
   return (
     <ThemeProvider theme={defaultTheme}>
+      <Card
+        sx={{
+            maxWidth: 'sm',
+            my: 8,
+            mx: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+          >
         <Grid item xs={12} sm={8} md={5}elevation={6} square>
           <Box
             sx={{
@@ -103,9 +113,6 @@ export function SignInSide({setPage}) {
               </Button>
               <Grid container>
                 <Grid item xs>
-                <Button variant="outlined" color="secondary" onClick={()=>{setPage("register")}}>
-                    Forgot Password
-                  </Button>
                 </Grid>
                 <Grid item>
                   <Button variant="outlined" color="secondary" onClick={()=>{setPage("register")}}>
@@ -117,6 +124,7 @@ export function SignInSide({setPage}) {
             </Box>
           </Box>
         </Grid>
+      </Card>
     </ThemeProvider>
   );
 }
