@@ -14,6 +14,7 @@ def deploy_container(image_name, container_name, ports=None, volumes=None, envir
         ports=ports,
         volumes=volumes,
         environment=environment,
-        detach=True
+        detach=True,
+        network_mode='host'
     )
     return container

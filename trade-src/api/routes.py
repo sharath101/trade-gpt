@@ -1,6 +1,9 @@
+import asyncio
+import logging
 import os
 import shutil
 import subprocess
+import threading
 import uuid
 from datetime import datetime, timedelta
 
@@ -160,19 +163,25 @@ def backtest(stock):
     strat_dic = os.path.join(app.config['UPLOAD_FOLDER'], file_data)
     session_id = str(uuid.uuid4())
     volumes = {
-        "/home/aman-singh/trade-gpt-data/New Strategy": {
-            'bind': '/app/strategy',
+        strat_dic : {
+            'bind': '/app/user_strategies',
             'mode': 'ro',
         }
     }
-    conatiner = deploy_container('money:1', session_id, volumes=volumes)
+    conatiner = deploy_container('test:1', session_id, volumes=volumes)
+
     # if app.config["PYTHON_ENV"] == "PROD":
-    #     new_process = Processor(backtester)
-    #     new_process.start()
+    #   new_process = Processor(backtester)
+    #   new_process.start()
     # else:
-    #     backtester.backtest()
+    #   backtester.connect()
+
+    backtester.connect()
+
     return jsonify({"message": f"Backtesting Started {conatiner.id}"})
 
+def connect_backtester(backtester):
+    asyncio.run(backtester.connect())
 
 @app.route("/postback/dhan", methods=["POST"])
 def postback():

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, time
 from secrets import token_hex
 from typing import Dict, List
@@ -33,7 +34,7 @@ class OrderManager(OMBase):
 
         self.brokers: List[Broker] = [VirtualBroker(self, balance)]
 
-    def next(self, symbol: str, current_price: float, timestamp: datetime, volume: int):
+    def next(self, symbol: str, current_price: float, timestamp: datetime, volume: int, emitter):
         """This method is called for each new data point on each symbol.
         It runs the strategies for each symbol"""
 
@@ -43,13 +44,14 @@ class OrderManager(OMBase):
 
             assert self.one_position_per_symbol()
             if symbol in self.symbols:
-                order: Order = self.symbols[symbol].run_strategies(
-                    symbol, current_price, timestamp, volume
-                )
-                if order is not None:
-                    order.symbol = symbol
-                    order.exchange = "NSE_EQ"
-                    self.place_order(order)
+                
+                payload = {
+                    "symbol": symbol,
+                    "current_price": current_price,
+                    "timestamp": str(timestamp),
+                    "volume": volume
+                }
+                emitter(payload)
 
         self.analyse(current_price, timestamp, symbol)
 

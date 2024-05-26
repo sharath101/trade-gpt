@@ -43,3 +43,5 @@ yarn-error.log*
 .DS_Store
 
 strategy_object_store
+
+temp/

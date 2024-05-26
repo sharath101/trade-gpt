@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import List
 
-from .main import logger
-from .strategy import Strategy
+from .strategy_obj import Strategy
 from .order import Order
 
 

@@ -1,7 +1,9 @@
+import asyncio
 import csv
 import os
 import time
 from datetime import datetime, timedelta
+import threading
 
 import pandas as pd
 from talipp.ohlcv import OHLCV
@@ -9,6 +11,7 @@ from talipp.ohlcv import OHLCV
 from api import logger
 from order_manager import OrderManager
 from utils import redis_instance, round_to_nearest_multiple_of_5
+from .socket_server import SocketServer
 
 
 class BackTester:
@@ -21,9 +24,17 @@ class BackTester:
         self.order_manager = OrderManager([self.stock], 20000, True)
         self.num_orders = 0
         self.user = "johndoe"
+        self.socket_server = SocketServer(self.order_manager.place_order)
 
-    async def connect(self):
-        return self.backtest()
+    def socket_server_run(self):
+        asyncio.run(self.socket_server.run())
+
+    def connect(self):
+        # Spawn thread to run socket server for backtester
+        thread = threading.Thread(target=self.socket_server_run)
+        thread.start()
+        
+        self.backtest()
 
     def backtest(self):
         redis_instance.set("backtest_backup", [])
@@ -73,7 +84,7 @@ class BackTester:
                     current_price = float(row.iloc[0])
                     volume = data.volume / total_length  # type: ignore
                     self.order_manager.next(
-                        self.stock, current_price, timestamp, volume
+                        self.stock, current_price, timestamp, volume, self.socket_server.emitter
                     )
 
     def generate_tickers(self, interval: int, candle: OHLCV):
