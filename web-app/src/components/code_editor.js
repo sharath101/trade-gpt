@@ -1,21 +1,21 @@
-import React, { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Editor } from '@monaco-editor/react';
+import { Box, Button, Container, Grid, IconButton, Paper, TextField, Typography } from '@mui/material';
+import { Add, Close } from '@mui/icons-material';
 import '../css/codeeditor.css';
 
-export const CodeEditor = ({setPage}) => {
+export const CodeEditor = ({ setPage }) => {
     const [files, setFiles] = useState([
         { id: 1, filename: 'main.py', code: '' },
     ]);
     const [strategyName, setStrategyName] = useState('');
     const [indicators, setIndicators] = useState('');
-    const [description, setDescription] = useState('');
     const [activeFileId, setActiveFileId] = useState(1);
     const [output, setOutput] = useState({
         error: null,
         warning: null,
         results: null,
     });
-    const outputPaneRef = useRef(null);
 
     const addFile = () => {
         const newId = Math.max(...files.map((file) => file.id), 0) + 1;
@@ -183,141 +183,144 @@ export const CodeEditor = ({setPage}) => {
     const activeFile = files.find((file) => file.id === activeFileId);
 
     return (
-        <div className='app-container'>
-            <div className='sidebar'>
-                <div className='file-tree'>
-                    {files.map((file) => (
-                        <div
-                            className={
-                                activeFileId === file.id
-                                    ? 'file active'
-                                    : 'file'
-                            }
-                            key={file.id}
-                            onClick={() => setActiveFileId(file.id)}
-                        >
-                            {file.filename || 'Untitled'}
-                            <span
-                                className='close-btn'
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteFile(file.id);
-                                }}
+        <Container maxWidth="xl" style={{ marginTop: '20px' }}>
+            <Grid container spacing={2}>
+                <Grid item xs={3}>
+                    <Paper elevation={3} style={{ padding: '10px' }}>
+                        <Typography variant="h6">Files</Typography>
+                        {files.map((file) => (
+                            <Box
+                                key={file.id}
+                                display="flex"
+                                justifyContent="space-between"
+                                alignItems="center"
+                                bgcolor={activeFileId === file.id ? 'lightgray' : 'white'}
+                                p={1}
+                                mb={1}
+                                onClick={() => setActiveFileId(file.id)}
+                                sx={{ cursor: 'pointer' }}
                             >
-                                &times;
-                            </span>
-                        </div>
-                    ))}
-                    <div className='add-file' onClick={addFile}>
-                        + Add File
-                    </div>
-                </div>
-            </div>
-            <div className='editor-container'>
-                <div className='editor-toolbar'>
-                    <label htmlFor='strategy_name'>Strategy Name:</label>
-                    <input
-                        type='text'
-                        id='strategy_name'
-                        value={strategyName}
-                        onChange={(e) => setStrategyName(e.target.value)}
-                        placeholder='Enter strategy name'
-                    />
-
-                    <label htmlFor='indicators'>Indicators:</label>
-                    <input
-                        type='text'
-                        id='indicators'
-                        value={indicators}
-                        onChange={(e) => setIndicators(e.target.value)}
-                        placeholder='Enter strategy name'
-                    />
-
-                    <button className='btn' onClick={analyzeCode}>
-                        Analyze
-                    </button>
-                    <button className='btn' onClick={runCode}>
-                        Run
-                    </button>
-                    <button className='btn' onClick={uploadStrategy}>
-                        Upload Strategy
-                    </button>
-                </div>
-                <div className='editor'>
-                    {activeFile ? (
-                        <div>
-                            <div className='editor-content-active'>
-                                Filename:
-                                <span>
-                                    <input
-                                        type='text'
-                                        className='filename'
-                                        placeholder='Filename (e.g., module.py)'
-                                        value={activeFile.filename}
-                                        onChange={(e) =>
-                                            handleFilenameChange(
-                                                activeFile.id,
-                                                e.target.value
-                                            )
-                                        }
-                                    />
-                                </span>
-                            </div>
-                            <Editor
-                                height='70vh'
-                                language='python'
-                                theme='vs-dark'
-                                value={activeFile.code}
-                                onChange={(value) =>
-                                    handleChange(activeFile.id, value)
-                                }
+                                <Typography variant="body2">
+                                    {file.filename || 'Untitled'}
+                                </Typography>
+                                <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteFile(file.id);
+                                    }}
+                                >
+                                    <Close fontSize="small" />
+                                </IconButton>
+                            </Box>
+                        ))}
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<Add />}
+                            onClick={addFile}
+                            fullWidth
+                        >
+                            Add File
+                        </Button>
+                    </Paper>
+                </Grid>
+                <Grid item xs={9}>
+                    <Paper elevation={3} style={{ padding: '10px' }}>
+                        <Box mb={2}>
+                            <TextField
+                                label="Strategy Name"
+                                variant="outlined"
+                                fullWidth
+                                value={strategyName}
+                                onChange={(e) => setStrategyName(e.target.value)}
+                                margin="normal"
                             />
-                        </div>
-                    ) : (
-                        <div>Please add or select a file</div>
-                    )}
-                </div>
-                <div className='output-pane' ref={outputPaneRef}>
-                    <div className='output'>
-                        {output.error &&
-                            Array.isArray(output.error) &&
-                            output.error.length > 0 && (
-                                <div>
-                                    <h3>Errors:</h3>
+                            <TextField
+                                label="Indicators"
+                                variant="outlined"
+                                fullWidth
+                                value={indicators}
+                                onChange={(e) => setIndicators(e.target.value)}
+                                margin="normal"
+                            />
+                            <Box display="flex" justifyContent="space-between" mt={2}>
+                                <Button variant="contained" color="secondary" onClick={analyzeCode}>
+                                    Analyze
+                                </Button>
+                                <Button variant="contained" color="secondary" onClick={runCode}>
+                                    Run
+                                </Button>
+                                <Button variant="contained" color="primary" onClick={uploadStrategy}>
+                                    Upload Strategy
+                                </Button>
+                            </Box>
+                        </Box>
+                        <Box mb={2}>
+                            {activeFile ? (
+                                <>
+                                    <TextField
+                                        label="Filename"
+                                        variant="outlined"
+                                        fullWidth
+                                        value={activeFile.filename}
+                                        onChange={(e) => handleFilenameChange(activeFile.id, e.target.value)}
+                                        margin="normal"
+                                    />
+                                    <Box style={{ height: '75vh', marginTop: '10px' }}>
+                                        <Editor
+                                            height="100%"
+                                            language="python"
+                                            theme="vs-dark"
+                                            value={activeFile.code}
+                                            onChange={(value) => handleChange(activeFile.id, value)}
+                                            options={{
+                                                automaticLayout: true,
+                                                scrollBeyondLastLine: true,
+                                                minimap: { enabled: true },
+                                            }}
+                                        />
+                                    </Box>
+                                </>
+                            ) : (
+                                <Typography variant="body1">Please add or select a file</Typography>
+                            )}
+                        </Box>
+                        <Box mt={2}>
+                            {output.error && (
+                                <Paper elevation={3} style={{ padding: '10px', marginBottom: '10px' }}>
+                                    <Typography variant="h6" color="error">Errors:</Typography>
                                     <ul>
-                                        {output.error.map((item) => (
-                                            <li key={item.id}>{item.name}</li>
+                                        {output.error.map((item, index) => (
+                                            <li key={index}>{item}</li>
                                         ))}
                                     </ul>
-                                </div>
+                                </Paper>
                             )}
-                        {output.warning &&
-                            Array.isArray(output.warning) &&
-                            output.warning.length > 0 && (
-                                <div>
-                                    <h3>Warning:</h3>
+                            {output.warning && (
+                                <Paper elevation={3} style={{ padding: '10px', marginBottom: '10px' }}>
+                                    <Typography variant="h6" color="warning.main">Warnings:</Typography>
                                     <ul>
-                                        {output.warning.map((item) => (
-                                            <li key={item.id}>{item.name}</li>
+                                        {output.warning.map((item, index) => (
+                                            <li key={index}>{item}</li>
                                         ))}
                                     </ul>
-                                </div>
+                                </Paper>
                             )}
-                        {output.results ? (
-                            <div>
-                                <h3>Output:</h3>
-                                <ul>
-                                    {output.results.map((item) => (
-                                        <li key={item.id}>{item.name}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ) : (
-                            <div></div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
+                            {output.results && (
+                                <Paper elevation={3} style={{ padding: '10px' }}>
+                                    <Typography variant="h6">Output:</Typography>
+                                    <ul>
+                                        {output.results.map((item, index) => (
+                                            <li key={index}>{item}</li>
+                                        ))}
+                                    </ul>
+                                </Paper>
+                            )}
+                        </Box>
+                    </Paper>
+                </Grid>
+            </Grid>
+        </Container>
     );
 };

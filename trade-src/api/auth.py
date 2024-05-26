@@ -8,7 +8,7 @@ from database import Users
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        data = request.headers['Authorization']
+        data = request.headers.get('Authorization')
         token = str.replace(str(data), 'Bearer ', '')
         if not token:
             return jsonify({"status": "failure", 'message': 'Token is missing'}), 200
@@ -86,6 +86,16 @@ def register():
         password = data.get("password")
 
         name = data.get("name")
+        existing_user = Users.get_first(email=email)
+        if existing_user:
+            response_data = {
+                "status": "failure",
+                "message": "Email already registered. Sign In instead!",
+            }
+
+            response = make_response(jsonify(response_data), 200)
+            return response
+
         password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
         user = Users(email=email, password=password_hash, name=name)
 
@@ -101,7 +111,7 @@ def register():
         return response
     except Exception as e:
         logger.error(f"Error in /register: {e}")
-        response_data = {"status": "failure", "message": "Content-Type not allowed"}
+        response_data = {"status": "failure", "message": "Email already registered"}
         response = make_response(jsonify(response_data), 200)
 
         return response

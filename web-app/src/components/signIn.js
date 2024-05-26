@@ -1,10 +1,9 @@
-import * as React from 'react';
+import { useState } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
-import CssBaseline from '@mui/material/CssBaseline';
+import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import Link from '@mui/material/Link';
-import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -33,6 +32,8 @@ function Copyright(props) {
 const defaultTheme = createTheme();
 
 export function SignInSide({ setPage }) {
+    const [message, setMessage] = useState();
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -51,6 +52,9 @@ export function SignInSide({ setPage }) {
             localStorage.setItem('auth', response.headers.get('Authorization'));
             setPage('dashboard');
         }
+        else {
+            setMessage(response.data['message'])
+        }
     };
 
     return (
@@ -65,7 +69,7 @@ export function SignInSide({ setPage }) {
                     alignItems: 'center',
                 }}
             >
-                <Grid item xs={12} sm={8} md={5} elevation={6} square="true">
+                <Grid item xs={12} sm={8} md={5} elevation={6}>
                     <Box
                         sx={{
                             my: 8,
@@ -96,6 +100,7 @@ export function SignInSide({ setPage }) {
                                 name='email'
                                 autoComplete='email'
                                 autoFocus
+                                onChange={() => setMessage('')}
                             />
                             <TextField
                                 margin='normal'
@@ -106,7 +111,9 @@ export function SignInSide({ setPage }) {
                                 type='password'
                                 id='password'
                                 autoComplete='current-password'
+                                onChange={() => setMessage('')}
                             />
+                            {message && <Alert severity="error">{message}</Alert>}
                             <Button
                                 type='submit'
                                 fullWidth

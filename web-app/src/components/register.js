@@ -1,7 +1,7 @@
-import * as React from 'react';
+import { useState } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
-import CssBaseline from '@mui/material/CssBaseline';
+import Alert from '@mui/material/Alert';
 import TextField from '@mui/material/TextField';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box';
@@ -32,6 +32,8 @@ function Copyright(props) {
 const defaultTheme = createTheme();
 
 export function Register({ setPage }) {
+    const [message, setMessage] = useState();
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -65,6 +67,9 @@ export function Register({ setPage }) {
                 setPage('dashboard');
             }
         }
+        else {
+            setMessage(response.data['message'])
+        }
     };
 
     return (
@@ -79,7 +84,7 @@ export function Register({ setPage }) {
                     alignItems: 'center',
                 }}
             >
-                <Grid item xs={12} sm={8} md={5} elevation={6} square="true">
+                <Grid item xs={12} sm={8} md={5} elevation={6}>
                     <Box
                         sx={{
                             my: 8,
@@ -111,6 +116,7 @@ export function Register({ setPage }) {
                                 id='name'
                                 autoComplete='name'
                                 autoFocus
+                                onChange={() => setMessage('')}
                             />
                             <TextField
                                 margin='normal'
@@ -120,7 +126,9 @@ export function Register({ setPage }) {
                                 label='Email Address'
                                 name='email'
                                 autoComplete='email'
+                                onChange={() => setMessage('')}
                             />
+                            
                             <TextField
                                 margin='normal'
                                 required
@@ -130,14 +138,16 @@ export function Register({ setPage }) {
                                 type='password'
                                 id='password'
                                 autoComplete='current-password'
+                                onChange={() => setMessage('')}
                             />
+                            {message && <Alert severity="error">{message}</Alert>}
                             <Button
                                 type='submit'
                                 fullWidth
                                 variant='contained'
                                 sx={{ mt: 3, mb: 2 }}
                             >
-                                Sign In
+                                Register
                             </Button>
                             <Grid container>
                                 <Grid item xs></Grid>
