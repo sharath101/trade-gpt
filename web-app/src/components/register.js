@@ -52,23 +52,22 @@ export function Register({ setPage }) {
                 },
             }
         );
-        if (response.data['status'] == 'success') {
+        if (response.data['status'] === 'success') {
             // Now login using the same credentials if registration was successful
             const response = await axios.post('/login', loginData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-            if (response.data['status'] == 'success') {
+            if (response.data['status'] === 'success') {
                 localStorage.setItem(
                     'auth',
                     response.headers.get('Authorization')
                 );
                 setPage('dashboard');
             }
-        }
-        else {
-            setMessage(response.data['message'])
+        } else {
+            setMessage(response.data['message']);
         }
     };
 
@@ -128,7 +127,7 @@ export function Register({ setPage }) {
                                 autoComplete='email'
                                 onChange={() => setMessage('')}
                             />
-                            
+
                             <TextField
                                 margin='normal'
                                 required
@@ -140,7 +139,9 @@ export function Register({ setPage }) {
                                 autoComplete='current-password'
                                 onChange={() => setMessage('')}
                             />
-                            {message && <Alert severity="error">{message}</Alert>}
+                            {message && (
+                                <Alert severity='error'>{message}</Alert>
+                            )}
                             <Button
                                 type='submit'
                                 fullWidth

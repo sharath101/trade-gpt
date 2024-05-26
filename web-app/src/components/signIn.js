@@ -48,12 +48,11 @@ export function SignInSide({ setPage }) {
                 'Content-Type': 'application/json',
             },
         });
-        if (response.data['status'] == 'success') {
+        if (response.data['status'] === 'success') {
             localStorage.setItem('auth', response.headers.get('Authorization'));
             setPage('dashboard');
-        }
-        else {
-            setMessage(response.data['message'])
+        } else {
+            setMessage(response.data['message']);
         }
     };
 
@@ -113,7 +112,9 @@ export function SignInSide({ setPage }) {
                                 autoComplete='current-password'
                                 onChange={() => setMessage('')}
                             />
-                            {message && <Alert severity="error">{message}</Alert>}
+                            {message && (
+                                <Alert severity='error'>{message}</Alert>
+                            )}
                             <Button
                                 type='submit'
                                 fullWidth

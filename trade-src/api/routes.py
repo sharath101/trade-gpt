@@ -7,12 +7,10 @@ import threading
 import uuid
 from datetime import datetime, timedelta
 
-from flask import jsonify, render_template, request
-from werkzeug.utils import secure_filename
-
-from api import app
+from api import app, logger
 from backtesting import BackTester
 from database import APIKey, DhanOrderBook, StrategyBook, Symbol
+from flask import jsonify, make_response, render_template, request
 from market_data import (
     DHAN_INSTRUMENTS,
     marketDataQuote,
@@ -21,6 +19,8 @@ from market_data import (
 )
 from strategy import StrategyImporter
 from utils import deploy_container
+from werkzeug.utils import secure_filename
+
 from .misc import get_access_token
 
 
@@ -160,15 +160,15 @@ def backtest(stock):
     backtester = BackTester(file, stock)
     startegy_names = StrategyBook.get_all()
     file_data = startegy_names[0].folder_loc
-    strat_dic = os.path.join(app.config['UPLOAD_FOLDER'], file_data)
+    strat_dic = os.path.join(app.config["UPLOAD_FOLDER"], file_data)
     session_id = str(uuid.uuid4())
     volumes = {
-        strat_dic : {
-            'bind': '/app/user_strategies',
-            'mode': 'ro',
+        strat_dic: {
+            "bind": "/app/user_strategies",
+            "mode": "ro",
         }
     }
-    conatiner = deploy_container('test:1', session_id, volumes=volumes)
+    conatiner = deploy_container("test:1", session_id, volumes=volumes)
 
     # if app.config["PYTHON_ENV"] == "PROD":
     #   new_process = Processor(backtester)
@@ -180,8 +180,10 @@ def backtest(stock):
 
     return jsonify({"message": f"Backtesting Started {conatiner.id}"})
 
+
 def connect_backtester(backtester):
     asyncio.run(backtester.connect())
+
 
 @app.route("/postback/dhan", methods=["POST"])
 def postback():
@@ -346,3 +348,43 @@ def add_strategy():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/get_strategies", methods=["GET"])
+def get_strategies():
+    try:
+        all_strategies = StrategyBook.get_all_dict()
+        return jsonify({"status": "success", "data": all_strategies}), 201
+    except Exception as e:
+        logger.error(f"Error in /get_strategies: {e}")
+        response_data = {"status": "failure", "message": e}
+        response = make_response(jsonify(response_data), 200)
+
+        return response
+
+
+@app.route("/get_strategy/<int:strategy_id>", methods=["GET"])
+def get_strategy(strategy_id):
+    strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
+    if not strategy:
+        return jsonify({"error": "Strategy not found"}), 404
+
+    strategy_details = {
+        "strategy_name": strategy.strategy_name,
+        "indicators": strategy.indicators,
+        "description": strategy.description,
+        "files": [],
+    }
+
+    folder_loc = strategy.folder_loc
+    strategy_folder = os.path.join(app.config["UPLOAD_FOLDER"], folder_loc)
+    if os.path.isdir(strategy_folder):
+        for filename in os.listdir(strategy_folder):
+            file_path = os.path.join(strategy_folder, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, "r") as file:
+                    strategy_details["files"].append(
+                        {"filename": filename, "code": file.read()}
+                    )
+
+    return jsonify({"status": "success", "data": strategy_details})

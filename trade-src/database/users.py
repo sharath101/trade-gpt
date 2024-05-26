@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from typing import List
 
 import jwt
-
 from api import app, logger
 from database import db
 
@@ -102,7 +101,9 @@ class Users(db.Model):
         :return: integer|string
         """
         try:
-            payload = jwt.decode(auth_token, app.config.get("SECRET_KEY"), algorithms=["HS256"])
+            payload = jwt.decode(
+                auth_token, app.config.get("SECRET_KEY"), algorithms=["HS256"]
+            )
 
             return Users.get_first(id=payload["sub"])
         except jwt.ExpiredSignatureError:

@@ -1,21 +1,58 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Editor } from '@monaco-editor/react';
-import { Box, Button, Container, Grid, IconButton, Paper, TextField, Typography } from '@mui/material';
+import {
+    Box,
+    Button,
+    Container,
+    Grid,
+    IconButton,
+    Paper,
+    TextField,
+    Typography,
+} from '@mui/material';
 import { Add, Close } from '@mui/icons-material';
 import '../css/codeeditor.css';
+import axios from '../axiosConfig';
 
-export const CodeEditor = ({ setPage }) => {
-    const [files, setFiles] = useState([
-        { id: 1, filename: 'main.py', code: '' },
-    ]);
+export const StrategyEditor = ({ setPage, strategyId }) => {
+    const [files, setFiles] = useState([]);
     const [strategyName, setStrategyName] = useState('');
     const [indicators, setIndicators] = useState('');
-    const [activeFileId, setActiveFileId] = useState(1);
+    const [description, setDescription] = useState('');
+    const [activeFileId, setActiveFileId] = useState(null);
     const [output, setOutput] = useState({
         error: null,
         warning: null,
         results: null,
     });
+
+    useEffect(() => {
+        const fetchStrategyDetails = async () => {
+            try {
+                const response = await axios.get(`/get_strategy/${strategyId}`);
+                if (response.data['status'] === 'success') {
+                    const strategy = response.data['data'];
+                    setStrategyName(strategy.strategy_name);
+                    setIndicators(strategy.indicators);
+                    setDescription(strategy.description);
+                    setFiles(
+                        strategy.files.map((file, index) => ({
+                            id: index + 1,
+                            filename: file.filename,
+                            code: file.code,
+                        }))
+                    );
+                    setActiveFileId(1);
+                } else {
+                    setPage('dashboard');
+                }
+            } catch (error) {
+                console.error('Error fetching strategy details:', error);
+            }
+        };
+
+        fetchStrategyDetails();
+    }, [strategyId]);
 
     const addFile = () => {
         const newId = Math.max(...files.map((file) => file.id), 0) + 1;
@@ -144,7 +181,7 @@ export const CodeEditor = ({ setPage }) => {
             const data = {
                 strategy_name: strategyName,
                 indicators: indicators,
-                description: 'Your Strategy Description',
+                description: description,
             };
 
             const formData = new FormData();
@@ -183,40 +220,44 @@ export const CodeEditor = ({ setPage }) => {
     const activeFile = files.find((file) => file.id === activeFileId);
 
     return (
-        <Container maxWidth="xl" style={{ marginTop: '20px' }}>
+        <Container maxWidth='xl' style={{ marginTop: '20px' }}>
             <Grid container spacing={2}>
                 <Grid item xs={3}>
                     <Paper elevation={3} style={{ padding: '10px' }}>
-                        <Typography variant="h6">Files</Typography>
+                        <Typography variant='h6'>Files</Typography>
                         {files.map((file) => (
                             <Box
                                 key={file.id}
-                                display="flex"
-                                justifyContent="space-between"
-                                alignItems="center"
-                                bgcolor={activeFileId === file.id ? 'lightgray' : 'white'}
+                                display='flex'
+                                justifyContent='space-between'
+                                alignItems='center'
+                                bgcolor={
+                                    activeFileId === file.id
+                                        ? 'lightgray'
+                                        : 'white'
+                                }
                                 p={1}
                                 mb={1}
                                 onClick={() => setActiveFileId(file.id)}
                                 sx={{ cursor: 'pointer' }}
                             >
-                                <Typography variant="body2">
+                                <Typography variant='body2'>
                                     {file.filename || 'Untitled'}
                                 </Typography>
                                 <IconButton
-                                    size="small"
+                                    size='small'
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         deleteFile(file.id);
                                     }}
                                 >
-                                    <Close fontSize="small" />
+                                    <Close fontSize='small' />
                                 </IconButton>
                             </Box>
                         ))}
                         <Button
-                            variant="contained"
-                            color="primary"
+                            variant='contained'
+                            color='primary'
                             startIcon={<Add />}
                             onClick={addFile}
                             fullWidth
@@ -229,29 +270,55 @@ export const CodeEditor = ({ setPage }) => {
                     <Paper elevation={3} style={{ padding: '10px' }}>
                         <Box mb={2}>
                             <TextField
-                                label="Strategy Name"
-                                variant="outlined"
+                                label='Strategy Name'
+                                variant='outlined'
                                 fullWidth
                                 value={strategyName}
-                                onChange={(e) => setStrategyName(e.target.value)}
-                                margin="normal"
+                                onChange={(e) =>
+                                    setStrategyName(e.target.value)
+                                }
+                                margin='normal'
                             />
                             <TextField
-                                label="Indicators"
-                                variant="outlined"
+                                label='Indicators'
+                                variant='outlined'
                                 fullWidth
                                 value={indicators}
                                 onChange={(e) => setIndicators(e.target.value)}
-                                margin="normal"
+                                margin='normal'
                             />
-                            <Box display="flex" justifyContent="space-between" mt={2}>
-                                <Button variant="contained" color="secondary" onClick={analyzeCode}>
+                            <TextField
+                                label='Description'
+                                variant='outlined'
+                                fullWidth
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                margin='normal'
+                            />
+                            <Box
+                                display='flex'
+                                justifyContent='space-between'
+                                mt={2}
+                            >
+                                <Button
+                                    variant='contained'
+                                    color='secondary'
+                                    onClick={analyzeCode}
+                                >
                                     Analyze
                                 </Button>
-                                <Button variant="contained" color="secondary" onClick={runCode}>
+                                <Button
+                                    variant='contained'
+                                    color='secondary'
+                                    onClick={runCode}
+                                >
                                     Run
                                 </Button>
-                                <Button variant="contained" color="primary" onClick={uploadStrategy}>
+                                <Button
+                                    variant='contained'
+                                    color='primary'
+                                    onClick={uploadStrategy}
+                                >
                                     Upload Strategy
                                 </Button>
                             </Box>
@@ -260,20 +327,35 @@ export const CodeEditor = ({ setPage }) => {
                             {activeFile ? (
                                 <>
                                     <TextField
-                                        label="Filename"
-                                        variant="outlined"
+                                        label='Filename'
+                                        variant='outlined'
                                         fullWidth
                                         value={activeFile.filename}
-                                        onChange={(e) => handleFilenameChange(activeFile.id, e.target.value)}
-                                        margin="normal"
+                                        onChange={(e) =>
+                                            handleFilenameChange(
+                                                activeFile.id,
+                                                e.target.value
+                                            )
+                                        }
+                                        margin='normal'
                                     />
-                                    <Box style={{ height: '75vh', marginTop: '10px' }}>
+                                    <Box
+                                        style={{
+                                            height: '75vh',
+                                            marginTop: '10px',
+                                        }}
+                                    >
                                         <Editor
-                                            height="100%"
-                                            language="python"
-                                            theme="vs-dark"
+                                            height='100%'
+                                            language='python'
+                                            theme='vs-dark'
                                             value={activeFile.code}
-                                            onChange={(value) => handleChange(activeFile.id, value)}
+                                            onChange={(value) =>
+                                                handleChange(
+                                                    activeFile.id,
+                                                    value
+                                                )
+                                            }
                                             options={{
                                                 automaticLayout: true,
                                                 scrollBeyondLastLine: true,
@@ -283,13 +365,23 @@ export const CodeEditor = ({ setPage }) => {
                                     </Box>
                                 </>
                             ) : (
-                                <Typography variant="body1">Please add or select a file</Typography>
+                                <Typography variant='body1'>
+                                    Please add or select a file
+                                </Typography>
                             )}
                         </Box>
                         <Box mt={2}>
                             {output.error && (
-                                <Paper elevation={3} style={{ padding: '10px', marginBottom: '10px' }}>
-                                    <Typography variant="h6" color="error">Errors:</Typography>
+                                <Paper
+                                    elevation={3}
+                                    style={{
+                                        padding: '10px',
+                                        marginBottom: '10px',
+                                    }}
+                                >
+                                    <Typography variant='h6' color='error'>
+                                        Errors:
+                                    </Typography>
                                     <ul>
                                         {output.error.map((item, index) => (
                                             <li key={index}>{item}</li>
@@ -298,8 +390,19 @@ export const CodeEditor = ({ setPage }) => {
                                 </Paper>
                             )}
                             {output.warning && (
-                                <Paper elevation={3} style={{ padding: '10px', marginBottom: '10px' }}>
-                                    <Typography variant="h6" color="warning.main">Warnings:</Typography>
+                                <Paper
+                                    elevation={3}
+                                    style={{
+                                        padding: '10px',
+                                        marginBottom: '10px',
+                                    }}
+                                >
+                                    <Typography
+                                        variant='h6'
+                                        color='warning.main'
+                                    >
+                                        Warnings:
+                                    </Typography>
                                     <ul>
                                         {output.warning.map((item, index) => (
                                             <li key={index}>{item}</li>
@@ -308,8 +411,13 @@ export const CodeEditor = ({ setPage }) => {
                                 </Paper>
                             )}
                             {output.results && (
-                                <Paper elevation={3} style={{ padding: '10px' }}>
-                                    <Typography variant="h6">Output:</Typography>
+                                <Paper
+                                    elevation={3}
+                                    style={{ padding: '10px' }}
+                                >
+                                    <Typography variant='h6'>
+                                        Output:
+                                    </Typography>
                                     <ul>
                                         {output.results.map((item, index) => (
                                             <li key={index}>{item}</li>
