@@ -10,7 +10,7 @@ class StrategyBook(db.Model):
     id: int = db.Column(db.Integer, primary_key=True)
 
     # Strategy name
-    strategy_name: str = db.Column(db.Text, nullable=False)
+    strategy_name: str = db.Column(db.Text, unique=True, nullable=False)
 
     # Strategy class
     folder_loc: str = db.Column(db.Text, nullable=False)
@@ -42,7 +42,7 @@ class StrategyBook(db.Model):
                 db.session.commit()
         except Exception as e:
             logger.error(f"Error while saving Strategy: {e}")
-            raise f"Error while saving Strategy: {e}"
+            raise RuntimeError(f"Error while saving Strategy: {e}")
 
     @staticmethod
     def save_all(api_keys: List["StrategyBook"]) -> None:
@@ -64,23 +64,29 @@ class StrategyBook(db.Model):
             logger.error(f"Error while deleting Strategy: {e}")
 
     @staticmethod
-    def delete_all(api_keys: List["StrategyBook"]) -> None:
-        try:
-            with app.app_context():
-                for api_key in api_keys:
-                    if api_key.id:
-                        db.session.delete(api_key)
-                db.session.commit()
-        except Exception as e:
-            logger.error(f"Error while deleting all VirtualOrderBook {e}")
-
-    @staticmethod
     def filter(**filters) -> List["StrategyBook"]:
         try:
             with app.app_context():
                 return StrategyBook.query.filter_by(**filters).all()
         except Exception as e:
             logger.error(f"Error while filtering Strategy: {e}")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "strategy_name": self.strategy_name,
+            "indicators": self.indicators,
+            "description": self.description,
+        }
+
+    @staticmethod
+    def get_all_dict() -> List["StrategyBook"]:
+        try:
+            all_strategies = StrategyBook.get_all()
+            strategies_dict = [strategy.to_dict() for strategy in all_strategies]
+            return strategies_dict
+        except Exception as e:
+            raise RuntimeError(f"{e}")
 
     @staticmethod
     def get_all() -> List["StrategyBook"]:
@@ -89,6 +95,7 @@ class StrategyBook(db.Model):
                 return StrategyBook.query.all()
         except Exception as e:
             logger.error(f"Error while getting all Strategy: {e}")
+            raise RuntimeError(f"Error while getting all strategies: {e}")
 
     @staticmethod
     def get_first(**filters) -> "StrategyBook":
