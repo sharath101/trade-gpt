@@ -1,6 +1,10 @@
 import json
+from datetime import datetime
+
 import socketio
+
 from .order import Order
+
 
 class SocketClient:
 
@@ -9,12 +13,12 @@ class SocketClient:
         self.sio = socketio.Client()
 
         # Define event handlers
-        self.sio.on('connect', self.on_connect)
-        self.sio.on('disconnect', self.on_disconnect)
-        self.sio.on('order', self.on_order)
+        self.sio.on("connect", self.on_connect)
+        self.sio.on("disconnect", self.on_disconnect)
+        self.sio.on("order", self.on_order)
 
     def on_connect(self):
-        print('Connected')
+        print("Connected")
 
     def on_disconnect(self):
         print("Disconnected")
@@ -29,21 +33,21 @@ class SocketClient:
         # print(message_data)
 
         # extract data
-        symbol = message_data.get('symbol')
-        current_price = message_data.get('current_price')
-        timestamp = message_data.get('timestamp')
-        volume = message_data.get('volume')
+        symbol = message_data.get("symbol")
+        current_price = float(message_data.get("current_price"))
+        timestamp = datetime.fromisoformat(message_data.get("timestamp"))
+        volume = int(message_data.get("volume"))
 
         # run strategy
         order: Order = self.run_strategies(symbol, current_price, timestamp, volume)
 
         if self.sio.connected:
-            self.emit('order', order)
+            self.emit("order", order)
         else:
             print("Cannot emit, not connected")
 
     def start(self):
         # Connect to the server
-        self.sio.connect('http://host.docker.internal:5001')
+        self.sio.connect("http://host.docker.internal:5001")
         # Wait for events
         self.sio.wait()

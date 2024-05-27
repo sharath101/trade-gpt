@@ -168,7 +168,10 @@ def backtest(stock):
             "mode": "ro",
         }
     }
-    conatiner = deploy_container("test:1", session_id, volumes=volumes)
+    environment = {"SYMBOL": stock, "BALANCE": 2000, "BACKTESTING": True}
+    conatiner = deploy_container(
+        "strategy_runner:latest", session_id, volumes=volumes, environment=environment
+    )
 
     # if app.config["PYTHON_ENV"] == "PROD":
     #   new_process = Processor(backtester)
