@@ -319,6 +319,15 @@ def add_strategy():
         if not files:
             return jsonify({"error": "No files provided"}), 400
 
+        new_strategy = StrategyBook(
+            strategy_name=strategy_name,
+            indicators=indicators,
+            folder_loc=folder_loc,
+            description=description,
+        )
+
+        new_strategy.save()
+
         file_data = {}
         for file in files:
             if file and allowed_file(file.filename):
@@ -331,15 +340,63 @@ def add_strategy():
                 ) as f:
                     file_data[filename] = f.read()
 
+        return jsonify({"message": "Strategy created successfully!"}), 201
+
+    except KeyError as e:
+        return jsonify({"error": f"Missing required parameter: {e}"}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/update_strategy/<int:strategy_id>", methods=["POST"])
+def update_strategy(strategy_id):
+    try:
+        strategy_name = request.form.get("strategy_name")
+        indicators = request.form.getlist("indicators")
+        description = request.form.get("description")
+        folder_loc = f"{strategy_name}"
+
+        if not all([strategy_name, indicators]):
+            return jsonify({"error": "Missing required parameters"}), 400
+
+        strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
+        if not strategy:
+            return jsonify({"error": "Strategy not found"}), 404
+
+        folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+
+        folder_path = os.path.join(app.config["UPLOAD_FOLDER"], folder_loc)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        files = request.files.getlist("files")
+        if not files:
+            return jsonify({"error": "No files provided"}), 400
+
+        strategy.delete()
         new_strategy = StrategyBook(
+            id=strategy_id,
             strategy_name=strategy_name,
             indicators=indicators,
             folder_loc=folder_loc,
             description=description,
-            files=file_data,
         )
-
         new_strategy.save()
+
+        file_data = {}
+        for file in files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(
+                    os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename)
+                )
+                with open(
+                    os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename), "r"
+                ) as f:
+                    file_data[filename] = f.read()
 
         return jsonify({"message": "Strategy created successfully!"}), 201
 
@@ -360,6 +417,30 @@ def get_strategies():
         response_data = {"status": "failure", "message": e}
         response = make_response(jsonify(response_data), 200)
 
+        return response
+
+
+@app.route("/delete_strategy/<int:strategy_id>", methods=["DELETE"])
+def delete_strategy(strategy_id):
+    try:
+        strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
+        if not strategy:
+            return jsonify({"error": "Strategy not found"}), 404
+
+        folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+
+        strategy.delete()
+
+        return (
+            jsonify({"status": "success", "message": "Strategy deleted successfully!"}),
+            200,
+        )
+
+    except Exception as e:
+        response_data = {"status": "failure", "message": e}
+        response = make_response(jsonify(response_data), 200)
         return response
 
 

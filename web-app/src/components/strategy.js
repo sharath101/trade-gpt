@@ -15,6 +15,7 @@ import '../css/codeeditor.css';
 import axios from '../axiosConfig';
 
 export const StrategyEditor = ({ setPage, strategyId }) => {
+    const [updateButton, setUpdateButton] = useState(false);
     const [files, setFiles] = useState([]);
     const [strategyName, setStrategyName] = useState('');
     const [indicators, setIndicators] = useState('');
@@ -29,22 +30,27 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
     useEffect(() => {
         const fetchStrategyDetails = async () => {
             try {
-                const response = await axios.get(`/get_strategy/${strategyId}`);
-                if (response.data['status'] === 'success') {
-                    const strategy = response.data['data'];
-                    setStrategyName(strategy.strategy_name);
-                    setIndicators(strategy.indicators);
-                    setDescription(strategy.description);
-                    setFiles(
-                        strategy.files.map((file, index) => ({
-                            id: index + 1,
-                            filename: file.filename,
-                            code: file.code,
-                        }))
+                if (strategyId) {
+                    setUpdateButton(true);
+                    const response = await axios.get(
+                        `/get_strategy/${strategyId}`
                     );
-                    setActiveFileId(1);
-                } else {
-                    setPage('dashboard');
+                    if (response.data['status'] === 'success') {
+                        const strategy = response.data['data'];
+                        setStrategyName(strategy.strategy_name);
+                        setIndicators(strategy.indicators);
+                        setDescription(strategy.description);
+                        setFiles(
+                            strategy.files.map((file, index) => ({
+                                id: index + 1,
+                                filename: file.filename,
+                                code: file.code,
+                            }))
+                        );
+                        setActiveFileId(1);
+                    } else {
+                        setPage('dashboard');
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching strategy details:', error);
@@ -186,7 +192,7 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
 
             const formData = new FormData();
             formData.append('strategy_name', data.strategy_name);
-            formData.append('indicators', JSON.stringify(data.indicators));
+            formData.append('indicators', data.indicators);
             formData.append('description', data.description);
 
             // Append files
@@ -211,6 +217,43 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
             alert(
                 'Strategy and files uploaded successfully: ' + result.message
             );
+        } catch (error) {
+            console.error('Error uploading strategy:', error);
+            alert('Error uploading strategy');
+        }
+    };
+
+    const updateStrategy = async () => {
+        try {
+            const data = {
+                strategy_name: strategyName,
+                indicators: indicators,
+                description: description,
+            };
+
+            const formData = new FormData();
+            formData.append('strategy_name', data.strategy_name);
+            formData.append('indicators', data.indicators);
+            formData.append('description', data.description);
+
+            files.forEach((file) => {
+                const blob = new Blob([file.code], { type: 'text/plain' });
+                formData.append('files', blob, file.filename);
+            });
+            const response = await fetch(
+                `http://localhost:5000/update_strategy/${strategyId}`,
+                {
+                    method: 'POST',
+                    body: formData,
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const result = await response.json();
+            alert('Strategy and files updated successfully: ' + result.message);
         } catch (error) {
             console.error('Error uploading strategy:', error);
             alert('Error uploading strategy');
@@ -314,13 +357,23 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
                                 >
                                     Run
                                 </Button>
-                                <Button
-                                    variant='contained'
-                                    color='primary'
-                                    onClick={uploadStrategy}
-                                >
-                                    Upload Strategy
-                                </Button>
+                                {updateButton ? (
+                                    <Button
+                                        variant='contained'
+                                        color='primary'
+                                        onClick={updateStrategy}
+                                    >
+                                        Update
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant='contained'
+                                        color='primary'
+                                        onClick={uploadStrategy}
+                                    >
+                                        Add
+                                    </Button>
+                                )}
                             </Box>
                         </Box>
                         <Box mb={2}>
