@@ -1,8 +1,11 @@
+import logging
 from datetime import datetime
 from typing import List
 
-from .strategy_obj import Strategy
 from .order import Order
+from .strategy_obj import Strategy
+
+logger = logging.getLogger(__name__)
 
 
 class StrategyManager:
@@ -39,21 +42,21 @@ class StrategyManager:
         current_order = None
         current_confidence = 0
         for strategy in self.strategies:
-            try:
-                order, confidence = strategy.analyse(current_price)
-                if order:
-                    order.symbol = self.symbol
-                    logger.info(
-                        f"Strategy {strategy.__class__.__name__} generated order: {order}, with confidence: {confidence}"
-                    )
-                    if confidence >= current_confidence:
-                        current_order = order
-                        current_confidence = confidence
-
-            except Exception as e:
-                logger.error(
-                    f"Error running strategy {strategy.__class__.__name__}: {e}"
+            # try:
+            order, confidence = strategy.analyse(current_price)
+            if order:
+                order.symbol = self.symbol
+                logger.info(
+                    f"Strategy {strategy.__class__.__name__} generated order: {order}, with confidence: {confidence}"
                 )
+                if confidence >= current_confidence:
+                    current_order = order
+                    current_confidence = confidence
+
+        # except Exception as e:
+        #     logger.error(
+        #         f"Error running strategy {strategy.__class__.__name__}: {e}"
+        #     )
         if current_confidence > 0.1:
             current_order.timestamp = timestamp
             for strategy in self.strategies:
