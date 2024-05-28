@@ -98,12 +98,11 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
             for (let f in files) {
                 fileData[files[f].filename] = files[f].code;
             }
-            const response = await fetch('http://localhost:5000/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ files: fileData }),
-            });
-            const result = await response.json();
+            const response = await axios.post(
+                '/analyze',
+                JSON.stringify({ files: fileData })
+            );
+            const result = response.data;
             if (result.output) {
                 setOutput({
                     error: null,
@@ -143,12 +142,11 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
             for (let f in files) {
                 fileData[files[f].filename] = files[f].code;
             }
-            const response = await fetch('http://localhost:5000/run', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ files: fileData }),
-            });
-            const result = await response.json();
+            const response = await axios(
+                '/run',
+                JSON.stringify({ files: fileData })
+            );
+            const result = response.data;
             if (result.output) {
                 setOutput({
                     error: null,
@@ -201,22 +199,14 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
                 formData.append('files', blob, file.filename);
             });
 
-            const response = await fetch(
-                'http://localhost:5000/upload_strategy',
-                {
-                    method: 'POST',
-                    body: formData,
-                }
-            );
+            const response = await axios.post('/upload_strategy', formData);
 
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+            if (response.data['status'] !== 'success') {
+                throw new Error(response.data['error']);
             }
 
-            const result = await response.json();
-            alert(
-                'Strategy and files uploaded successfully: ' + result.message
-            );
+            const result = response.data['message'];
+            alert('Strategy and files uploaded successfully: ' + result);
         } catch (error) {
             console.error('Error uploading strategy:', error);
             alert('Error uploading strategy');
@@ -240,20 +230,17 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
                 const blob = new Blob([file.code], { type: 'text/plain' });
                 formData.append('files', blob, file.filename);
             });
-            const response = await fetch(
-                `http://localhost:5000/update_strategy/${strategyId}`,
-                {
-                    method: 'POST',
-                    body: formData,
-                }
+            const response = await axios.post(
+                `/update_strategy/${strategyId}`,
+                formData
             );
 
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+            if (response.data['status'] !== 'success') {
+                throw new Error(response.data['error']);
             }
 
-            const result = await response.json();
-            alert('Strategy and files updated successfully: ' + result.message);
+            const result = response.data['message'];
+            alert('Strategy and files updated successfully: ' + result);
         } catch (error) {
             console.error('Error uploading strategy:', error);
             alert('Error uploading strategy');

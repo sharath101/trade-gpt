@@ -9,8 +9,11 @@ class StrategyBook(db.Model):
     # Primary Key
     id: int = db.Column(db.Integer, primary_key=True)
 
+    # Foreign Key to the User table
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
     # Strategy name
-    strategy_name: str = db.Column(db.Text, unique=True, nullable=False)
+    strategy_name: str = db.Column(db.Text, nullable=False)
 
     # Strategy class
     folder_loc: str = db.Column(db.Text, nullable=False)
@@ -30,9 +33,10 @@ class StrategyBook(db.Model):
         return f"StrategyBook(strategy_name={self.strategy_name}, indicators={self.indicators})"
 
     def __init__(self, **strategy):
+        self.user_id = strategy.get("user_id", None)
         self.strategy_name = strategy.get("strategy_name", None)
         self.folder_loc = strategy.get("folder_loc", None)
-        self.indicators = json.dumps(strategy.get("indicators", {}))
+        self.indicators = strategy.get("indicators", None)
         self.description = strategy.get("description", "")
 
     def save(self) -> None:
@@ -80,9 +84,9 @@ class StrategyBook(db.Model):
         }
 
     @staticmethod
-    def get_all_dict() -> List["StrategyBook"]:
+    def get_all_dict(user_id) -> List["StrategyBook"]:
         try:
-            all_strategies = StrategyBook.get_all()
+            all_strategies = StrategyBook.filter(user_id=user_id)
             strategies_dict = [strategy.to_dict() for strategy in all_strategies]
             return strategies_dict
         except Exception as e:

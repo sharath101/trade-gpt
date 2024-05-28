@@ -6,11 +6,12 @@ import subprocess
 import threading
 import uuid
 from datetime import datetime, timedelta
+from secrets import token_hex
 
 from api import app, logger
 from backtesting import BackTester
 from database import APIKey, DhanOrderBook, StrategyBook, Symbol
-from flask import jsonify, make_response, render_template, request
+from flask import jsonify, render_template, request
 from market_data import (
     DHAN_INSTRUMENTS,
     marketDataQuote,
@@ -305,12 +306,13 @@ def allowed_file(filename):
 
 
 @app.route("/upload_strategy", methods=["POST"])
-def add_strategy():
+@token_required
+def add_strategy(user):
     try:
         strategy_name = request.form.get("strategy_name")
-        indicators = request.form.getlist("indicators")
+        indicators = request.form.get("indicators")
         description = request.form.get("description")
-        folder_loc = f"{strategy_name}"
+        folder_loc = f"{token_hex(16)}"
 
         if not all([strategy_name, indicators]):
             return jsonify({"error": "Missing required parameters"}), 400
@@ -324,6 +326,7 @@ def add_strategy():
             return jsonify({"error": "No files provided"}), 400
 
         new_strategy = StrategyBook(
+            user_id=user.id,
             strategy_name=strategy_name,
             indicators=indicators,
             folder_loc=folder_loc,
@@ -344,87 +347,92 @@ def add_strategy():
                 ) as f:
                     file_data[filename] = f.read()
 
-        return jsonify({"message": "Strategy created successfully!"}), 201
+        return (
+            jsonify({"status": "success", "message": "Strategy created successfully!"}),
+            201,
+        )
 
     except KeyError as e:
-        return jsonify({"error": f"Missing required parameter: {e}"}), 400
+        return (
+            jsonify({"status": "failure", "error": f"Missing required parameter: {e}"}),
+            400,
+        )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/update_strategy/<int:strategy_id>", methods=["POST"])
-def update_strategy(strategy_id):
+@token_required
+def update_strategy(strategy_id, user):
     try:
         strategy_name = request.form.get("strategy_name")
-        indicators = request.form.getlist("indicators")
+        indicators = request.form.get("indicators")
         description = request.form.get("description")
-        folder_loc = f"{strategy_name}"
-
         if not all([strategy_name, indicators]):
-            return jsonify({"error": "Missing required parameters"}), 400
+            return (
+                jsonify({"status": "failure", "error": "Missing required parameters"}),
+                400,
+            )
 
-        strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
+        strategy = StrategyBook.get_first(id=strategy_id, user_id=user.id)
         if not strategy:
-            return jsonify({"error": "Strategy not found"}), 404
+            return jsonify({"status": "failure", "error": "Strategy not found"}), 404
 
-        folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-
-        folder_path = os.path.join(app.config["UPLOAD_FOLDER"], folder_loc)
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        old_folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
+        if os.path.exists(old_folder_path):
+            shutil.rmtree(f"{old_folder_path}")
 
         files = request.files.getlist("files")
         if not files:
-            return jsonify({"error": "No files provided"}), 400
+            return jsonify({"status": "failure", "error": "No files provided"}), 400
 
-        strategy.delete()
-        new_strategy = StrategyBook(
-            id=strategy_id,
-            strategy_name=strategy_name,
-            indicators=indicators,
-            folder_loc=folder_loc,
-            description=description,
-        )
-        new_strategy.save()
+        new_folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
+        if not os.path.exists(new_folder_path):
+            os.makedirs(new_folder_path)
 
-        file_data = {}
+        strategy.strategy_name = strategy_name
+        strategy.indicators = indicators
+        strategy.description = description
+        strategy.save()
+
         for file in files:
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                file.save(
-                    os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename)
-                )
-                with open(
-                    os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename), "r"
-                ) as f:
-                    file_data[filename] = f.read()
+                file.save(os.path.join(new_folder_path, filename))
 
-        return jsonify({"message": "Strategy created successfully!"}), 201
+        return (
+            jsonify({"status": "success", "message": "Strategy updated successfully!"}),
+            200,
+        )
 
     except KeyError as e:
-        return jsonify({"error": f"Missing required parameter: {e}"}), 400
+        return (
+            jsonify({"status": "failure", "error": f"Missing required parameter: {e}"}),
+            400,
+        )
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"status": "failure", "error": str(e)}), 500
 
 
 @app.route("/get_strategies", methods=["GET"])
 @token_required
-def get_strategies():
+def get_strategies(user):
     try:
-        all_strategies = StrategyBook.get_all_dict()
-        return {"status": "success", "data": all_strategies}
+        all_strategies = StrategyBook.get_all_dict(user.id)
+        return {"status": "success", "data": all_strategies}, 201
     except Exception as e:
         logger.error(f"Error in /get_strategies: {e}")
         response_data = {"status": "failure", "message": e}
-        return response_data
+        response = response_data, 200
+
+        return response
 
 
 @app.route("/delete_strategy/<int:strategy_id>", methods=["DELETE"])
-def delete_strategy(strategy_id):
+@token_required
+def delete_strategy(strategy_id, user):
     try:
         strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
         if not strategy:
@@ -437,18 +445,19 @@ def delete_strategy(strategy_id):
         strategy.delete()
 
         return (
-            jsonify({"status": "success", "message": "Strategy deleted successfully!"}),
+            {"status": "success", "message": "Strategy deleted successfully!"},
             200,
         )
 
     except Exception as e:
         response_data = {"status": "failure", "message": e}
-        response = make_response(jsonify(response_data), 200)
+        response = response_data, 200
         return response
 
 
 @app.route("/get_strategy/<int:strategy_id>", methods=["GET"])
-def get_strategy(strategy_id):
+@token_required
+def get_strategy(strategy_id, user):
     strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
     if not strategy:
         return jsonify({"error": "Strategy not found"}), 404
@@ -471,4 +480,4 @@ def get_strategy(strategy_id):
                         {"filename": filename, "code": file.read()}
                     )
 
-    return jsonify({"status": "success", "data": strategy_details})
+    return {"status": "success", "data": strategy_details}

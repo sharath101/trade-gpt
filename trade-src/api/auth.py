@@ -15,11 +15,18 @@ def token_required(f):
         user = Users.decode_auth_token(token)
         if not user:
             return jsonify({"status": "failure", "message": "User not found"}), 200
+<<<<<<< Updated upstream
         response = f(*args, **kwargs)
+=======
+
+        response = f(*args, user=user, **kwargs)
+
+        if not isinstance(response, tuple):
+            response = jsonify(response), 200
+
+>>>>>>> Stashed changes
         auth_token = user.encode_auth_token(user.id)
-
-        server_response = make_response(jsonify(response), 200)
-
+        server_response = make_response(*response)
         server_response.headers["Authorization"] = auth_token
         server_response.headers["Access-Control-Expose-Headers"] = "Authorization"
 
@@ -119,5 +126,5 @@ def register():
 
 @app.route("/check_login")
 @token_required
-def check_login():
+def check_login(user):
     return {"status": "success"}
