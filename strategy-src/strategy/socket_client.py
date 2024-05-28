@@ -1,15 +1,17 @@
 import json
-from datetime import datetime
+import pickle
 
 import socketio
 
 from .order import Order
+from .strategy_manager import StrategyManager
 
 
 class SocketClient:
 
     def __init__(self, run_strategies):
         self.run_strategies = run_strategies
+
         self.sio = socketio.Client()
 
         # Define event handlers
@@ -17,37 +19,39 @@ class SocketClient:
         self.sio.on("disconnect", self.on_disconnect)
         self.sio.on("order", self.on_order)
 
+    def init_app(self, run_strategies):
+        self.run_strategies = run_strategies
+
     def on_connect(self):
-        print("Connected")
+        strat_manager = StrategyManager(["SBIN"], 20000, [])
+        self.init_app(strat_manager.run_strategies)
 
     def on_disconnect(self):
-        print("Disconnected")
+        pass
 
     def emit(self, event, data):
         if self.sio.connected:
-            self.sio.emit(event, json.dumps(data))
+            self.sio.emit(event, pickle.dumps(data))
 
     def on_order(self, data):
-        # print('Message received:', data)
+        """Data received from backtester via websocket"""
         message_data = json.loads(data)
-        # print(message_data)
 
-        # extract data
+        """Available Data extraction"""
         symbol = message_data.get("symbol")
-        current_price = float(message_data.get("current_price"))
-        timestamp = datetime.fromisoformat(message_data.get("timestamp"))
-        volume = int(message_data.get("volume"))
+        candle = pickle.loads(message_data.get("candle"))
 
-        # run strategy
-        order: Order = self.run_strategies(symbol, current_price, timestamp, volume)
+        """This runs all the strategies for the received data"""
+        order: Order = self.run_strategies(symbol, candle)
 
-        if self.sio.connected:
+        if self.sio.connected and order:
+            """TODO:order to be emitted must be json"""
             self.emit("order", order)
         else:
-            print("Cannot emit, not connected")
+            print("Unable to send order, socket disconnected")
 
     def start(self):
-        # Connect to the server
+        """Attempt to connect to socket"""
         self.sio.connect("http://host.docker.internal:5001")
         # Wait for events
         self.sio.wait()

@@ -21,6 +21,7 @@ from strategy import StrategyImporter
 from utils import deploy_container
 from werkzeug.utils import secure_filename
 
+from .auth import token_required
 from .misc import get_access_token
 
 
@@ -411,16 +412,15 @@ def update_strategy(strategy_id):
 
 
 @app.route("/get_strategies", methods=["GET"])
+@token_required
 def get_strategies():
     try:
         all_strategies = StrategyBook.get_all_dict()
-        return jsonify({"status": "success", "data": all_strategies}), 201
+        return {"status": "success", "data": all_strategies}
     except Exception as e:
         logger.error(f"Error in /get_strategies: {e}")
         response_data = {"status": "failure", "message": e}
-        response = make_response(jsonify(response_data), 200)
-
-        return response
+        return response_data
 
 
 @app.route("/delete_strategy/<int:strategy_id>", methods=["DELETE"])

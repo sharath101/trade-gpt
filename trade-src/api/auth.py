@@ -1,20 +1,20 @@
 from functools import wraps
-from flask import jsonify, make_response, request
 
 from api import app, bcrypt, logger
 from database import Users
+from flask import jsonify, make_response, request
 
 
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        data = request.headers.get('Authorization')
-        token = str.replace(str(data), 'Bearer ', '')
+        data = request.headers.get("Authorization")
+        token = str.replace(str(data), "Bearer ", "")
         if not token:
-            return jsonify({"status": "failure", 'message': 'Token is missing'}), 200
+            return jsonify({"status": "failure", "message": "Token is missing"}), 200
         user = Users.decode_auth_token(token)
         if not user:
-            return jsonify({"status": "failure", 'message': 'User not found'}), 200
+            return jsonify({"status": "failure", "message": "User not found"}), 200
         response = f(*args, **kwargs)
         auth_token = user.encode_auth_token(user.id)
 
@@ -24,7 +24,7 @@ def token_required(f):
         server_response.headers["Access-Control-Expose-Headers"] = "Authorization"
 
         return server_response
-    
+
     return decorated
 
 

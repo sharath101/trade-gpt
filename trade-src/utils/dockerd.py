@@ -1,6 +1,9 @@
 import docker
 
-def deploy_container(image_name, container_name, ports=None, volumes=None, environment=None):
+
+def deploy_container(
+    image_name, container_name, ports=None, volumes=None, environment=None
+):
     # Create a Docker client
     client = docker.from_env()
 
@@ -15,6 +18,6 @@ def deploy_container(image_name, container_name, ports=None, volumes=None, envir
         volumes=volumes,
         environment=environment,
         detach=True,
-        network_mode='host'
+        network_mode="host",
     )
     return container
