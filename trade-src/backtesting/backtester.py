@@ -1,16 +1,16 @@
 import asyncio
 import csv
 import os
+import threading
 import time
 from datetime import datetime, timedelta
-import threading
 
 import pandas as pd
-from talipp.ohlcv import OHLCV
-
 from api import logger
 from order_manager import OrderManager
+from talipp.ohlcv import OHLCV
 from utils import redis_instance, round_to_nearest_multiple_of_5
+
 from .socket_server import SocketServer
 
 
@@ -33,12 +33,10 @@ class BackTester:
         # Spawn thread to run socket server for backtester
         thread = threading.Thread(target=self.socket_server_run)
         thread.start()
-        
+
         self.backtest()
 
     def backtest(self):
-        redis_instance.set("backtest_backup", [])
-        redis_instance.set("backtest", [])
         logger.info(f"Backtesting {self.stock}")
         with open(self.csv_file_path, mode="r", newline="") as file:
             reader = csv.DictReader(file)
@@ -51,40 +49,38 @@ class BackTester:
                     close=float(row["close"]),
                     volume=float(row["volume"]),
                 )
-                r_data = {
-                    "time": data.time.timestamp(),  # type: ignore
-                    "open": data.open,
-                    "high": data.high,
-                    "low": data.low,
-                    "close": data.close,
-                    "volume": data.volume,
-                }
-                redis_data: list = redis_instance.get("backtest")  # type: ignore
-                if redis_data:
-                    redis_data.append(r_data)
-                else:
-                    redis_data = [r_data]
-
-                if len(redis_data) >= 1000:
-                    backup: list = redis_instance.get("backtest_backup")  # type: ignore
-                    if backup:
-                        backup += redis_data
-                        redis_data = []
-                        redis_instance.set("backtest_backup", backup)
-                    else:
-                        redis_instance.set("backtest_backup", redis_data)
-                        redis_data = []
-
-                redis_instance.set("backtest", redis_data)
-
                 ticker_data = self.generate_tickers(5, data)
                 total_length = len(ticker_data)
+                current_candle = OHLCV(
+                    time=data.time,
+                    open=data.open,
+                    high=data.open,
+                    low=data.open,
+                    close=data.open,
+                    volume=0,
+                )
                 for timestamp, row in ticker_data.iterrows():
                     timestamp = timestamp.to_pydatetime()  # type: ignore
                     current_price = float(row.iloc[0])
                     volume = data.volume / total_length  # type: ignore
+                    current_candle.high = (
+                        current_candle.high
+                        if current_price < current_candle.high
+                        else current_price
+                    )
+                    current_candle.low = (
+                        current_candle.low
+                        if current_price > current_candle.low
+                        else current_price
+                    )
+                    current_candle.close = current_price
+                    current_candle.volume += volume
+
                     self.order_manager.next(
-                        self.stock, current_price, timestamp, volume, self.socket_server.emitter
+                        self.stock,
+                        current_candle,
+                        timestamp,
+                        self.socket_server.emitter,
                     )
 
     def generate_tickers(self, interval: int, candle: OHLCV):

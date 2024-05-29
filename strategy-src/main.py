@@ -3,6 +3,10 @@ import logging
 import os
 from typing import List
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from strategy import SocketClient, Strategy, StrategyManager
 
 logger = logging.getLogger(__name__)
@@ -60,6 +64,7 @@ if __name__ == "__main__":
     except ImportError as e:
         logger.error(f"Error importing Strategy class: {e}")
     finally:
+
         symbol: str = os.getenv("SYMBOL")
         balance = float(os.getenv("BALANCE"))
 

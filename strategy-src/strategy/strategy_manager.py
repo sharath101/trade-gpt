@@ -1,6 +1,4 @@
-from typing import Dict, List, Literal, Optional
-
-from talipp.ohlcv import OHLCV
+from typing import Dict, List, Optional
 
 from .order import Order
 from .strategy_obj import Strategy
@@ -16,13 +14,65 @@ class StrategyManager:
         self.symbols: List[str] = symbols
         self.strategies: List[Strategy] = strategies
         self.balance: float = balance
-        self.candles: Dict[str, Dict[int, MarketDataList]] = {}
+        self.candles: Dict[str, MarketDataList] = {}
 
         for symbol in self.symbols:
-            """Initializing a dictionary of candles for each symbol subscribed
-            The dict must be of following type:
-            {interval: [OHLCV, OHLCV, OHLCV, .....]}"""
-            self.candles[symbol] = {}
+            self.candles[symbol] = MarketDataList(
+                candle={},
+                AccuDist={},
+                ADX={},
+                ALMA={},
+                AO={},
+                Aroon={},
+                ATR={},
+                BB={},
+                BOP={},
+                CCI={},
+                ChaikinOsc={},
+                ChandeKrollStop={},
+                CHOP={},
+                CoppockCurve={},
+                DEMA={},
+                DonchianChannels={},
+                DPO={},
+                EMA={},
+                EMV={},
+                ForceIndex={},
+                HMA={},
+                Ichimoku={},
+                KAMA={},
+                KeltnerChannels={},
+                KST={},
+                KVO={},
+                MACD={},
+                MassIndex={},
+                McGinleyDynamic={},
+                MeanDev={},
+                OBV={},
+                ROC={},
+                RSI={},
+                ParabolicSAR={},
+                SFX={},
+                SMA={},
+                SMMA={},
+                SOBV={},
+                STC={},
+                StdDev={},
+                Stoch={},
+                StochRSI={},
+                SuperTrend={},
+                T3={},
+                TEMA={},
+                TRIX={},
+                TSI={},
+                TTM={},
+                UO={},
+                VTX={},
+                VWAP={},
+                VWMA={},
+                WMA={},
+                ZLEMA={},
+            )
 
     def add_strategy(self, strategy: Strategy) -> None:
         self.strategies.append(strategy)
@@ -30,38 +80,102 @@ class StrategyManager:
     def remove_strategy(self, strategy: Strategy) -> None:
         self.strategies.remove(strategy)
 
-    def add_candle(self, symbol: str, interval: int, market_data: MarketData) -> None:
-        if len(self.candles[symbol][interval]["candle"]):
-            last_candle = self.candles[symbol][interval]["candle"][-1]
-            if last_candle.time == market_data["candle"].time:
-                for key in market_data:
-                    self.candles[symbol][interval][key][-1] = market_data[key]
+    def update_candles(self, symbol: str, market_data: MarketData) -> None:
+        """Update or append new candle data and indicators for a given symbol."""
 
-            else:
-                for key in market_data:
-                    self.candles[symbol][interval][key].append(market_data[key])
-                    if len(self.candles[symbol][interval][key]) > 100:
-                        self.candles[symbol][interval][key].remove(
-                            self.candles[symbol][interval][key][0]
-                        )
-        else:
-            for key in market_data:
-                self.candles[symbol][interval][key] = [market_data[key]]
+        for indicator in market_data:
+            indicator_data_all = market_data[indicator]
 
-    def run_strategies(
-        self, symbol: str, data: Dict[int, MarketData]
-    ) -> Optional[Order]:
+            for interval in indicator_data_all:
+                indicator_data = indicator_data_all[interval]
 
-        for interval in data:
-            self.add_candle(
-                symbol=symbol, interval=interval, market_data=data[interval]
-            )
+                if indicator == "candle":
+                    """Handle candles separately as they are in a nested structure"""
+                    if interval in self.candles[symbol]["candle"]:
+                        if (
+                            self.candles[symbol]["candle"][interval][-1].time
+                            == market_data["candle"][interval].time
+                        ):
+                            """Update the existing candle"""
+                            self.candles[symbol]["candle"][interval][-1] = market_data[
+                                "candle"
+                            ][interval]
+                        else:
+                            """Append a new candle"""
+                            self.candles[symbol]["candle"][interval].append(
+                                market_data["candle"][interval]
+                            )
+                    else:
+                        """Initialize the list with the first candle"""
+                        self.candles[symbol]["candle"][interval] = [
+                            market_data["candle"][interval]
+                        ]
+                else:
+                    """Handle indicators"""
+                    if interval not in self.candles[symbol][indicator]:
+                        self.candles[symbol][indicator][interval] = {}
+
+                    for indicator_name in indicator_data:
+                        if indicator_name in self.candles[symbol][indicator][interval]:
+                            if len(self.candles[symbol]["candle"][interval]):
+                                if (
+                                    self.candles[symbol]["candle"][interval][-1].time
+                                    == market_data["candle"][interval].time
+                                ):
+                                    """Update the existing indicator"""
+                                    self.candles[symbol][indicator][interval][
+                                        indicator_name
+                                    ][-1] = indicator_data[indicator_name]
+                                else:
+                                    """Append the new indicator value"""
+                                    self.candles[symbol][indicator][interval][
+                                        indicator_name
+                                    ].append(indicator_data[indicator_name])
+                            else:
+                                """Initialize the list with the first indicator value"""
+                                self.candles[symbol][indicator][interval][
+                                    indicator_name
+                                ] = [indicator_data[indicator_name]]
+                        else:
+                            """Initialize the list with the first indicator value"""
+                            self.candles[symbol][indicator][interval][
+                                indicator_name
+                            ] = [indicator_data[indicator_name]]
+
+    def get_candles(self, symbol: str, interval: int, n: int) -> Dict[str, Dict]:
+        """Fetch the last N candles and their corresponding indicators for a given symbol and interval."""
+
+        if symbol not in self.candles or interval not in self.candles[symbol]["candle"]:
+            return {}
+
+        # Get the last N candles
+        last_n_candles = self.candles[symbol]["candle"][interval][-n:]
+
+        # Prepare the result dictionary
+        result = {"candle": last_n_candles, "indicators": {}}
+
+        # Iterate over indicators to fetch the corresponding last N values
+        for indicator in self.candles[symbol]:
+            if indicator == "candle":
+                continue
+            if interval in self.candles[symbol][indicator]:
+                result["indicators"][indicator] = {}
+                for indicator_name in self.candles[symbol][indicator][interval]:
+                    result["indicators"][indicator][indicator_name] = self.candles[
+                        symbol
+                    ][indicator][interval][indicator_name][-n:]
+
+        return result
+
+    def run_strategies(self, symbol: str, data: MarketData) -> Optional[Order]:
+
+        self.update_candles(symbol, data)
 
         current_order: Optional[Order] = None
         for strategy in self.strategies:
-            current_order, confidence = strategy.analyse(data[5]["candle"])
+            current_order, confidence = strategy.analyse(data["candle"][5])
             if current_order:
-                current_order.timestamp = data[5]["candle"].time
+                current_order.timestamp = data["candle"][5].time
             for strategy in self.strategies:
                 strategy.order_status = "TRANSIT"
                 strategy.current_order = current_order

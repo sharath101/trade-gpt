@@ -1,7 +1,7 @@
-import asyncio
+import pickle
 from datetime import datetime, time
 from secrets import token_hex
-from typing import Dict, List
+from typing import List
 
 from api import logger
 from baseclasses import Broker
@@ -9,32 +9,25 @@ from baseclasses import OrderManager as OMBase
 from brokers import VirtualBroker
 from database import OrderBook
 from dataclass import Order
-from strategy import EngulfingStrategy, MACDStrategy, Strategy, StrategyManager
+from talipp.ohlcv import OHLCV
 
 
 class OrderManager(OMBase):
     """The OrderManager class is responsible for managing the orders for different symbols,
-    across different brokers. Simulated P&L will ba calculated in VirtualBroker"""
+    across different brokers. Simulated P&L will ba calculated in VirtualBrokercurrent_price"""
 
     def __init__(self, symbols, balance=20000, backtesting=False):
         """Initializes the OrderManager with the given symbols and candle interval.
         Different symbols can have different strategies. This will be initialized here.
         """
-
-        self.symbols: Dict[str, StrategyManager] = {}
-        strategies: List[Strategy] = [MACDStrategy()]
-        symbol_balance = balance
-        for symbol in symbols:
-            self.symbols[symbol] = StrategyManager(
-                symbol, symbol_balance, strategies, backtesting
-            )
+        self.symbols = [symbols]
         self.backtesting = backtesting
         if backtesting:
             self._open_positions: List[OrderBook] = []
 
         self.brokers: List[Broker] = [VirtualBroker(self, balance)]
 
-    def next(self, symbol: str, current_price: float, timestamp: datetime, volume: int, emitter):
+    def next(self, symbol: str, current_candle: OHLCV, timestamp: datetime, emitter):
         """This method is called for each new data point on each symbol.
         It runs the strategies for each symbol"""
 
@@ -47,13 +40,11 @@ class OrderManager(OMBase):
                 
                 payload = {
                     "symbol": symbol,
-                    "current_price": current_price,
-                    "timestamp": str(timestamp),
-                    "volume": volume
+                    "candle": pickle.dumps(current_candle)
                 }
                 emitter(payload)
 
-        self.analyse(current_price, timestamp, symbol)
+        self.analyse(current_candle.close, timestamp, symbol)
 
     @property
     def open_positions(self) -> List[OrderBook]:
@@ -213,7 +204,6 @@ class OrderManager(OMBase):
 
             position.order_status = "CANCELLED"
             position.position_status = "CLOSE"
-            self.symbols[position.symbol].closed()
             return
 
         elif position.order_status != "TRADED":
@@ -223,10 +213,8 @@ class OrderManager(OMBase):
             implemented in analyse method, but just to be sure, we are updating again."""
 
             position.position_status = "CLOSE"
-            self.symbols[position.symbol].closed()
             return
         
-        self.symbols[position.symbol].closing()
         position.position_status = "CLOSING"
         
         """ If the position is traded, we will close the order by placing a new order
