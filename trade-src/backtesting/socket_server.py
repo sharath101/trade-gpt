@@ -8,7 +8,9 @@ from dataclass import Order
 
 class SocketServer:
     # TODO: better way to manage place_order, without having dependency issues
-    def __init__(self, place_order, server_ready_event, host="0.0.0.0", port=5001):
+    def __init__(
+        self, place_order, server_ready_event, backtest=None, host="0.0.0.0", port=5001
+    ):
         self.host = host
         self.port = port
         self.server_ready_event = server_ready_event
@@ -22,10 +24,12 @@ class SocketServer:
         self.app = web.Application()
         self.sio.attach(self.app)
         self.place_order = place_order
+        self.backtest = backtest
 
     async def on_connect(self, sid, environ):
         print("Client connected:", sid)
         await self.sio.emit("message_from_server", "Welcome to the server!", room=sid)
+        self.backtest()
 
     async def on_disconnect(self, sid):
         print("Client disconnected:", sid)

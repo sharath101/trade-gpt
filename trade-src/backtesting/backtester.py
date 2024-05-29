@@ -26,7 +26,7 @@ class BackTester:
         self.user = "johndoe"
         self.server_ready_event = threading.Event()
         self.socket_server = SocketServer(
-            self.order_manager.place_order, self.server_ready_event
+            self.order_manager.place_order, self.server_ready_event, self.backtest
         )
 
     def socket_server_run(self):
@@ -38,8 +38,6 @@ class BackTester:
         thread.start()
 
         self.server_ready_event.wait()
-
-        self.backtest()
 
     def backtest(self):
         logger.info(f"Backtesting {self.stock}")
