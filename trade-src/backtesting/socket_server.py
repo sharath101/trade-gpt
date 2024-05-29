@@ -8,9 +8,10 @@ from dataclass import Order
 
 class SocketServer:
     # TODO: better way to manage place_order, without having dependency issues
-    def __init__(self, place_order, host="0.0.0.0", port=5001):
+    def __init__(self, place_order, server_ready_event, host="0.0.0.0", port=5001):
         self.host = host
         self.port = port
+        self.server_ready_event = server_ready_event
         self.sio = socketio.AsyncServer()
 
         # Define event handlers
@@ -55,5 +56,7 @@ class SocketServer:
         print(f"Server started on http://{self.host}:{self.port}")
 
         await site.start()
+
+        self.server_ready_event.set()
 
         await asyncio.Event().wait()

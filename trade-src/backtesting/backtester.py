@@ -24,7 +24,10 @@ class BackTester:
         self.order_manager = OrderManager([self.stock], 20000, True)
         self.num_orders = 0
         self.user = "johndoe"
-        self.socket_server = SocketServer(self.order_manager.place_order)
+        self.server_ready_event = threading.Event()
+        self.socket_server = SocketServer(
+            self.order_manager.place_order, self.server_ready_event
+        )
 
     def socket_server_run(self):
         asyncio.run(self.socket_server.run())
@@ -33,6 +36,8 @@ class BackTester:
         # Spawn thread to run socket server for backtester
         thread = threading.Thread(target=self.socket_server_run)
         thread.start()
+
+        self.server_ready_event.wait()
 
         self.backtest()
 
