@@ -23,8 +23,7 @@ class SocketClient:
         self.run_strategies = run_strategies
 
     def on_connect(self):
-        strat_manager = StrategyManager(["SBIN"], 20000, [])
-        self.init_app(strat_manager.run_strategies)
+        print("connected")
 
     def on_disconnect(self):
         pass
@@ -36,6 +35,7 @@ class SocketClient:
     def on_order(self, data):
         """Data received from backtester via websocket"""
         message_data = json.loads(data)
+        print(message_data)
 
         """Available Data extraction"""
         symbol = message_data.get("symbol")
@@ -43,6 +43,7 @@ class SocketClient:
 
         """This runs all the strategies for the received data"""
         order: Order = self.run_strategies(symbol, candle)
+        print(order)
 
         if self.sio.connected and order:
             """TODO:order to be emitted must be json"""
@@ -52,6 +53,8 @@ class SocketClient:
 
     def start(self):
         """Attempt to connect to socket"""
+        print("ast")
         self.sio.connect("http://host.docker.internal:5001")
+        print("done")
         # Wait for events
         self.sio.wait()

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def instantiate_classes_from_file(filename):
+
     with open(filename, "r") as file:
         file_content = file.read()
 
@@ -52,23 +53,23 @@ def instantiate_classes_from_file(filename):
 
 
 if __name__ == "__main__":
+    print("asdkjsndj")
     try:
         all_instances = []
-        for filename in os.listdir("/app/user_strategies"):
-            if filename.endswith(".py"):
-                instances: list = instantiate_classes_from_file(filename)
-                all_instances = all_instances + instances
+        # for filename in os.listdir("/app/user_strategies"):
+        #     if filename.endswith(".py"):
+        #         instances: list = instantiate_classes_from_file(filename)
+        #         all_instances = all_instances + instances
 
     except ValueError as e:
         logger.warning(f"Warning in startegy: {e}")
     except ImportError as e:
         logger.error(f"Error importing Strategy class: {e}")
-    finally:
 
-        symbol: str = os.getenv("SYMBOL")
-        balance = float(os.getenv("BALANCE"))
+    symbol: str = os.getenv("SYMBOL")
+    balance = float(os.getenv("BALANCE"))
 
-        startegy_manager = StrategyManager([symbol], balance, all_instances)
+    startegy_manager = StrategyManager([symbol], balance, all_instances)
 
-        client = SocketClient(startegy_manager.run_strategies)
-        client.start()
+    client = SocketClient(startegy_manager.run_strategies)
+    client.start()

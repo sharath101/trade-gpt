@@ -1,4 +1,0 @@
-talipp==2.2.0
-python-socketio
-requests
-websocket-client
