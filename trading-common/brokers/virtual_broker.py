@@ -1,15 +1,17 @@
+import logging
 from datetime import datetime
 from typing import List, Literal
 
-from api import logger
-from baseclasses import Broker
-from baseclasses import OrderManager as OMBase
 from database import OrderBook, VirtualOrderBook
+
+from .broker import Broker
+
+logger = logging.getLogger(__name__)
 
 
 class VirtualBroker(Broker):
 
-    def __init__(self, order_manager: OMBase, balance: float = 20000):
+    def __init__(self, order_manager, balance: float = 20000):
         self.order_manager = order_manager
         self.balance = balance
         if self.order_manager.backtesting:

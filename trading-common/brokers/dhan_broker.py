@@ -1,11 +1,14 @@
+import logging
 from secrets import token_hex
 from typing import List
-from dhanhq import dhanhq
 
-from api import logger
-from database import APIKey, OrderBook, DhanOrderBook
+from database import APIKey, DhanOrderBook, OrderBook
+from dhanhq import dhanhq
 from market_data import DHAN_INSTRUMENTS
-from baseclasses import Broker
+
+from .broker import Broker
+
+logger = logging.getLogger(__name__)
 
 
 class DhanBroker(Broker):

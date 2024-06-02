@@ -1,11 +1,12 @@
+import logging
 from datetime import datetime, time, timedelta
 
 from talipp.ohlcv import OHLCV
-
-from api import logger
 from utils import redis_instance, redis_instance_backtest
 
 from .indicators import IndicatorManager
+
+logger = logging.getLogger(__name__)
 
 
 class CandleManager:

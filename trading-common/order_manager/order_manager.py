@@ -1,18 +1,19 @@
+import logging
 import pickle
 from datetime import datetime, time
 from secrets import token_hex
 from typing import List
 
-from api import logger
-from baseclasses import Broker
-from baseclasses import OrderManager as OMBase
-from brokers import VirtualBroker
-from database import OrderBook
+from brokers import Broker, VirtualBroker
 from dataclass import Order
 from talipp.ohlcv import OHLCV
 
+from .order_book import OrderBook
 
-class OrderManager(OMBase):
+logger = logging.getLogger(__name__)
+
+
+class OrderManager():
     """The OrderManager class is responsible for managing the orders for different symbols,
     across different brokers. Simulated P&L will ba calculated in VirtualBrokercurrent_price"""
 

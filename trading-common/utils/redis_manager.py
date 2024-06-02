@@ -1,9 +1,10 @@
+import logging
 import pickle
 from typing import Dict, List
 
 import redis
 
-from api import logger
+logger = logging.getLogger(__name__)
 
 
 class RedisManager:

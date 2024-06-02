@@ -1,7 +1,9 @@
+import logging
+
 from talipp.indicators import *
 from talipp.ohlcv import OHLCV
 
-from api import logger
+logger = logging.getLogger(__name__)
 
 
 class IndicatorManager:
