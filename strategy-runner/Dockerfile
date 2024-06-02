@@ -2,12 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY Docker/requirements.txt .
+COPY requirements.txt requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app app
 
 ENV PYTHONPATH "${PYTHONPATH}:/app"
 
-ENTRYPOINT [ "python", "main.py" ]
+ENTRYPOINT [ "python", "app/main.py" ]
