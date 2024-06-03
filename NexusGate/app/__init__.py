@@ -16,12 +16,12 @@ logging_config = dict(
         "h": {
             "class": "logging.StreamHandler",
             "formatter": "f",
-            "level": logging.DEBUG,
+            "level": logging.WARNING,
         }
     },
     root={
         "handlers": ["h"],
-        "level": logging.DEBUG,
+        "level": logging.WARNING,
     },
 )
 
@@ -29,9 +29,7 @@ dictConfig(logging_config)
 logger = logging.getLogger("NexusGate")
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
-GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
 
-from . import auth, routes
+from . import auth, oauth_google, routes
