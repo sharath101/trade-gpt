@@ -4,11 +4,10 @@ from datetime import datetime, time
 from secrets import token_hex
 from typing import List
 
-from brokers import Broker, VirtualBroker
+from database import OrderBook
 from dataclass import Order
+from order_manager import Broker, VirtualBroker
 from talipp.ohlcv import OHLCV
-
-from .order_book import OrderBook
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,4 @@ from .redis_manager import BacktestRedis, RedisManager
 #     jobstores=jobstores, executors=executors, job_defaults=job_defaults
 # )
 
-redis_instance = RedisManager()
-redis_instance_backtest = BacktestRedis()
-
 # scheduler.start()

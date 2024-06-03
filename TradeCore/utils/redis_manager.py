@@ -1,10 +1,7 @@
-import logging
 import pickle
 from typing import Dict, List
 
 import redis
-
-logger = logging.getLogger(__name__)
 
 
 class RedisManager:
@@ -16,7 +13,6 @@ class RedisManager:
             byte_value = pickle.dumps(value)
             self.r.set(key, byte_value)
         except Exception as e:
-            logger.error(f"Error setting value in redis: {e}")
             raise RuntimeError(f"Error setting value in redis: {e}")
 
     def get(self, key):
@@ -28,7 +24,6 @@ class RedisManager:
             else:
                 return None
         except Exception as e:
-            logger.error(f"Error getting value from redis: {e}")
             raise RuntimeError(f"Error getting value from redis: {e}")
 
 
