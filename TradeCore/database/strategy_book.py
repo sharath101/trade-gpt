@@ -1,33 +1,33 @@
-import json
-from typing import List
+from typing import Any, Dict, List
 
-from api import app, logger
-from database import db
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
+
+from . import Base, logger, session
 
 
-class StrategyBook(db.Model):
+class StrategyBook(Base):
+    __tablename__ = "strategy_book"
+
     # Primary Key
-    id: int = db.Column(db.Integer, primary_key=True)
+    id: int = Column(Integer, primary_key=True)
 
     # Foreign Key to the User table
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Strategy name
-    strategy_name: str = db.Column(db.Text, nullable=False)
+    strategy_name: str = Column(Text, nullable=False)
 
     # Strategy class
-    folder_loc: str = db.Column(db.Text, nullable=False)
+    folder_loc: str = Column(Text, nullable=False)
 
     # indicator list
-    indicators: str = db.Column(db.Text, nullable=False)
+    indicators: str = Column(Text, nullable=False)
 
     # description
-    description = db.Column(db.String(200), nullable=False)
+    description = Column(String(200), nullable=False)
 
     # creation date
-    created_at = db.Column(
-        db.DateTime, nullable=False, default=db.func.current_timestamp()
-    )
+    created_at = Column(DateTime, nullable=False, default=func.current_timestamp())
 
     def __repr__(self) -> str:
         return f"StrategyBook(strategy_name={self.strategy_name}, indicators={self.indicators})"
@@ -41,70 +41,59 @@ class StrategyBook(db.Model):
 
     def save(self) -> None:
         try:
-            with app.app_context():
-                db.session.add(self)
-                db.session.commit()
+            session.add(self)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while saving Strategy: {e}")
-            raise RuntimeError(f"Error while saving Strategy: {e}")
+            session.rollback()
+            logger.error(f"Error while saving APIKey: {e}")
 
     @staticmethod
     def save_all(api_keys: List["StrategyBook"]) -> None:
         try:
-            with app.app_context():
-                for api_key in api_keys:
-                    db.session.add(api_key)
-                db.session.commit()
+            session.bulk_save_objects(api_keys)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while saving all Strategy: {e}")
+            session.rollback()
+            logger.error(f"Error while saving all StrategyBook: {e}")
 
     def delete(self) -> None:
         try:
-            with app.app_context():
-                if self.id:
-                    db.session.delete(self)
-                    db.session.commit()
+            session.delete(self)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while deleting Strategy: {e}")
+            session.rollback()
+            logger.error(f"Error while deleting StrategyBook: {e}")
 
     @staticmethod
-    def filter(**filters) -> List["StrategyBook"]:
+    def delete_all(api_keys: List["StrategyBook"]) -> None:
         try:
-            with app.app_context():
-                return StrategyBook.query.filter_by(**filters).all()
+            for api_key in api_keys:
+                session.delete(api_key)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while filtering Strategy: {e}")
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "strategy_name": self.strategy_name,
-            "indicators": self.indicators,
-            "description": self.description,
-        }
+            session.rollback()
+            logger.error(f"Error while deleting all StrategyBook: {e}")
 
     @staticmethod
-    def get_all_dict(user_id) -> List["StrategyBook"]:
+    def filter(**filters: Dict[str, Any]) -> List["StrategyBook"]:
         try:
-            all_strategies = StrategyBook.filter(user_id=user_id)
-            strategies_dict = [strategy.to_dict() for strategy in all_strategies]
-            return strategies_dict
+            return session.query(StrategyBook).filter_by(**filters).all()
         except Exception as e:
-            raise RuntimeError(f"{e}")
+            logger.error(f"Error while filtering APIKey: {e}")
+            return []
 
     @staticmethod
     def get_all() -> List["StrategyBook"]:
         try:
-            with app.app_context():
-                return StrategyBook.query.all()
+            return session.query(StrategyBook).all()
         except Exception as e:
-            logger.error(f"Error while getting all Strategy: {e}")
-            raise RuntimeError(f"Error while getting all strategies: {e}")
+            logger.error(f"Error while getting all StrategyBook: {e}")
+            return []
 
     @staticmethod
-    def get_first(**filters) -> "StrategyBook":
+    def get_first(**filters: Dict[str, Any]) -> "StrategyBook":
         try:
-            with app.app_context():
-                return StrategyBook.query.filter_by(**filters).first()
+            return session.query(StrategyBook).filter_by(**filters).first()
         except Exception as e:
-            logger.error(f"Error while getting first Strategy: {e}")
+            logger.error(f"Error while getting first StrategyBook: {e}")
+            return None

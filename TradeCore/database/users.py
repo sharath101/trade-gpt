@@ -1,112 +1,76 @@
-from datetime import datetime, timedelta
-from typing import List
+from typing import Any, Dict, List
 
-import jwt
-from api import app, logger
-from database import db
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
+
+from . import Base, logger, session
 
 
-class Users(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(500), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
-    name = db.Column(db.String, nullable=True)
+class Users(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(500), unique=True, nullable=False)
+    password = Column(String(100), nullable=False)
+    name = Column(String, nullable=True)
 
     def __repr__(self) -> str:
         return f"Users(email={self.email}, name={self.name})"
 
     def save(self) -> None:
         try:
-            with app.app_context():
-                db.session.add(self)
-                db.session.commit()
+            session.add(self)
+            session.commit()
         except Exception as e:
+            session.rollback()
             logger.error(f"Error while saving Users: {e}")
-            raise RuntimeError(f"Error while saving Users: {e}")
 
     @staticmethod
     def save_all(api_keys: List["Users"]) -> None:
         try:
-            with app.app_context():
-                for api_key in api_keys:
-                    db.session.add(api_key)
-                db.session.commit()
+            session.bulk_save_objects(api_keys)
+            session.commit()
         except Exception as e:
+            session.rollback()
             logger.error(f"Error while saving all Users: {e}")
 
     def delete(self) -> None:
         try:
-            with app.app_context():
-                if self.id:
-                    db.session.delete(self)
-                    db.session.commit()
+            session.delete(self)
+            session.commit()
         except Exception as e:
+            session.rollback()
             logger.error(f"Error while deleting Users: {e}")
 
     @staticmethod
     def delete_all(api_keys: List["Users"]) -> None:
         try:
-            with app.app_context():
-                for api_key in api_keys:
-                    if api_key.id:
-                        db.session.delete(api_key)
-                db.session.commit()
+            for api_key in api_keys:
+                session.delete(api_key)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while deleting all Users {e}")
+            session.rollback()
+            logger.error(f"Error while deleting all Users: {e}")
 
     @staticmethod
-    def filter(**filters) -> List["Users"]:
+    def filter(**filters: Dict[str, Any]) -> List["Users"]:
         try:
-            with app.app_context():
-                return Users.query.filter_by(**filters).all()
+            return session.query(Users).filter_by(**filters).all()
         except Exception as e:
             logger.error(f"Error while filtering Users: {e}")
+            return []
 
     @staticmethod
     def get_all() -> List["Users"]:
         try:
-            with app.app_context():
-                return Users.query.all()
+            return session.query(Users).all()
         except Exception as e:
             logger.error(f"Error while getting all Users: {e}")
+            return []
 
     @staticmethod
-    def get_first(**filters) -> "Users":
+    def get_first(**filters: Dict[str, Any]) -> "Users":
         try:
-            with app.app_context():
-                return Users.query.filter_by(**filters).first()
+            return session.query(Users).filter_by(**filters).first()
         except Exception as e:
             logger.error(f"Error while getting first Users: {e}")
-
-    def encode_auth_token(self, user_id):
-        """
-        Generates the Auth Token
-        :return: string
-        """
-        try:
-            payload = {
-                "exp": datetime.utcnow() + timedelta(days=0, minutes=5),
-                "iat": datetime.utcnow(),
-                "sub": user_id,
-            }
-            return jwt.encode(payload, app.config.get("SECRET_KEY"), algorithm="HS256")
-        except Exception as e:
-            return e
-
-    @staticmethod
-    def decode_auth_token(auth_token):
-        """
-        Decodes the auth token
-        :param auth_token:
-        :return: integer|string
-        """
-        try:
-            payload = jwt.decode(
-                auth_token, app.config.get("SECRET_KEY"), algorithms=["HS256"]
-            )
-
-            return Users.get_first(id=payload["sub"])
-        except jwt.ExpiredSignatureError:
-            return False
-        except jwt.InvalidTokenError:
-            return False
+            return None

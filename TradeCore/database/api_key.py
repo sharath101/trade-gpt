@@ -1,77 +1,78 @@
-from api import app, logger
-from typing import List
-from database import db
+from typing import Any, Dict, List
+
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
+
+from . import Base, logger, session
 
 
-class APIKey(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    key = db.Column(db.String(500), nullable=False)
-    secret = db.Column(db.String(100), nullable=False)
-    expiry = db.Column(db.DateTime, nullable=True)
-    platform = db.Column(db.String(100), nullable=False)
-    trading = db.Column(db.Boolean, nullable=False, default=True)
+class APIKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True)
+    key = Column(String(500), nullable=False)
+    secret = Column(String(100), nullable=False)
+    expiry = Column(DateTime, nullable=True)
+    platform = Column(String(100), nullable=False)
+    trading = Column(Boolean, nullable=False, default=True)
 
     def __repr__(self) -> str:
         return f"APIKey(key={self.key}, secret={self.secret})"
 
     def save(self) -> None:
         try:
-            with app.app_context():
-                db.session.add(self)
-                db.session.commit()
+            session.add(self)
+            session.commit()
         except Exception as e:
+            session.rollback()
             logger.error(f"Error while saving APIKey: {e}")
 
     @staticmethod
     def save_all(api_keys: List["APIKey"]) -> None:
         try:
-            with app.app_context():
-                for api_key in api_keys:
-                    db.session.add(api_key)
-                db.session.commit()
+            session.bulk_save_objects(api_keys)
+            session.commit()
         except Exception as e:
+            session.rollback()
             logger.error(f"Error while saving all APIKeys: {e}")
 
     def delete(self) -> None:
         try:
-            with app.app_context():
-                if self.id:
-                    db.session.delete(self)
-                    db.session.commit()
+            session.delete(self)
+            session.commit()
         except Exception as e:
+            session.rollback()
             logger.error(f"Error while deleting APIKey: {e}")
 
     @staticmethod
     def delete_all(api_keys: List["APIKey"]) -> None:
         try:
-            with app.app_context():
-                for api_key in api_keys:
-                    if api_key.id:
-                        db.session.delete(api_key)
-                db.session.commit()
+            for api_key in api_keys:
+                session.delete(api_key)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while deleting all APIKeys {e}")
+            session.rollback()
+            logger.error(f"Error while deleting all APIKeys: {e}")
 
     @staticmethod
-    def filter(**filters) -> List["APIKey"]:
+    def filter(**filters: Dict[str, Any]) -> List["APIKey"]:
         try:
-            with app.app_context():
-                return APIKey.query.filter_by(**filters).all()
+            return session.query(APIKey).filter_by(**filters).all()
         except Exception as e:
             logger.error(f"Error while filtering APIKey: {e}")
+            return []
 
     @staticmethod
     def get_all() -> List["APIKey"]:
         try:
-            with app.app_context():
-                return APIKey.query.all()
+            return session.query(APIKey).all()
         except Exception as e:
             logger.error(f"Error while getting all APIKeys: {e}")
+            return []
 
     @staticmethod
-    def get_first(**filters) -> "APIKey":
+    def get_first(**filters: Dict[str, Any]) -> "APIKey":
         try:
-            with app.app_context():
-                return APIKey.query.filter_by(**filters).first()
+            return session.query(APIKey).filter_by(**filters).first()
         except Exception as e:
             logger.error(f"Error while getting first APIKey: {e}")
+            return None

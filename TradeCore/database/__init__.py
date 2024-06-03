@@ -1,21 +1,42 @@
-from flask_sqlalchemy import SQLAlchemy
+import logging
+import os
+
 from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-from api import app
+# Configure logger
+logger = logging.getLogger("databases")
+logging.basicConfig(level=logging.INFO)
 
-db = SQLAlchemy(app)
+DATABASE_URL = os.getenv("DATABASE_URI", "sqlite:///database_default.db")
 
+# Create engine and session
+engine = create_engine(DATABASE_URL)
+Session = sessionmaker(bind=engine)
+
+# Create a global session object
+session = Session()
+
+Base = declarative_base()
+
+# Import the tables to ensure they are registered with the Base metadata
 from .api_key import APIKey
+from .dhan_order_book import DhanOrderBook
 from .market_holidays import MarketHolidays
 from .order_book import OrderBook
-from .symbol import Symbol
-from .dhan_order_book import DhanOrderBook
-from .virtual_order_book import VirtualOrderBook
 from .strategy_book import StrategyBook
+from .symbol import Symbol
 from .users import Users
+from .virtual_order_book import VirtualOrderBook
 
-engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
-connection = engine.connect()
 
-with app.app_context():
-    db.create_all()
+# Create tables when the module is imported
+def create_tables():
+    try:
+        Base.metadata.create_all(engine)
+    except Exception as e:
+        logger.error(f"Error while creating tables: {e}")
+
+
+create_tables()

@@ -1,51 +1,53 @@
-from typing import List, Literal
 from datetime import datetime
-from api import app, logger
-from database import db
-from database import OrderBook
+from typing import Any, Dict, List, Literal
+
+from sqlalchemy import Column, DateTime, Float, Integer, String
+
+from . import Base, logger, session
+from .order_book import OrderBook
 
 
-class VirtualOrderBook(db.Model):
+class VirtualOrderBook(Base):
+    __tablename__ = "virtual_order_book"
+
     # Primary Key
-    id: int = db.Column(db.Integer, primary_key=True)
+    id: int = Column(Integer, primary_key=True)
 
     # Correlation ID
-    correlation_id: str = db.Column(db.String(25), nullable=False)
+    correlation_id: str = Column(String(25), nullable=False)
 
     # Client ID from the client
-    client_id: str = db.Column(db.String(100), nullable=True)
+    client_id: str = Column(String(100), nullable=True)
 
     # Order ID from the broker
-    order_id: str = db.Column(db.String(100), nullable=True)
+    order_id: str = Column(String(100), nullable=True)
 
     # Symbol of the stock
-    symbol: str = db.Column(db.String(20), nullable=False)
+    symbol: str = Column(String(20), nullable=False)
 
     # Exchange of the stock
-    exchange: Literal["NSE_EQ"] = db.Column(
-        db.String(20), nullable=False, default="NSE_EQ"
-    )
+    exchange: Literal["NSE_EQ"] = Column(String(20), nullable=False, default="NSE_EQ")
 
     # Quantity of the stock placed
-    quantity: int = db.Column(db.Integer, nullable=False)
+    quantity: int = Column(Integer, nullable=False)
 
     # Price at which the order is requested to execute
-    price: float = db.Column(db.Float, nullable=False, default=0.0)
+    price: float = Column(Float, nullable=False, default=0.0)
 
     # Price at which the order is triggered
-    trigger_price: float = db.Column(db.Float, nullable=True, default=0.0)
+    trigger_price: float = Column(Float, nullable=True, default=0.0)
 
     # Transaction type (BUY or SELL)
-    transaction_type: Literal["BUY", "SELL"] = db.Column(db.String(4), nullable=False)
+    transaction_type: Literal["BUY", "SELL"] = Column(String(4), nullable=False)
 
     # Order type (MARKET, LIMIT, CO, BO)
-    order_type: Literal["MARKET", "LIMIT", "STOP_LOSS", "STOP_LOSS_MARKET"] = db.Column(
-        db.String(16), nullable=False, default="MARKET"
+    order_type: Literal["MARKET", "LIMIT", "STOP_LOSS", "STOP_LOSS_MARKET"] = Column(
+        String(16), nullable=False, default="MARKET"
     )
 
     # Product type (CNC, INTRADAY, STOP_LOSS, STOP_LOSS_MARKET)
-    product_type: Literal["CNC", "INTRADAY", "MARGIN", "CO", "BO", "MTF"] = db.Column(
-        db.String(8), nullable=False, default="INTRADAY"
+    product_type: Literal["CNC", "INTRADAY", "MARGIN", "CO", "BO", "MTF"] = Column(
+        String(8), nullable=False, default="INTRADAY"
     )
 
     # Order status (TRANSIT PENDING REJECTED CANCELLED TRADED EXPIRED)
@@ -59,87 +61,84 @@ class VirtualOrderBook(db.Model):
         "WIN",
         "LOSS",
         "CLOSED",
-    ] = db.Column(db.String(9), nullable=False, default="TRANSIT")
+    ] = Column(String(9), nullable=False, default="TRANSIT")
 
     # Order created timestamp
-    order_created: datetime = db.Column(db.DateTime, nullable=True)
+    order_created: datetime = Column(DateTime, nullable=True)
 
     # Order updated timestamp
-    order_updated: datetime = db.Column(db.DateTime, nullable=True)
+    order_updated: datetime = Column(DateTime, nullable=True)
 
     # Order executed timestamp
-    exchange_timestamp: datetime = db.Column(db.DateTime, nullable=True)
+    exchange_timestamp: datetime = Column(DateTime, nullable=True)
 
     # Bracket order profit value
-    bo_takeprofit: float = db.Column(db.Float, nullable=True)
+    bo_takeprofit: float = Column(Float, nullable=True)
 
     # Bracket order stop loss value
-    bo_stoploss: float = db.Column(db.Float, nullable=True)
+    bo_stoploss: float = Column(Float, nullable=True)
 
     def __repr__(self) -> str:
-        return f"Order(order_id={self.order_id}, symbol={self.symbol}, status={self.order_status})"
+        return f"APIKey(key={self.key}, secret={self.secret})"
 
     def save(self) -> None:
         try:
-            with app.app_context():
-                db.session.add(self)
-                db.session.commit()
+            session.add(self)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while saving VirtualOrderBook: {e}")
+            session.rollback()
+            logger.error(f"Error while saving APIKey: {e}")
 
     @staticmethod
     def save_all(api_keys: List["VirtualOrderBook"]) -> None:
         try:
-            with app.app_context():
-                for api_key in api_keys:
-                    db.session.add(api_key)
-                db.session.commit()
+            session.bulk_save_objects(api_keys)
+            session.commit()
         except Exception as e:
+            session.rollback()
             logger.error(f"Error while saving all VirtualOrderBook: {e}")
 
     def delete(self) -> None:
         try:
-            with app.app_context():
-                if self.id:
-                    db.session.delete(self)
-                    db.session.commit()
+            session.delete(self)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while deleting VirtualOrderBook: {e}")
+            session.rollback()
+            logger.error(f"Error while deleting APIKey: {e}")
 
     @staticmethod
     def delete_all(api_keys: List["VirtualOrderBook"]) -> None:
         try:
-            with app.app_context():
-                for api_key in api_keys:
-                    if api_key.id:
-                        db.session.delete(api_key)
-                db.session.commit()
+            for api_key in api_keys:
+                session.delete(api_key)
+            session.commit()
         except Exception as e:
-            logger.error(f"Error while deleting all VirtualOrderBook {e}")
+            session.rollback()
+            logger.error(f"Error while deleting all VirtualOrderBook: {e}")
 
     @staticmethod
-    def filter(**filters) -> List["VirtualOrderBook"]:
+    def filter(**filters: Dict[str, Any]) -> List["VirtualOrderBook"]:
         try:
-            with app.app_context():
-                return VirtualOrderBook.query.filter_by(**filters).all()
+            return session.query(VirtualOrderBook).filter_by(**filters).all()
         except Exception as e:
             logger.error(f"Error while filtering VirtualOrderBook: {e}")
+            return []
 
     @staticmethod
     def get_all() -> List["VirtualOrderBook"]:
         try:
-            with app.app_context():
-                return VirtualOrderBook.query.all()
+            return session.query(VirtualOrderBook).all()
         except Exception as e:
             logger.error(f"Error while getting all VirtualOrderBook: {e}")
+            return []
 
     @staticmethod
-    def get_first(**filters) -> "VirtualOrderBook":
+    def get_first(**filters: Dict[str, Any]) -> "VirtualOrderBook":
         try:
-            with app.app_context():
-                return VirtualOrderBook.query.filter_by(**filters).first()
+            return session.query(VirtualOrderBook).filter_by(**filters).first()
         except Exception as e:
             logger.error(f"Error while getting first VirtualOrderBook: {e}")
+            return None
 
     @staticmethod
     def create_object(order: OrderBook) -> "VirtualOrderBook":
