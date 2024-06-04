@@ -31,7 +31,7 @@ def oauth_redirect():
             token_url,
             headers=headers,
             data=body,
-            auth=(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET),
+            auth=(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET),  # type: ignore
         )
 
         client.parse_request_body_response(json.dumps(token_response.json()))

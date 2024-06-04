@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import jwt
 from sqlalchemy import Column, Integer, String
@@ -71,21 +71,21 @@ class Users(Base):
             return []
 
     @staticmethod
-    def get_first(**filters: Dict[str, Any]) -> "Users":
+    def get_first(**filters: Dict[str, Any]) -> Optional["Users"]:
         try:
             return session.query(Users).filter_by(**filters).first()
         except Exception as e:
             logger.error(f"Error while getting first Users: {e}")
             return None
 
-    def encode_auth_token(self, user_id):
+    def encode_auth_token(self, user_id) -> Optional[str]:
         """
         Generates the Auth Token
         :return: string
         """
         try:
             payload = {
-                "exp": datetime.utcnow() + timedelta(days=0, minutes=5),
+                "exp": datetime.utcnow() + timedelta(days=1, minutes=5),
                 "iat": datetime.utcnow(),
                 "sub": user_id,
             }
@@ -93,10 +93,10 @@ class Users(Base):
                 payload, os.getenv("SECRET_KEY", "topsecret"), algorithm="HS256"
             )
         except Exception as e:
-            return e
+            return None
 
     @staticmethod
-    def decode_auth_token(auth_token):
+    def decode_auth_token(auth_token) -> Optional["Users"]:
         """
         Decodes the auth token
         :param auth_token:
@@ -109,6 +109,6 @@ class Users(Base):
 
             return Users.get_first(id=payload["sub"])
         except jwt.ExpiredSignatureError:
-            return False
+            return None
         except jwt.InvalidTokenError:
-            return False
+            return None

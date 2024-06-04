@@ -27,8 +27,9 @@ def token_required(f):
             response = jsonify(response), 200
 
         auth_token = user.encode_auth_token(user.id)
-        server_response = make_response(*response)
-        server_response.headers["Authorization"] = auth_token
+        if auth_token:
+            server_response = make_response(*response)
+            server_response.headers["Authorization"] = auth_token
         server_response.headers["Access-Control-Expose-Headers"] = "Authorization"
 
         return server_response
@@ -48,11 +49,9 @@ def login():
             redirect_uri=f"{HOST}/login/callback",
             scope=["openid", "email", "profile"],
         )
-        print(request_uri)
-
         return redirect(request_uri)
 
-    if request.method == "POST":
+    elif request.method == "POST":
         try:
             if (
                 not request.headers.get("Content-Type")
@@ -73,10 +72,14 @@ def login():
             user = Users.get_first(email=email)
             if user and bcrypt.check_password_hash(user.password, password):
                 auth_token = user.encode_auth_token(user.id)
-                response_data = {"status": "success"}
-                response = make_response(jsonify(response_data), 200)
-                response.headers["Authorization"] = auth_token
-                response.headers["Access-Control-Expose-Headers"] = "Authorization"
+                if auth_token:
+                    response_data = {"status": "success"}
+                    response = make_response(jsonify(response_data), 200)
+                    response.headers["Authorization"] = auth_token
+                    response.headers["Access-Control-Expose-Headers"] = "Authorization"
+                else:
+                    response_data = {"status": "failure"}
+                    response = make_response(jsonify(response_data), 200)
 
             else:
                 response_data = {
@@ -94,6 +97,11 @@ def login():
 
             return response
 
+    else:
+        response_data = {"status": "failure", "message": "Method not allowed"}
+        response = make_response(jsonify(response_data), 400)
+        return response
+
 
 @app.route("/register", methods=["POST", "GET"])
 def register():
@@ -109,7 +117,7 @@ def register():
         )
         return redirect(request_uri)
 
-    if request.method == "POST":
+    elif request.method == "POST":
         try:
             if (
                 not request.headers.get("Content-Type")
@@ -124,9 +132,16 @@ def register():
                 return response
 
             data = request.json
+            if not data:
+                response_data = {
+                    "status": "failure",
+                    "message": "No data received!",
+                }
+                response = make_response(jsonify(response_data), 200)
+                return response
+
             email = data.get("email")
             password = data.get("password")
-
             name = data.get("name")
             existing_user = Users.get_first(email=email)
             if existing_user:
@@ -157,3 +172,8 @@ def register():
             response = make_response(jsonify(response_data), 200)
 
             return response
+
+    else:
+        response_data = {"status": "failure", "message": "Method not allowed"}
+        response = make_response(jsonify(response_data), 400)
+        return response
