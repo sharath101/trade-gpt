@@ -1,43 +1,48 @@
 import logging
 import os
+from logging.config import dictConfig
 from secrets import token_hex
 
-import app
-from app import Config, StrategyBook
-from app.models import Strategy
+from app import Config, Strategy, StrategyBook, logger
 from flask import Blueprint, request
 from utils import deploy_container, handle_request, handle_response
-
-logger = logging.getLogger(__name__)
 
 api = Blueprint("api", __name__)
 
 
 @api.route("/strategy/launch", methods=["POST"])
-# @handle_request
+@handle_request
 def launch_strategy():
     startegy = Strategy(**request.json)
     stock = startegy.symbol
+    logger.debug(stock)
+
     environment = {"SYMBOL": stock, "BALANCE": 2000, "BACKTESTING": True}
+
+    # Hardcoding strategy name to "abc"
+    host_mount = Config.UPLOAD_FOLDER + "/abc"
     volumes = {
-        # TODO:Host mount point??
-        # strat_dic: {
-        #     "bind": "/app/user_strategies",
-        #     "mode": "ro",
-        # }
+        host_mount: {
+            "bind": "/app/user_strategies",
+            "mode": "ro",
+        }
     }
+    logger.debug(volumes)
 
     try:
-        container_id = deploy_container(
-            Config.STRATRUN["IMAGE"] + ":" + str(Config.STRATRUN["VERSION"]),
+        image = Config.STRATRUN["IMAGE"] + ":" + str(Config.STRATRUN["VERSION"])
+        logger.debug(image)
+        container = deploy_container(
+            image,
             volumes=volumes,
             environment=environment,
         )
-        return {"container_id": container_id}, 200
+        logger.debug(container.id)
+        return {"container_id": container.id}, 200
     except Exception as e:
         # Handle errors and return an appropriate response
         logger.error(f"Failed to launch container {str(e)}")
-        return handle_response({"message": "Failed to launch container"}, 500)
+        return {"message": "Failed to launch container"}, 500
 
 
 # @app.route("/strategy/upload", methods=["POST"])

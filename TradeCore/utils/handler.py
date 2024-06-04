@@ -11,14 +11,14 @@ def handle_request(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
-            response = func(*args, **kwargs)
-            return response
+            response, status = func(*args, **kwargs)
+            return handle_response(response, status)
         except ValidationError as e:
-            logger.error(f"Validation error {str(e)}")
-            return jsonify(e.errors()), 422
+            logger.error(f"Validation errors")
+            return handle_response({"message": "Invalid request"}, 422)
         except Exception as exc:
-            logger.error(f"Error {str(e)}")
-            return jsonify({"error": "Internal Server Error", "details": str(exc)}), 500
+            logger.error(f"Error")
+            return handle_response({"message": "Internal Server Error"}, 500)
 
     return wrapper
 
