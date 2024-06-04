@@ -19,3 +19,5 @@ from .redis_manager import BacktestRedis, RedisManager
 # )
 
 # scheduler.start()
+
+from .handler import *

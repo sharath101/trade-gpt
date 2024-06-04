@@ -1,1 +1,6 @@
 docker
+redis
+flask
+pydantic
+sqlalchemy
+pyjwt

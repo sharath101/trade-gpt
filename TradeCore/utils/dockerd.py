@@ -1,9 +1,7 @@
 import docker
 
 
-def deploy_container(
-    image_name, container_name, ports=None, volumes=None, environment=None
-):
+def deploy_container(image_name, ports=None, volumes=None, environment=None):
     # Create a Docker client
     client = docker.from_env()
 
@@ -13,7 +11,6 @@ def deploy_container(
     # Run a container
     container = client.containers.run(
         image_name,
-        name=container_name,
         ports=ports,
         volumes=volumes,
         environment=environment,

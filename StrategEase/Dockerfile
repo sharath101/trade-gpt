@@ -14,8 +14,8 @@ WORKDIR /StrategEase/app
 
 COPY StrategEase/app .
 
-# CMD ["python", "app/main.py"]
-
 ENV PYTHONPATH=/TradeCore:$PYTHONPATH
 
-ENTRYPOINT [ "/bin/bash" ]
+WORKDIR /StrategEase
+
+ENTRYPOINT ["python", "-m", "app.main"]
