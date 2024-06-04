@@ -2,18 +2,18 @@ import logging
 import os
 from secrets import token_hex
 
-from flask import request
-from utils import deploy_container, handle_request, handle_response
-
-import app.config as config
-from app import StrategyBook
-from app.main import app
+import app
+from app import Config, StrategyBook
 from app.models import Strategy
+from flask import Blueprint, request
+from utils import deploy_container, handle_request, handle_response
 
 logger = logging.getLogger(__name__)
 
+api = Blueprint("api", __name__)
 
-@app.route("/strategy/launch", methods=["POST"])
+
+@api.route("/strategy/launch", methods=["POST"])
 # @handle_request
 def launch_strategy():
     startegy = Strategy(**request.json)
@@ -29,7 +29,7 @@ def launch_strategy():
 
     try:
         container_id = deploy_container(
-            config.STRATRUN["IMAGE"] + ":" + str(config.STRATRUN["VERSION"]),
+            Config.STRATRUN["IMAGE"] + ":" + str(Config.STRATRUN["VERSION"]),
             volumes=volumes,
             environment=environment,
         )
@@ -152,7 +152,7 @@ def launch_strategy():
 #     return jsonify({"status": "failure", "error": str(e)}), 500
 
 
-@app.route("/strategy", methods=["GET"])
+@api.route("/strategy", methods=["GET"])
 # @token_required
 # @handle_request
 def get_strategies():
