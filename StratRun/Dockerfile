@@ -6,8 +6,11 @@ COPY requirements.txt requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app app
+COPY . .
 
 ENV PYTHONPATH "${PYTHONPATH}:/app"
+ENV SYMBOL "SBIN"
+ENV BALANCE "20000"
+ENV SOCKET_URL "http://host.docker.internal:5000"
 
-ENTRYPOINT [ "python", "app/main.py" ]
+ENTRYPOINT [ "python", "main.py" ]

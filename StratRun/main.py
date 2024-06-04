@@ -3,11 +3,7 @@ import logging
 import os
 from typing import List
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from strategy import SocketClient, Strategy, StrategyManager
+from app import SocketClient, Strategy, StrategyManager
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +49,6 @@ def instantiate_classes_from_file(filename):
 
 
 if __name__ == "__main__":
-    print("asdkjsndj")
     try:
         all_instances = []
         # for filename in os.listdir("/app/user_strategies"):
@@ -68,8 +63,9 @@ if __name__ == "__main__":
 
     symbol: str = os.getenv("SYMBOL")
     balance = float(os.getenv("BALANCE"))
+    socket_url: str = os.getenv("SOCKET_URL")
 
     startegy_manager = StrategyManager([symbol], balance, all_instances)
 
     client = SocketClient(startegy_manager.run_strategies)
-    client.start()
+    client.start(socket_url)

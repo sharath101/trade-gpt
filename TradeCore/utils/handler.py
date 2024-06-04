@@ -18,7 +18,9 @@ def handle_request(func):
             return handle_response({"message": "Invalid request"}, 422)
         except Exception as exc:
             logger.error(f"Error")
-            return handle_response({"message": "Internal Server Error"}, 500)
+            return handle_response(
+                {"message": f"Internal Server Error: {exc.args[0]}"}, 500
+            )
 
     return wrapper
 

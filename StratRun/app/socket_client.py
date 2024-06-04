@@ -51,10 +51,10 @@ class SocketClient:
         else:
             print("Unable to send order, socket disconnected")
 
-    def start(self):
+    def start(self, socket_url):
         """Attempt to connect to socket"""
-        print("ast")
-        self.sio.connect("http://host.docker.internal:5001")
-        print("done")
+        print("try connecting")
+        self.sio.connect(socket_url)
+        print("connected")
         # Wait for events
         self.sio.wait()
