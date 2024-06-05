@@ -1,3 +1,5 @@
+import threading
+
 import requests
 from flask import Blueprint, jsonify, render_template, request
 
@@ -31,7 +33,11 @@ def backtest(stock):
         return jsonify({"message": "Failed to launch strategy", "error": str(e)}), 500
 
     file = f"{stock}_with_indicators_.csv"
-    backtester = BackTest(file, stock)
-    backtester.backtest()
+    thread = threading.Thread(target=start_backtest, args=(file, stock))
+    thread.start()
 
     return jsonify({"message": f"Backtesting Started "})
+
+def start_backtest(file, stock):
+    backtester = BackTest(file, stock)
+    backtester.backtest()

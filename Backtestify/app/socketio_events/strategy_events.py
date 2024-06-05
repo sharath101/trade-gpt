@@ -27,4 +27,5 @@ class StrategyEvents:
             logger.info("Strategy service disconnected")
 
     def emit(self, event: str, data):
+        logger.info(f"Emitting Event: channel: {event}, data: {data}")
         self.socketio.emit(event, data)

@@ -13,10 +13,9 @@ redis_instance_backtest = None
 logger: Logger = None
 
 from .extensions import client_manager, configure_logging, cors, socketio
-from .socketio_events import ClientEvents, StrategyEvents
 
-client_events: ClientEvents = None
-strategy_events: StrategyEvents = None
+client_events = None
+strategy_events = None
 
 
 def create_app():
@@ -40,6 +39,8 @@ def create_app():
     redis_instance_backtest = BacktestRedis()
 
     # Register blueprints
+    from .socketio_events import ClientEvents, StrategyEvents
+
     global client_events
     client_events = ClientEvents(socketio)
     client_events.register_events()

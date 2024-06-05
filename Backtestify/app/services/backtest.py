@@ -46,7 +46,7 @@ class BackTest:
                     close=data.open,
                     volume=0,
                 )
-                raise Exception("asda")
+
                 for timestamp, row in ticker_data.iterrows():
                     timestamp = timestamp.to_pydatetime()  # type: ignore
                     current_price = float(row.iloc[0])
@@ -63,10 +63,21 @@ class BackTest:
                     )
                     current_candle.close = current_price
                     current_candle.volume += volume
-
                     self.order_manager.next(
-                        self.stock, current_candle, timestamp, strategy_events.emit
+                        self.stock,
+                        current_candle,
+                        timestamp,
+                        False,
+                        strategy_events.emit,
                     )
+
+                self.order_manager.next(
+                    self.stock,
+                    current_candle,
+                    timestamp,
+                    True,
+                    strategy_events.emit,
+                )
 
     def generate_tickers(self, interval: int, candle: OHLCV):
         start_time = candle.time.replace(second=0, microsecond=0)

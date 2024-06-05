@@ -3,8 +3,9 @@ import logging
 import os
 from typing import List
 
-from app import SocketClient, Strategy, StrategyManager
 from utils.logging import get_logger
+
+from app import SocketClient, Strategy, StrategyManager
 
 NAME = "StratRun"
 logger = get_logger(NAME, logging.DEBUG)
@@ -51,8 +52,8 @@ def instantiate_classes_from_file(filename):
 
 
 if __name__ == "__main__":
+    all_instances = []
     try:
-        all_instances = []
         for filename in os.listdir("/app/user_strategies"):
             if filename.endswith(".py"):
                 instances: list = instantiate_classes_from_file(filename)
@@ -63,11 +64,12 @@ if __name__ == "__main__":
     except ImportError as e:
         logger.error(f"Error importing Strategy class: {e}")
 
+    logger.info(f"All Class instances: {all_instances}")
     symbol: str = os.getenv("SYMBOL")
     balance = float(os.getenv("BALANCE"))
     socket_url: str = os.getenv("SOCKET_URL")
 
     startegy_manager = StrategyManager([symbol], balance, all_instances)
 
-    client = SocketClient(startegy_manager.run_strategies)
+    client = SocketClient(startegy_manager)
     client.start(socket_url)

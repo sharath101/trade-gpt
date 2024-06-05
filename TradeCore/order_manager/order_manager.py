@@ -1,3 +1,4 @@
+import json
 import logging
 import pickle
 from datetime import datetime, time
@@ -6,37 +7,51 @@ from typing import List
 
 from database import OrderBook
 from dataclass import Order
-from order_manager import Broker
 from talipp.ohlcv import OHLCV
 
+from order_manager import Broker
+
 logger = logging.getLogger(__name__)
+
+class OHLCVEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, OHLCV):
+            return {
+                "open": obj.open,
+                "high": obj.high,
+                "low": obj.low,
+                "close": obj.close,
+                "volume": obj.volume
+            }
+        return super().default(obj)
 
 
 class OrderManager():
     """Responsible for managing the orders for different symbols, across different brokers"""
 
     def __init__(self, symbols, balance=20000, backtesting=False):
-        self.symbols = [symbols]
+        self.symbols = symbols
         self.backtesting = backtesting
         if backtesting:
             self._open_positions: List[OrderBook] = []
 
         self.brokers: List[Broker] = []
 
-    def next(self, symbol: str, current_candle: OHLCV, timestamp: datetime, emitter):
+
+    def next(self, symbol: str, current_candle: OHLCV, timestamp: datetime, new_candle, emitter):
         """This method is called for each new data point on each symbol"""
 
-        market_closing_threshold = time(15, 15, 0)
+        market_closing_threshold = time(23, 15, 0)
         # Checks if the market is open
         if timestamp.time() < market_closing_threshold:
             assert self.one_position_per_symbol()
-            if symbol in self.symbols:
+            if symbol in self.symbols and new_candle:
                 
                 payload = {
                     "symbol": symbol,
-                    "candle": pickle.dumps(current_candle)
+                    "candle": current_candle
                 }
-                emitter.emit('order', payload)
+                emitter('order', json.dumps(payload, cls = OHLCVEncoder))
 
         self.analyse(current_candle.close, timestamp, symbol)
 

@@ -9,8 +9,8 @@ from .strategy_manager import StrategyManager
 
 class SocketClient:
 
-    def __init__(self, run_strategies):
-        self.run_strategies = run_strategies
+    def __init__(self, strategy_manager: StrategyManager):
+        self.strategy_manager = strategy_manager
 
         self.sio = socketio.Client()
 
@@ -27,7 +27,7 @@ class SocketClient:
 
     def emit(self, event, data):
         if self.sio.connected:
-            self.sio.emit(event, pickle.dumps(data))
+            self.sio.emit(event, json.dumps(data))
 
     def on_order(self, data):
         """Data received from backtester via websocket"""
@@ -36,10 +36,10 @@ class SocketClient:
 
         """Available Data extraction"""
         symbol = message_data.get("symbol")
-        candle = pickle.loads(message_data.get("candle"))
+        candle = message_data.get("candle")
 
         """This runs all the strategies for the received data"""
-        order: Order = self.run_strategies(symbol, candle)
+        order: Order = self.strategy_manager.run_strategies(symbol, candle)
         print(order)
 
         if self.sio.connected and order:
