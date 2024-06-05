@@ -53,8 +53,6 @@ class SocketClient:
 
     def start(self, socket_url):
         """Attempt to connect to socket"""
-        print("try connecting")
-        self.sio.connect(socket_url)
-        print("connected")
+        self.sio.connect("http://host.docker.internal:5001")
         # Wait for events
         self.sio.wait()

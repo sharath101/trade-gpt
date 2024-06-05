@@ -4,8 +4,10 @@ import os
 from typing import List
 
 from app import SocketClient, Strategy, StrategyManager
+from utils.logging import get_logger
 
-logger = logging.getLogger(__name__)
+NAME = "StratRun"
+logger = get_logger(NAME, logging.DEBUG)
 
 
 def instantiate_classes_from_file(filename):

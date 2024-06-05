@@ -1,10 +1,8 @@
-import logging
 import os
-from logging.config import dictConfig
 from secrets import token_hex
 
 from flask import Blueprint, request
-from utils import deploy_container, handle_request, handle_response
+from utils import deploy_container, handle_request
 
 from app import Config, Strategy, StrategyBook, logger
 

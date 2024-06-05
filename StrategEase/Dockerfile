@@ -6,6 +6,8 @@ RUN pip install -r /TradeCore/requirements.txt
 
 COPY StrategEase/requirements.txt /StrategEase/requirements.txt
 
+COPY StrategEase/main.py /StrategEase/main.py 
+
 WORKDIR /StrategEase
 
 RUN pip install -r requirements.txt
@@ -18,4 +20,4 @@ ENV PYTHONPATH=/TradeCore:$PYTHONPATH
 
 WORKDIR /StrategEase
 
-ENTRYPOINT ["python", "-m", "app.main"]
+ENTRYPOINT ["python", "main.py"]
