@@ -6,35 +6,29 @@ from typing import List
 
 from database import OrderBook
 from dataclass import Order
-from order_manager import Broker, VirtualBroker
+from order_manager import Broker
 from talipp.ohlcv import OHLCV
 
 logger = logging.getLogger(__name__)
 
 
 class OrderManager():
-    """The OrderManager class is responsible for managing the orders for different symbols,
-    across different brokers. Simulated P&L will ba calculated in VirtualBrokercurrent_price"""
+    """Responsible for managing the orders for different symbols, across different brokers"""
 
     def __init__(self, symbols, balance=20000, backtesting=False):
-        """Initializes the OrderManager with the given symbols and candle interval.
-        Different symbols can have different strategies. This will be initialized here.
-        """
         self.symbols = [symbols]
         self.backtesting = backtesting
         if backtesting:
             self._open_positions: List[OrderBook] = []
 
-        self.brokers: List[Broker] = [VirtualBroker(self, balance)]
+        self.brokers: List[Broker] = []
 
     def next(self, symbol: str, current_candle: OHLCV, timestamp: datetime, emitter):
-        """This method is called for each new data point on each symbol.
-        It runs the strategies for each symbol"""
+        """This method is called for each new data point on each symbol"""
 
         market_closing_threshold = time(15, 15, 0)
+        # Checks if the market is open
         if timestamp.time() < market_closing_threshold:
-            """Market is open, so we will run the strategies for each symbol"""
-
             assert self.one_position_per_symbol()
             if symbol in self.symbols:
                 
@@ -42,7 +36,7 @@ class OrderManager():
                     "symbol": symbol,
                     "candle": pickle.dumps(current_candle)
                 }
-                emitter(payload)
+                emitter.emit('order', payload)
 
         self.analyse(current_candle.close, timestamp, symbol)
 
@@ -54,13 +48,11 @@ class OrderManager():
         else:
             all_positions = OrderBook.get_all()
         for position in all_positions:
+            # Condition to filter active orders intended to open a position
             if (
                 position.position_status != "CLOSE"
                 and position.position_action == "OPEN"
             ):
-
-                """Condition to filter active orders intended to open a position"""
-
                 open_positions.append(position)
         return open_positions
 
@@ -94,13 +86,11 @@ class OrderManager():
         else:
             all_positions = OrderBook.get_all()
         for position in all_positions:
+            # Condition to filter active orders intended to close a position
             if (
                 position.position_status == "CLOSING"
                 and position.position_action == "CLOSE"
             ):
-
-                """Condition to filter active orders intended to close a position"""
-
                 closing_positions.append(position)
         return closing_positions
 
@@ -112,11 +102,10 @@ class OrderManager():
         else:
             all_positions = OrderBook.get_all()
         for position in all_positions:
+            # Condition to filter active orders
             if position.position_status != "CLOSE":
-
-                """Condition to filter active orders"""
-
                 open_positions.append(position)
+                
         return open_positions
 
     def place_order(self, order: Order):

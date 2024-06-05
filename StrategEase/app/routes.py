@@ -3,9 +3,10 @@ import os
 from logging.config import dictConfig
 from secrets import token_hex
 
-from app import Config, Strategy, StrategyBook, logger
 from flask import Blueprint, request
 from utils import deploy_container, handle_request, handle_response
+
+from app import Config, Strategy, StrategyBook, logger
 
 api = Blueprint("api", __name__)
 
@@ -17,7 +18,7 @@ def launch_strategy():
     stock = startegy.symbol
     logger.debug(stock)
 
-    environment = {"SYMBOL": stock, "BALANCE": 2000, "BACKTESTING": True}
+    environment = {"SYMBOL": stock, "BALANCE": 2000, "SOCKET_URL": Config.SOCKET_URL}
 
     # Hardcoding strategy name to "abc"
     host_mount = Config.UPLOAD_FOLDER + "/abc"

@@ -8,32 +8,20 @@ from datetime import datetime, timedelta
 import pandas as pd
 from order_manager import OrderManager
 from talipp.ohlcv import OHLCV
-from utils import redis_instance, round_to_nearest_multiple_of_5
+from utils import round_to_nearest_multiple_of_5
 
-from app import logger
+from app import Config, logger, strategy_events
 
 
 class BackTest:
     def __init__(self, file, stock):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
+        app_dir = Config.APP_DIR
         csv_file_rel_path = f"historical_data/{file}"
-        csv_file_abs_path = os.path.join(current_dir, csv_file_rel_path)
-        self.csv_file_path = csv_file_abs_path
+        self.csv_file_path = os.path.join(app_dir, csv_file_rel_path)
         self.stock = stock
         self.order_manager = OrderManager([self.stock], 20000, True)
         self.num_orders = 0
         self.user = "johndoe"
-        self.server_ready_event = threading.Event()
-
-    def socket_server_run(self):
-        asyncio.run(self.socket_server.run())
-
-    def connect(self):
-        # Spawn thread to run socket server for backtester
-        thread = threading.Thread(target=self.socket_server_run)
-        thread.start()
-
-        self.server_ready_event.wait()
 
     def backtest(self):
         logger.info(f"Backtesting {self.stock}")
@@ -58,6 +46,7 @@ class BackTest:
                     close=data.open,
                     volume=0,
                 )
+                raise Exception("asda")
                 for timestamp, row in ticker_data.iterrows():
                     timestamp = timestamp.to_pydatetime()  # type: ignore
                     current_price = float(row.iloc[0])
@@ -76,10 +65,7 @@ class BackTest:
                     current_candle.volume += volume
 
                     self.order_manager.next(
-                        self.stock,
-                        current_candle,
-                        timestamp,
-                        self.socket_server.emitter,
+                        self.stock, current_candle, timestamp, strategy_events.emit
                     )
 
     def generate_tickers(self, interval: int, candle: OHLCV):

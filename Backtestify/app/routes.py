@@ -1,8 +1,9 @@
+import requests
 from flask import Blueprint, jsonify, render_template, request
 
-from app import logger
+from app import Config, logger
 
-# from .services import BackTest
+from .services import BackTest
 
 api = Blueprint("api", __name__)
 
@@ -14,29 +15,23 @@ def index():
 
 @api.route("/backtest/run/<stock>", methods=["GET"])
 def backtest(stock):
+    user_id = "abc"  # get from user service
+    strategy_data = {"user_id": user_id, "symbol": stock}
+    strategy_service_url = Config.STRATEGY_BASE
+    print(f"{strategy_service_url}/strategy/launch")
+    try:
+        response = requests.post(
+            f"{strategy_service_url}/strategy/launch",
+            json=strategy_data,
+        )
+        response.raise_for_status()
+        data = response.json()
+        logger.info(f'Strategy container created with id: {data['data']['container_id']}')
+    except requests.exceptions.RequestException as e:
+        return jsonify({"message": "Failed to launch strategy", "error": str(e)}), 500
+
     file = f"{stock}_with_indicators_.csv"
-    # backtester = BackTest(file, stock)
-    # startegy_names = StrategyBook.get_all()
-    # file_data = startegy_names[0].folder_loc
-    # strat_dic = os.path.join(app.config["UPLOAD_FOLDER"], file_data)
-    # session_id = str(uuid.uuid4())
-    # volumes = {
-    #     strat_dic: {
-    #         "bind": "/app/user_strategies",
-    #         "mode": "ro",
-    #     }
-    # }
-    # environment = {"SYMBOL": stock, "BALANCE": 2000, "BACKTESTING": True}
-    # conatiner = deploy_container(
-    #     "strategy_runner:latest", session_id, volumes=volumes, environment=environment
-    # )
-
-    # if app.config["PYTHON_ENV"] == "PROD":
-    #   new_process = Processor(backtester)
-    #   new_process.start()
-    # else:
-    #   backtester.connect()
-
-    # backtester.connect()
+    backtester = BackTest(file, stock)
+    backtester.backtest()
 
     return jsonify({"message": f"Backtesting Started "})

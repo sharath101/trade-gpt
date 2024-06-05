@@ -1,26 +1,27 @@
 from gevent import monkey
 
 monkey.patch_all()
-import sys
 from logging import Logger
 
+from database import *
 from flask import Flask
 
 from .config import Config
-from .extensions import client_manager, configure_logging, cors, socketio
 
 redis_instance = None
 redis_instance_backtest = None
-
 logger: Logger = None
+
+from .extensions import client_manager, configure_logging, cors, socketio
+from .socketio_events import ClientEvents, StrategyEvents
+
+client_events: ClientEvents = None
+strategy_events: StrategyEvents = None
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    python_path = app.config["PYTHONPATH"]
-    if python_path and python_path not in sys.path:
-        sys.path.append(python_path)
 
     socketio.init_app(
         app,
@@ -29,20 +30,26 @@ def create_app():
         client_manager=client_manager,
     )
     cors.init_app(app)
+    global logger
     logger = configure_logging(app)
     from utils import BacktestRedis, RedisManager
 
+    global redis_instance
     redis_instance = RedisManager()
+    global redis_instance_backtest
     redis_instance_backtest = BacktestRedis()
 
     # Register blueprints
+    global client_events
+    client_events = ClientEvents(socketio)
+    client_events.register_events()
+
+    global strategy_events
+    strategy_events = StrategyEvents(socketio)
+    strategy_events.register_events()
+
     from .routes import api as api_blueprint
 
     app.register_blueprint(api_blueprint)
-
-    from .socketio_events import register_client_events, register_strategy_events
-
-    register_strategy_events(socketio)
-    register_client_events(socketio)
 
     return app

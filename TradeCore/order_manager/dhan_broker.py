@@ -4,7 +4,7 @@ from typing import List
 
 from database import APIKey, DhanOrderBook, OrderBook
 from dhanhq import dhanhq
-from market_data import DHAN_INSTRUMENTS
+from utils import DHAN_INSTRUMENTS
 
 from .broker import Broker
 

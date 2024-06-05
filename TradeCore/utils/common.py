@@ -9,3 +9,17 @@ def round_to_nearest_multiple_of_5(x):
     if val == 295:
         return 290
     return val
+
+
+def binary_search(arr, target):
+    low = 0
+    high = len(arr)
+
+    while low < high:
+        mid = (low + high) // 2
+        if arr[mid]["time"] < target:
+            low = mid + 1
+        else:
+            high = mid
+
+    return low

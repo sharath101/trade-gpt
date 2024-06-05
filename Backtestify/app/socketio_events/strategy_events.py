@@ -1,21 +1,30 @@
 import json
 
-from app import logger
 from dataclass import Order
+from flask_socketio import SocketIO
+
+from app import logger
 
 
-def register_strategy_events(socketio):
+class StrategyEvents:
+    def __init__(self, socketio: SocketIO):
+        self.socketio = socketio
+        self.register_events()
 
-    @socketio.on("strategy_connect")
-    def handle_connect():
-        logger.info("Strategy service connected")
-        socketio.send("Strategy service connected")
+    def register_events(self):
+        @self.socketio.on("strategy_connect")
+        def handle_connect(data):
+            logger.info("Strategy service connected")
+            return True
 
-    @socketio.on("order")
-    def handle_order(data):
-        order: Order = json.loads(data)
-        logger.info(f"Order recieved: {order}")
+        @self.socketio.on("order")
+        def handle_order(data):
+            order: Order = Order(**json.loads(data))
+            logger.info(f"Order received: {order}")
 
-    @socketio.on("strategy_disconnect")
-    def handle_strategy_disconnect():
-        logger.info("Strategy service disconnected")
+        @self.socketio.on("strategy_disconnect")
+        def handle_strategy_disconnect():
+            logger.info("Strategy service disconnected")
+
+    def emit(self, event: str, data):
+        self.socketio.emit(event, data)

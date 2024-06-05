@@ -51,10 +51,10 @@ def instantiate_classes_from_file(filename):
 if __name__ == "__main__":
     try:
         all_instances = []
-        # for filename in os.listdir("/app/user_strategies"):
-        #     if filename.endswith(".py"):
-        #         instances: list = instantiate_classes_from_file(filename)
-        #         all_instances = all_instances + instances
+        for filename in os.listdir("/app/user_strategies"):
+            if filename.endswith(".py"):
+                instances: list = instantiate_classes_from_file(filename)
+                all_instances = all_instances + instances
 
     except ValueError as e:
         logger.warning(f"Warning in startegy: {e}")
