@@ -1,4 +1,4 @@
-from typing import Dict, List, TypedDict
+from typing import Dict, List, Literal, TypedDict
 
 from talipp.indicators.ADX import ADXVal
 from talipp.indicators.Aroon import AroonVal
@@ -131,3 +131,6 @@ class MarketDataList(TypedDict):
     VWMA: Dict[int, Dict[str, List[float]]]
     WMA: Dict[int, Dict[str, List[float]]]
     ZLEMA: Dict[int, Dict[str, List[float]]]
+
+
+Stocks = Literal["SBIN"]

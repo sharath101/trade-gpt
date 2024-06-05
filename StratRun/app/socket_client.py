@@ -19,9 +19,6 @@ class SocketClient:
         self.sio.on("disconnect", self.on_disconnect)
         self.sio.on("order", self.on_order)
 
-    def init_app(self, run_strategies):
-        self.run_strategies = run_strategies
-
     def on_connect(self):
         print("connected")
 

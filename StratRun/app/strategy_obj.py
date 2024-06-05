@@ -20,7 +20,6 @@ class Strategy:
     ] = "PENDING"
     symbol: str
     current_order: Order | None = None
-    # backtesting: bool = False
 
     def __init__(self):
         pass

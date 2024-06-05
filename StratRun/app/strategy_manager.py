@@ -1,8 +1,9 @@
 from typing import Dict, List, Optional
 
+from utils.type_dict import MarketData, MarketDataList, Stocks
+
 from .order import Order
 from .strategy_obj import Strategy
-from .type_dict import MarketData, MarketDataList
 
 
 class StrategyManager:
@@ -10,11 +11,14 @@ class StrategyManager:
     data = {"symbol": {"interval": []}}
     """
 
-    def __init__(self, symbols: List[str], balance: float, strategies: List[Strategy]):
-        self.symbols: List[str] = symbols
+    def __init__(
+        self, symbols: List[Stocks], balance: float, strategies: List[Strategy]
+    ):
+        self.symbols: List[Stocks] = symbols
         self.strategies: List[Strategy] = strategies
+        self.strat_map: Dict[Stocks, List[Strategy]] = {}
         self.balance: float = balance
-        self.candles: Dict[str, MarketDataList] = {}
+        self.candles: Dict[Stocks, MarketDataList] = {}
 
         for symbol in self.symbols:
             self.candles[symbol] = MarketDataList(
@@ -80,7 +84,7 @@ class StrategyManager:
     def remove_strategy(self, strategy: Strategy) -> None:
         self.strategies.remove(strategy)
 
-    def update_candles(self, symbol: str, market_data: MarketData) -> None:
+    def update_candles(self, symbol: Stocks, market_data: MarketData) -> None:
         """Update or append new candle data and indicators for a given symbol."""
 
         for indicator in market_data:
@@ -142,7 +146,7 @@ class StrategyManager:
                                 indicator_name
                             ] = [indicator_data[indicator_name]]
 
-    def get_candles(self, symbol: str, interval: int, n: int) -> Dict[str, Dict]:
+    def get_candles(self, symbol: Stocks, interval: int, n: int) -> Dict[str, Dict]:
         """Fetch the last N candles and their corresponding indicators for a given symbol and interval."""
 
         if symbol not in self.candles or interval not in self.candles[symbol]["candle"]:
@@ -167,12 +171,12 @@ class StrategyManager:
 
         return result
 
-    def run_strategies(self, symbol: str, data: MarketData) -> Optional[Order]:
+    def run_strategies(self, symbol: Stocks, data: MarketData) -> Optional[Order]:
 
         self.update_candles(symbol, data)
 
         current_order: Optional[Order] = None
-        for strategy in self.strategies:
+        for strategy in self.strat_map[symbol]:
             current_order, confidence = strategy.analyse(data["candle"][5])
             if current_order:
                 current_order.timestamp = data["candle"][5].time
