@@ -17,6 +17,9 @@ WORKDIR /StratRun/app
 COPY StratRun/app .
 
 ENV PYTHONPATH=/TradeCore:$PYTHONPATH
+ENV SYMBOL "SBIN"
+ENV BALANCE "20000"
+ENV SOCKET_URL "http://host.docker.internal:5000"
 
 WORKDIR /StratRun
 
