@@ -1,7 +1,8 @@
 import os
 
 import requests
-from flask import json, request
+from database import Users
+from flask import json, jsonify, make_response, request
 
 from . import app, client
 
@@ -33,6 +34,10 @@ def oauth_redirect():
             data=body,
             auth=(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET),  # type: ignore
         )
+        if token_response.status_code != 200:
+            response_data = {"status": "failure"}
+            response = make_response(response_data)
+            return response
 
         client.parse_request_body_response(json.dumps(token_response.json()))
 
@@ -46,12 +51,33 @@ def oauth_redirect():
             picture = userinfo_response.json()["picture"]
             users_name = userinfo_response.json()["given_name"]
         else:
-            return {"status": "failure"}
+            response_data = {"status": "failure"}
+            response = make_response(response_data)
+            return response
 
-    return {
-        "status": "success",
-        "email": users_email,
-        "picture": picture,
-        "name": users_name,
-        "uid": unique_id,
-    }
+        existing_user = Users.get_first(email=users_email)
+        if not existing_user:
+            new_user = Users(
+                email=users_email, name=users_name, picture=picture, uid=unique_id
+            )
+            new_user.save()
+
+        user = Users.get_first(email=users_email)
+        if user:
+            auth_token = user.encode_auth_token(user.id)
+        else:
+            auth_token = None
+        if auth_token:
+            response_data = {"status": "success"}
+            response = make_response(jsonify(response_data), 200)
+            response.headers["Authorization"] = auth_token
+            response.headers["Access-Control-Expose-Headers"] = "Authorization"
+            return response
+        else:
+            response_data = {"status": "failure"}
+            response = make_response(response_data)
+            return response
+    else:
+        response_data = {"status": "failure"}
+        response = make_response(response_data)
+        return response

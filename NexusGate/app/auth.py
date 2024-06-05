@@ -177,3 +177,9 @@ def register():
         response_data = {"status": "failure", "message": "Method not allowed"}
         response = make_response(jsonify(response_data), 400)
         return response
+
+
+@app.route("/check_login")
+@token_required
+def check_login():
+    return {"status": "success"}

@@ -13,7 +13,9 @@ class Users(Base):
 
     id = Column(Integer, primary_key=True)
     email = Column(String(500), unique=True, nullable=False)
-    password = Column(String(100), nullable=False)
+    password = Column(String(100), nullable=True)
+    picture = Column(String(200), nullable=True)
+    uid = Column(String(100), nullable=True)
     name = Column(String, nullable=True)
 
     def __repr__(self) -> str:

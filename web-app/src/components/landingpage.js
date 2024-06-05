@@ -19,7 +19,7 @@ export function LandingPage({ setPage }) {
         };
 
         checkLogin();
-    }, [check]);
+    }, [check, setCheck, setPage]);
 
     return <div></div>;
 }

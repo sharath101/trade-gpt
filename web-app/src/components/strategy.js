@@ -58,7 +58,7 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
         };
 
         fetchStrategyDetails();
-    }, [strategyId]);
+    }, [strategyId, setPage]);
 
     const addFile = () => {
         const newId = Math.max(...files.map((file) => file.id), 0) + 1;
