@@ -28,7 +28,7 @@ def handle_request(func):
 def handle_response(response_data=None, status=200):
     logger.info(response_data)
     response = {
-        "status": "success" if status == 200 else "error",
+        "status": "success" if status >= 200 and status < 300 else "error",
         "data": response_data,
     }
     return jsonify(response), status

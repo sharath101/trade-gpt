@@ -6,7 +6,7 @@ from flask import Flask
 from utils.logging import get_logger
 
 from .config import Config
-from .models import Strategy
+from .models import *
 
 NAME = "StrategEase"
 logger = get_logger(NAME, logging.DEBUG)

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
 
 from . import Base, logger, session
 
@@ -21,7 +21,7 @@ class StrategyBook(Base):
     folder_loc: str = Column(Text, nullable=False)
 
     # indicator list
-    indicators: str = Column(Text, nullable=False)
+    indicators: str = Column(JSON, nullable=False)
 
     # description
     description = Column(String(200), nullable=False)
@@ -33,6 +33,7 @@ class StrategyBook(Base):
         return f"StrategyBook(strategy_name={self.strategy_name}, indicators={self.indicators})"
 
     def __init__(self, **strategy):
+        print("hi")
         self.user_id = strategy.get("user_id", None)
         self.strategy_name = strategy.get("strategy_name", None)
         self.folder_loc = strategy.get("folder_loc", None)
@@ -45,7 +46,7 @@ class StrategyBook(Base):
             session.commit()
         except Exception as e:
             session.rollback()
-            logger.error(f"Error while saving APIKey: {e}")
+            logger.error(f"Error while saving StrategyBook: {e}")
 
     @staticmethod
     def save_all(api_keys: List["StrategyBook"]) -> None:

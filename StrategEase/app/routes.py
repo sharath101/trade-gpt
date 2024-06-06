@@ -1,10 +1,18 @@
+import json
 import os
 from secrets import token_hex
 
 from flask import Blueprint, request
 from utils import deploy_container, handle_request
+from werkzeug.utils import secure_filename
 
-from app import Config, Strategy, StrategyBook, logger
+from app import (
+    Config,
+    LaunchStrategyRequestBody,
+    StrategyBook,
+    UploadStrategyRequestBody,
+    logger,
+)
 
 api = Blueprint("api", __name__)
 
@@ -12,13 +20,14 @@ api = Blueprint("api", __name__)
 @api.route("/strategy/launch", methods=["POST"])
 @handle_request
 def launch_strategy():
-    startegy = Strategy(**request.json)
+    startegy = LaunchStrategyRequestBody(**request.json)
     stock = startegy.symbol
     logger.debug(stock)
 
     environment = {"SYMBOL": stock, "BALANCE": 2000, "SOCKET_URL": Config.SOCKET_URL}
 
     # Hardcoding strategy name to "abc"
+    # TODO: Download the strategy files from object storage
     host_mount = Config.UPLOAD_FOLDER + "/abc"
     volumes = {
         host_mount: {
@@ -44,62 +53,67 @@ def launch_strategy():
         return {"message": "Failed to launch container"}, 500
 
 
-# @app.route("/strategy/upload", methods=["POST"])
-# # @token_required
-# @handle_request
-# def add_strategy(data):
-#     try:
-#         strategy_name = data.get("strategy_name")
-#         indicators = data.get("indicators")
-#         description = data.get("description")
-#         folder_loc = f"{token_hex(16)}"
+@api.route("/strategy/upload", methods=["POST"])
+# @token_required
+@handle_request
+def upload_strategy():
 
-#         if not all([strategy_name, indicators]):
-#             return handle_response({"message": "Missing required parameters"}), 400
+    request_data = request.form["data"]
+    json_data = json.loads(request_data)
+    data = UploadStrategyRequestBody(**json_data)
 
-#         folder_path = os.path.join(app.config["UPLOAD_FOLDER"], folder_loc)
-#         if not os.path.exists(folder_path):
-#             os.makedirs(folder_path)
+    strategy_name = data.name
+    indicators = data.indicators
+    description = data.description
+    user_id = data.user_id
 
-#         files = request.files.getlist("files")
-#         if not files:
-#             return handle_response({"message": "No files provided"}), 400
+    logger.info(
+        f"Upload strategy request from user {user_id} for strategy {strategy_name}"
+    )
 
-#         new_strategy = StrategyBook(
-#             user_id=user.id,
-#             strategy_name=strategy_name,
-#             indicators=indicators,
-#             folder_loc=folder_loc,
-#             description=description,
-#         )
+    folder_loc = f"{token_hex(16)}"
 
-#         new_strategy.save()
+    try:
+        if "files" not in request.files:
+            return "No files provided", 400
 
-#         file_data = {}
-#         for file in files:
-#             if file and allowed_file(file.filename):
-#                 filename = secure_filename(file.filename)
-#                 file.save(
-#                     os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename)
-#                 )
-#                 with open(
-#                     os.path.join(app.config["UPLOAD_FOLDER"], folder_loc, filename), "r"
-#                 ) as f:
-#                     file_data[filename] = f.read()
+        files = request.files.getlist("files")
 
-#         return (
-#             jsonify({"status": "success", "message": "Strategy created successfully!"}),
-#             201,
-#         )
+        folder_path = os.path.join(Config.UPLOAD_FOLDER, folder_loc)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
 
-#     except KeyError as e:
-#         return (
-#             jsonify({"status": "failure", "error": f"Missing required parameter: {e}"}),
-#             400,
-#         )
+        new_strategy = StrategyBook(
+            user_id=user_id,
+            strategy_name=strategy_name,
+            indicators=[obj.model_dump_json() for obj in indicators],
+            folder_loc=folder_loc,
+            description=description,
+        )
 
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+        new_strategy.save()
+
+        logger.debug(f"Saved new strategy {strategy_name} to database.")
+
+        # TODO: Upload the files to object storage
+        file_data = {}
+        for file in files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(Config.UPLOAD_FOLDER, folder_loc, filename))
+                with open(
+                    os.path.join(Config.UPLOAD_FOLDER, folder_loc, filename), "r"
+                ) as f:
+                    file_data[filename] = f.read()
+
+        return (
+            "Strategy created successfully!",
+            201,
+        )
+
+    except Exception as e:
+        logger.error(f"Error: {str(e)}")
+        return f"error: {str(e)}", 500
 
 
 # @app.route("/update_strategy/<int:strategy_id>", methods=["POST"])
@@ -158,17 +172,23 @@ def launch_strategy():
 
 @api.route("/strategy", methods=["GET"])
 # @token_required
-# @handle_request
+@handle_request
 def get_strategies():
     try:
         all_strategies = StrategyBook.get_all()
-        return {"status": "success", "data": all_strategies}, 201
-    except Exception as e:
-        logger.error(f"Error in /get_strategies: {e}")
-        response_data = {"status": "failure", "message": e}
-        response = response_data, 200
 
-        return response
+        # Convert SQLAlchemy objects to dictionaries
+        strategies_dict = [strategy.__dict__ for strategy in all_strategies]
+
+        # Remove internal state objects
+        for strategy in strategies_dict:
+            strategy.pop("_sa_instance_state", None)
+
+        return strategies_dict, 200
+
+    except Exception as e:
+        logger.error(f"Error in GET strategy: {e}")
+        return "Error while getting all strategies", 400
 
 
 # @app.route("/delete_strategy/<int:strategy_id>", methods=["DELETE"])
@@ -222,3 +242,10 @@ def get_strategies():
 #                     )
 
 #     return {"status": "success", "data": strategy_details}
+
+
+def allowed_file(filename):
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in Config.ALLOWED_EXTENSIONS
+    )
