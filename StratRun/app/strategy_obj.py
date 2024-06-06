@@ -1,9 +1,8 @@
 from abc import abstractmethod
 from typing import List, Literal
 
+from dataclass import Order
 from talipp.ohlcv import OHLCV
-
-from .order import Order
 
 
 def final(method):
@@ -34,3 +33,43 @@ class Strategy:
 
     def all_candles(self, interval: int):
         pass
+
+    def longOrder(
+        self,
+        order_trigger: float,
+        price: float,
+        quantity: int,
+        takeprofit: float,
+        stoploss: float,
+    ) -> Order:
+        order = Order(
+            symbol="SBIN",
+            quantity=quantity,
+            price=price,
+            trigger_price=order_trigger,
+            transaction_type="BUY",
+            bo_takeprofit=takeprofit,
+            bo_stoploss=stoploss,
+        )
+
+        return order
+
+    def shortOrder(
+        self,
+        order_trigger: float,
+        price: float,
+        quantity: int,
+        takeprofit: float,
+        stoploss: float,
+    ) -> Order:
+        order = Order(
+            symbol="SBIN",
+            quantity=quantity,
+            price=price,
+            trigger_price=order_trigger,
+            transaction_type="SELL",
+            bo_takeprofit=takeprofit,
+            bo_stoploss=stoploss,
+        )
+
+        return order

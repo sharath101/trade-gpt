@@ -1,4 +1,5 @@
 import json
+import pickle
 
 from dataclass import Order
 from flask_socketio import SocketIO
@@ -19,7 +20,7 @@ class StrategyEvents:
 
         @self.socketio.on("order")
         def handle_order(data):
-            order: Order = Order(**json.loads(data))
+            order: Order = Order(pickle.loads(data))
             logger.info(f"Order received: {order}")
 
         @self.socketio.on("strategy_disconnect")
@@ -28,4 +29,4 @@ class StrategyEvents:
 
     def emit(self, event: str, data):
         logger.info(f"Emitting Event: channel: {event}, data: {data}")
-        self.socketio.emit(event, data)
+        self.socketio.emit(event, pickle.dumps(data))

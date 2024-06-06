@@ -22,7 +22,7 @@ def launch_strategy():
     host_mount = Config.UPLOAD_FOLDER + "/abc"
     volumes = {
         host_mount: {
-            "bind": "/app/user_strategies",
+            "bind": "/StratRun/app/user_strategies",
             "mode": "ro",
         }
     }

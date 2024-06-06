@@ -2,8 +2,8 @@ import json
 import pickle
 
 import socketio
+from dataclass import Order
 
-from .order import Order
 from .strategy_manager import StrategyManager
 
 
@@ -31,22 +31,23 @@ class SocketClient:
 
     def on_order(self, data):
         """Data received from backtester via websocket"""
-        message_data = json.loads(data)
+        message_data = pickle.loads(data)
         print(message_data)
 
         """Available Data extraction"""
         symbol = message_data.get("symbol")
-        candle = message_data.get("candle")
+        market_data = message_data.get("market_data")
 
         """This runs all the strategies for the received data"""
-        order: Order = self.strategy_manager.run_strategies(symbol, candle)
-        print(order)
+        order: Order = self.strategy_manager.run_strategies(symbol, market_data)
+        print(f"Order: {order}")
 
-        if self.sio.connected and order:
-            """TODO:order to be emitted must be json"""
-            self.emit("order", order)
+        if self.sio.connected:
+            if order:
+                """TODO:order to be emitted must be json"""
+                self.emit("order", pickle.dumps(order))
         else:
-            print("Unable to send order, socket disconnected")
+            print("Socket is not connected while trying to send order")
 
     def start(self, socket_url):
         """Attempt to connect to socket"""

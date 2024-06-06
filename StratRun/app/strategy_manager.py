@@ -1,8 +1,8 @@
 from typing import Dict, List, Optional
 
+from dataclass import Order
 from utils.type_dict import MarketData, MarketDataList, Stocks
 
-from .order import Order
 from .strategy_obj import Strategy
 
 
@@ -16,7 +16,7 @@ class StrategyManager:
     ):
         self.symbols: List[Stocks] = symbols
         self.strategies: List[Strategy] = strategies
-        self.strat_map: Dict[Stocks, List[Strategy]] = {}
+        self.strat_map: Dict[Stocks, List[Strategy]] = {"SBIN": strategies}
         self.balance: float = balance
         self.candles: Dict[Stocks, MarketDataList] = {}
 
@@ -91,6 +91,7 @@ class StrategyManager:
             indicator_data_all = market_data[indicator]
 
             for interval in indicator_data_all:
+
                 indicator_data = indicator_data_all[interval]
 
                 if indicator == "candle":
@@ -177,9 +178,9 @@ class StrategyManager:
 
         current_order: Optional[Order] = None
         for strategy in self.strat_map[symbol]:
-            current_order, confidence = strategy.analyse(data["candle"][5])
+            current_order, confidence = strategy.analyse(self.candles[symbol]["5"])
             if current_order:
-                current_order.timestamp = data["candle"][5].time
+                current_order.timestamp = data["candle"]["5"].time
             for strategy in self.strategies:
                 strategy.order_status = "TRANSIT"
                 strategy.current_order = current_order

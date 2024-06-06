@@ -23,4 +23,4 @@ ENV SOCKET_URL "http://host.docker.internal:5000"
 
 WORKDIR /StratRun
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python", "-u", "main.py"]

@@ -1,6 +1,4 @@
-import json
 import logging
-import pickle
 from datetime import datetime, time
 from secrets import token_hex
 from typing import List
@@ -11,19 +9,7 @@ from talipp.ohlcv import OHLCV
 
 from order_manager import Broker
 
-logger = logging.getLogger(__name__)
-
-class OHLCVEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, OHLCV):
-            return {
-                "open": obj.open,
-                "high": obj.high,
-                "low": obj.low,
-                "close": obj.close,
-                "volume": obj.volume
-            }
-        return super().default(obj)
+logger = logging.getLogger(__name__) 
 
 
 class OrderManager():
@@ -49,9 +35,13 @@ class OrderManager():
                 
                 payload = {
                     "symbol": symbol,
-                    "candle": current_candle
+                    "market_data": {
+                        "candle": {
+                            "5": current_candle
+                        }
+                    }
                 }
-                emitter('order', json.dumps(payload, cls = OHLCVEncoder))
+                emitter('order', payload)
 
         self.analyse(current_candle.close, timestamp, symbol)
 
