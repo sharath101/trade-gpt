@@ -2,17 +2,17 @@ import json
 import os
 from secrets import token_hex
 
-from flask import Blueprint, request
-from utils import deploy_container, handle_request
-from werkzeug.utils import secure_filename
-
 from app import (
     Config,
     LaunchStrategyRequestBody,
+    Strategy,
     StrategyBook,
     UploadStrategyRequestBody,
     logger,
 )
+from flask import Blueprint, request
+from utils import deploy_container, handle_request
+from werkzeug.utils import secure_filename
 
 api = Blueprint("api", __name__)
 
@@ -20,11 +20,16 @@ api = Blueprint("api", __name__)
 @api.route("/strategy/launch", methods=["POST"])
 @handle_request
 def launch_strategy():
-    startegy = LaunchStrategyRequestBody(**request.json)
-    stock = startegy.symbol
+    strategy = LaunchStrategyRequestBody(**request.json)  # type: ignore
+    stock = strategy.symbol
     logger.debug(stock)
 
-    environment = {"SYMBOL": stock, "BALANCE": 2000, "SOCKET_URL": Config.SOCKET_URL}
+    environment = {
+        "SYMBOL": stock,
+        "BALANCE": 2000,
+        "SOCKET_URL": Config.SOCKET_URL,
+        "CHANNEL": strategy.channel,
+    }
 
     # Hardcoding strategy name to "abc"
     # TODO: Download the strategy files from object storage

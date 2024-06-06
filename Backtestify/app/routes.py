@@ -1,9 +1,9 @@
 import threading
+from secrets import token_hex
 
 import requests
+from app import Config, logger, strategy_events
 from flask import Blueprint, jsonify, render_template, request
-
-from app import Config, logger
 
 from .services import BackTest
 
@@ -18,7 +18,8 @@ def index():
 @api.route("/backtest/run/<stock>", methods=["GET"])
 def backtest(stock):
     user_id = "abc"  # get from user service
-    strategy_data = {"user_id": user_id, "symbol": stock}
+    channel: str = token_hex(10)
+    strategy_data = {"user_id": user_id, "symbol": stock, "channel": channel}
     strategy_service_url = Config.STRATEGY_BASE
     print(f"{strategy_service_url}/strategy/launch")
     try:
@@ -33,11 +34,12 @@ def backtest(stock):
         return jsonify({"message": "Failed to launch strategy", "error": str(e)}), 500
 
     file = f"{stock}_with_indicators_.csv"
-    thread = threading.Thread(target=start_backtest, args=(file, stock))
+    thread = threading.Thread(target=start_backtest, args=(file, stock, channel))
     thread.start()
 
     return jsonify({"message": f"Backtesting Started "})
 
-def start_backtest(file, stock):
+def start_backtest(file, stock, channel):
+    strategy_events.register_channel(channel)
     backtester = BackTest(file, stock)
-    backtester.backtest()
+    backtester.backtest(channel)

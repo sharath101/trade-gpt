@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class LaunchStrategyRequestBody(BaseModel):
     symbol: str
     user_id: str
+    channel: str
 
 
 class Indicator(BaseModel):

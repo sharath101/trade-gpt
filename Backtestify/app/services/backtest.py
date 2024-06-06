@@ -6,11 +6,10 @@ import time
 from datetime import datetime, timedelta
 
 import pandas as pd
+from app import Config, logger, strategy_events
 from order_manager import OrderManager
 from talipp.ohlcv import OHLCV
 from utils import round_to_nearest_multiple_of_5
-
-from app import Config, logger, strategy_events
 
 
 class BackTest:
@@ -23,7 +22,7 @@ class BackTest:
         self.num_orders = 0
         self.user = "johndoe"
 
-    def backtest(self):
+    def backtest(self, channel):
         logger.info(f"Backtesting {self.stock}")
         with open(self.csv_file_path, mode="r", newline="") as file:
             reader = csv.DictReader(file)
@@ -67,16 +66,17 @@ class BackTest:
                         self.stock,
                         current_candle,
                         timestamp,
-                        False,
                         strategy_events.emit,
+                        channel,
+                        False,
                     )
-
                 self.order_manager.next(
                     self.stock,
                     current_candle,
                     timestamp,
-                    True,
                     strategy_events.emit,
+                    channel,
+                    True,
                 )
 
     def generate_tickers(self, interval: int, candle: OHLCV):

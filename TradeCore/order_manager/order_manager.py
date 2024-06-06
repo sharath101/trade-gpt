@@ -5,9 +5,8 @@ from typing import List
 
 from database import OrderBook
 from dataclass import Order
-from talipp.ohlcv import OHLCV
-
 from order_manager import Broker
+from talipp.ohlcv import OHLCV
 
 logger = logging.getLogger(__name__) 
 
@@ -24,7 +23,7 @@ class OrderManager():
         self.brokers: List[Broker] = []
 
 
-    def next(self, symbol: str, current_candle: OHLCV, timestamp: datetime, new_candle, emitter):
+    def next(self, symbol: str, current_candle: OHLCV, timestamp: datetime, emitter, channel, new_candle):
         """This method is called for each new data point on each symbol"""
 
         market_closing_threshold = time(23, 15, 0)
@@ -41,9 +40,9 @@ class OrderManager():
                         }
                     }
                 }
-                emitter('order', payload)
+                emitter(channel, payload)
 
-        self.analyse(current_candle.close, timestamp, symbol)
+        # self.analyse(current_candle.close, timestamp, symbol)
 
     @property
     def open_positions(self) -> List[OrderBook]:

@@ -1,5 +1,7 @@
 import json
+import os
 import pickle
+from typing import Optional
 
 import socketio
 from dataclass import Order
@@ -13,11 +15,11 @@ class SocketClient:
         self.strategy_manager = strategy_manager
 
         self.sio = socketio.Client()
-
+        self.channel = os.environ.get("CHANNEL", "order")
         # Define event handlers
         self.sio.on("connect", self.on_connect)
         self.sio.on("disconnect", self.on_disconnect)
-        self.sio.on("order", self.on_order)
+        self.sio.on(self.channel, self.on_order)
 
     def on_connect(self):
         print("connected")
@@ -27,7 +29,7 @@ class SocketClient:
 
     def emit(self, event, data):
         if self.sio.connected:
-            self.sio.emit(event, json.dumps(data))
+            self.sio.emit(event, data)
 
     def on_order(self, data):
         """Data received from backtester via websocket"""
@@ -39,15 +41,15 @@ class SocketClient:
         market_data = message_data.get("market_data")
 
         """This runs all the strategies for the received data"""
-        order: Order = self.strategy_manager.run_strategies(symbol, market_data)
+        order: Optional[Order] = self.strategy_manager.run_strategies(
+            symbol, market_data
+        )
         print(f"Order: {order}")
 
-        if self.sio.connected:
-            if order:
-                """TODO:order to be emitted must be json"""
-                self.emit("order", pickle.dumps(order))
-        else:
-            print("Socket is not connected while trying to send order")
+        data = {"status": "success", "order": None}
+        if order:
+            data["order"] = order
+        self.emit(self.channel, pickle.dumps(data))
 
     def start(self, socket_url):
         """Attempt to connect to socket"""
