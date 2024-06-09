@@ -1,5 +1,7 @@
 # from apscheduler.executors.pool import ProcessPoolExecutor, ThreadPoolExecutor
 
+from candles import CandleManager
+
 from .common import *
 from .constants import DHAN_INSTRUMENTS
 from .dockerd import *
@@ -10,6 +12,9 @@ from .processor import Processor
 
 # from api.config import SQLALCHEMY_DATABASE_URI
 from .redis_manager import BacktestRedis, RedisManager
+
+redis_instance: RedisManager = RedisManager()
+redis_instance_backtest: BacktestRedis = BacktestRedis()
 
 # from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 # from apscheduler.schedulers.background import BackgroundScheduler

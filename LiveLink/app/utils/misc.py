@@ -2,28 +2,25 @@ import os
 import pickle
 from datetime import datetime, timedelta
 
-from api import app, logger
+from app import CandleManager, Config, logger
+from database import Symbol
 from dataclass import MarketQuoteData
 from utils import redis_instance
-from database import Symbol
-from .candles import CandleManager
 
 
 async def analyser(data: MarketQuoteData) -> None:
-    candle1m = CandleManager(1)
-    candle1m.process_tick(data.timestamp, data.price, data.quantity, data.symbol)
+    candle5m = CandleManager(5)
+    candle5m.process_tick(data.timestamp, data.price, data.quantity, data.symbol)
 
 
 def backup_current_day() -> None:
     try:
         if not os.path.isdir(
-            os.path.join(
-                app.config["DATA"], f"backup_{datetime.now().strftime('%Y-%m-%d')}"
-            )
+            os.path.join(Config.DATA, f"backup_{datetime.now().strftime('%Y-%m-%d')}")
         ):
             os.mkdir(
                 os.path.join(
-                    app.config["DATA"], f"backup_{datetime.now().strftime('%Y-%m-%d')}"
+                    Config.DATA, f"backup_{datetime.now().strftime('%Y-%m-%d')}"
                 )
             )
         all_symbols = Symbol.get_all()
@@ -58,7 +55,7 @@ def backup_current_day() -> None:
                             backup_data[key].append(candle)
 
                 new_path = os.path.join(
-                    app.config["DATA"], f"backup_{datetime.now().strftime('%Y-%m-%d')}"
+                    Config.DATA, f"backup_{datetime.now().strftime('%Y-%m-%d')}"
                 )
                 with open(
                     f"{new_path}/backup_{symbol.symbol}_{symbol.exchange}.pkl", "wb"

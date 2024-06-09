@@ -8,9 +8,9 @@ from flask import Flask
 
 from .config import Config
 
-redis_instance = None
-redis_instance_backtest = None
 logger: Logger = None
+
+from utils import redis_instance, redis_instance_backtest
 
 from .extensions import client_manager, configure_logging, cors, socketio
 
@@ -31,12 +31,6 @@ def create_app():
     cors.init_app(app)
     global logger
     logger = configure_logging(app)
-    from utils import BacktestRedis, RedisManager
-
-    global redis_instance
-    redis_instance = RedisManager()
-    global redis_instance_backtest
-    redis_instance_backtest = BacktestRedis()
 
     # Register blueprints
     from .socketio_events import ClientEvents, StrategyEvents
