@@ -3,89 +3,31 @@ import time
 from datetime import datetime
 
 import websockets
-from app import logger
+from app import CandleManager, logger
 from dataclass import MarketDepthData, MarketQuoteData, MarketTickerData
-from dhanhq import DhanFeed, marketfeed
+from dhanhq import marketfeed
 from dhanhq.marketfeed import DhanSDKHelper
 from utils import DHAN_INSTRUMENTS
 
-
-class MarketFeed(DhanFeed):
-    async def connect(self):
-        try:
-            """Initiates the connection to the Websockets"""
-            if not self.ws or self.ws.closed:
-                self.ws = await websockets.connect(marketfeed.WSS_URL)
-                helper = DhanSDKHelper(self)
-                await helper.on_connection_established(self.ws)
-                await self.authorize()
-                await self.subscribe_instruments()
-
-                # Handling incoming messages in a loop to keep the connection open
-                counter = 0
-                while True:
-                    try:
-                        response = await self.ws.recv()
-                        self.data = self.process_data(response)
-                        await helper.on_message_received(self.data)
-                    except websockets.exceptions.ConnectionClosed:
-                        if counter > 5:
-                            logger.error(
-                                "Connection has been closed for more than 5 times"
-                            )
-                            break
-                        time.sleep(1)
-                        logger.error("Connection has been closed retrying...")
-                        self.ws = await websockets.connect(marketfeed.WSS_URL)
-                        helper = DhanSDKHelper(self)
-                        await helper.on_connection_established(self.ws)
-                        await self.authorize()
-                        await self.subscribe_instruments()
-                        counter += 1
-        except Exception as e:
-            logger.error(f"Error in MarketFeed: {e}")
-
-    def server_disconnection(self, data):
-        """Parse and process server disconnection error"""
-        disconnection_packet = [struct.unpack("<BHBIH", data[0:10])]
-        self.on_close = False
-        if disconnection_packet[0][4] == 805:
-            logger.warning("Disconnected: No. of active websocket connections exceeded")
-            self.on_close = True
-        elif disconnection_packet[0][4] == 806:
-            logger.warning("Disconnected: Subscribe to Data APIs to continue")
-            self.on_close = True
-        elif disconnection_packet[0][4] == 807:
-            logger.warning("Disconnected: Access Token is expired")
-            self.on_close = True
-        elif disconnection_packet[0][4] == 808:
-            logger.warning("Disconnected: Invalid Client ID")
-            self.on_close = True
-        elif disconnection_packet[0][4] == 809:
-            logger.warning("Disconnected: Authentication Failed - check ")
-            self.on_close = True
+from .market_feed import MarketFeed
 
 
 class DhanMarketFeed:
-    def __init__(self, analyser):
-        self.analyser = analyser
+    def __init__(self):
         self._access_token = None
         self._client_id = None
         self._feed = None
         self._instruments = []
         self._subscription_code = marketfeed.Ticker
+        self._candles = [CandleManager(5)]
 
     def set_api_key(self, key, client_id) -> None:
         self._access_token = key
         self._client_id = client_id
 
-    @property
-    def subscription_code(self) -> int:
-        return self._subscription_code
-
-    @subscription_code.setter
-    def subscription_code(self, code) -> None:
-        self._subscription_code = code
+    async def analyser(self, data: MarketQuoteData) -> None:
+        for candle in self._candles:
+            candle.process_tick(data.timestamp, data.price, data.quantity, data.symbol)
 
     async def connect(self) -> None:
         try:
@@ -224,3 +166,11 @@ class DhanMarketFeed:
                         logger.error(f"Error parsing depth data: {e}")
                 else:
                     logger.info("No security_id in data")
+
+    @property
+    def subscription_code(self) -> int:
+        return self._subscription_code
+
+    @subscription_code.setter
+    def subscription_code(self, code) -> None:
+        self._subscription_code = code

@@ -2,15 +2,9 @@ import os
 import pickle
 from datetime import datetime, timedelta
 
-from app import CandleManager, Config, logger
+from app import CandleManager, Config, logger, redis_instance
 from database import Symbol
 from dataclass import MarketQuoteData
-from utils import redis_instance
-
-
-async def analyser(data: MarketQuoteData) -> None:
-    candle5m = CandleManager(5)
-    candle5m.process_tick(data.timestamp, data.price, data.quantity, data.symbol)
 
 
 def backup_current_day() -> None:

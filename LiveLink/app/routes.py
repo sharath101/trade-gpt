@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 
 from app import APIKey, Config, Symbol
 from flask import Blueprint, request
-from services import marketDataQuote, marketFeedQuote
-from utils import DHAN_INSTRUMENTS
+from utils import DHAN_INSTRUMENTS, Processor
+
+from .services import DhanMarketFeed
 
 api = Blueprint("api", __name__)
 
@@ -18,22 +19,29 @@ async def start(platform):
     if platform not in ["dhan"]:
         return {"message": "Invalid platform"}, 400
     access_token = Config.ACCESS_TOKEN
+    client_id = Config.CLIENT_ID
     if access_token is False:
         return {"message": "API Key expired"}, 400
-    marketDataQuote.set_api_key(access_token["key"], access_token["secret"])
+
+    marketDataQuote = DhanMarketFeed()
+    marketDataQuote.subscription_code = 17
+    marketDataQuote.set_api_key(access_token, client_id)
     instruments = Symbol.get_all()
     ins_list = []
     for ins in instruments:
         ins_list.append(ins.symbol)
     marketDataQuote.instruments = ins_list
-    marketFeedQuote.start()
+
+    # marketFeedQuote = Processor(marketDataQuote)
+    # marketFeedQuote.start()
+    marketDataQuote.connect()
     return {"output": "Market data running"}
 
 
-@api.route("/stop", methods=["GET"])
-def stop():
-    marketFeedQuote.stop()
-    return {"output": "Market data stopped"}
+# @api.route("/live/stop", methods=["GET"])
+# def stop():
+#     marketFeedQuote.stop()
+#     return {"output": "Market data stopped"}
 
 
 @api.route("/live/api_key", methods=["POST"])
