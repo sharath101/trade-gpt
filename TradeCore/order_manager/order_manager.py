@@ -42,7 +42,7 @@ class OrderManager():
                 }
                 emitter(channel, payload)
 
-        # self.analyse(current_candle.close, timestamp, symbol)
+        self.analyse(current_candle.close, timestamp, symbol)
 
     @property
     def open_positions(self) -> List[OrderBook]:

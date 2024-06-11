@@ -1,74 +1,103 @@
+import pickle
 import struct
 import time
 from datetime import datetime
+from typing import Callable
 
 import websockets
-from app import CandleManager, logger
-from dataclass import MarketDepthData, MarketQuoteData, MarketTickerData
-from dhanhq import marketfeed
+from app import Config, logger
+from dataclass import MarketDepthData, MarketQuoteData, MarketTickerData, Order
+from dhanhq import DhanFeed, marketfeed
 from dhanhq.marketfeed import DhanSDKHelper
 from utils import DHAN_INSTRUMENTS
 
 from .market_feed import MarketFeed
 
 
-class DhanMarketFeed:
+class DhanMarketFeed(DhanFeed, MarketFeed):
     def __init__(self):
         self._access_token = None
         self._client_id = None
-        self._feed = None
         self._instruments = []
-        self._subscription_code = marketfeed.Ticker
-        self._candles = [CandleManager(5)]
+        self._subscription_code = marketfeed.Quote
+        self.analyse = None
 
-    def set_api_key(self, key, client_id) -> None:
-        self._access_token = key
-        self._client_id = client_id
+    def set_credentials(self, symbols, analyse: Callable[[MarketQuoteData], None]):
+        self._access_token = Config.ACCESS_TOKEN
+        self._client_id = Config.CLIENT_ID
+        self.instruments = symbols
+        self.analyse = analyse
 
-    async def analyser(self, data: MarketQuoteData) -> None:
-        for candle in self._candles:
-            candle.process_tick(data.timestamp, data.price, data.quantity, data.symbol)
-
-    async def connect(self) -> None:
+    async def connect_feed(self):
         try:
             self.disconnect_request = False
-            self._feed = MarketFeed(
+            super.__init__(
                 self._client_id,
                 self._access_token,
                 self._instruments,
                 self._subscription_code,
                 on_message=self.parse,
             )
-            await self._feed.connect()
+            await self.connect()
         except Exception as e:
             logger.error(f"Error connecting to market feed: {e}")
 
-    @property
-    def instruments(self) -> list:
-        return self._instruments
+    async def connect(self):
+        try:
+            """Initiates the connection to the Websockets"""
+            print("trying to connect")
+            if not self.ws or self.ws.closed:
+                self.ws = await websockets.connect(marketfeed.WSS_URL)
+                helper = DhanSDKHelper(self)
+                await helper.on_connection_established(self.ws)
+                await self.authorize()
+                await self.subscribe_instruments()
 
-    @instruments.setter
-    def instruments(self, instruments) -> None:
-        """Pass the list of all symbols to be subscribed to the market feed"""
-        self._instruments = []
-        for instrument in instruments:
-            if instrument not in DHAN_INSTRUMENTS["symbol"]:
-                logger.info(f"{instrument} not found in DHAN_INSTRUMENTS")
-                continue
-            else:
-                try:
-                    index = DHAN_INSTRUMENTS["symbol"].index(instrument)
-                    security_id = DHAN_INSTRUMENTS["security_id"][index]
-                    if DHAN_INSTRUMENTS["exchange_segment"][index] == "NSE":
-                        exc = marketfeed.NSE
-                    else:
-                        exc = marketfeed.BSE
-                    self._instruments.append((exc, security_id))
-                except Exception as e:
-                    logger.error(f"Error setting instrument {instrument}: {e}")
-        return
+                # Handling incoming messages in a loop to keep the connection open
+                counter = 0
+                while True:
+                    try:
+                        response = await self.ws.recv()
+                        self.data = self.process_data(response)
+                        await helper.on_message_received(self.data)
+                    except websockets.exceptions.ConnectionClosed:
+                        if counter > 5:
+                            logger.error(
+                                "Connection has been closed for more than 5 times"
+                            )
+                            break
+                        time.sleep(1)
+                        logger.error("Connection has been closed retrying...")
+                        self.ws = await websockets.connect(marketfeed.WSS_URL)
+                        helper = DhanSDKHelper(self)
+                        await helper.on_connection_established(self.ws)
+                        await self.authorize()
+                        await self.subscribe_instruments()
+                        counter += 1
+        except Exception as e:
+            logger.error(f"Error in MarketFeed: {e}")
 
-    async def parse(self, instance, data) -> None:
+    def server_disconnection(self, data):
+        """Parse and process server disconnection error"""
+        disconnection_packet = [struct.unpack("<BHBIH", data[0:10])]
+        self.on_close = False
+        if disconnection_packet[0][4] == 805:
+            logger.warning("Disconnected: No. of active websocket connections exceeded")
+            self.on_close = True
+        elif disconnection_packet[0][4] == 806:
+            logger.warning("Disconnected: Subscribe to Data APIs to continue")
+            self.on_close = True
+        elif disconnection_packet[0][4] == 807:
+            logger.warning("Disconnected: Access Token is expired")
+            self.on_close = True
+        elif disconnection_packet[0][4] == 808:
+            logger.warning("Disconnected: Invalid Client ID")
+            self.on_close = True
+        elif disconnection_packet[0][4] == 809:
+            logger.warning("Disconnected: Authentication Failed - check ")
+            self.on_close = True
+
+    def parse(self, data):
         if data:
             if self._subscription_code == marketfeed.Ticker:
                 if "security_id" in data and "LTP" in data and "LTT" in data:
@@ -91,7 +120,7 @@ class DhanMarketFeed:
                     except Exception as e:
                         logger.error(f"Error parsing ticker data: {e}")
                     try:
-                        await self.analyser(marketData)
+                        self.analyse(marketData)
                     except Exception as e:
                         logger.error(f"Error analysing ticker data: {e}")
                 else:
@@ -133,7 +162,7 @@ class DhanMarketFeed:
                         logger.error(f"Error parsing quote data: {e}")
 
                     try:
-                        await self.analyser(quoteData)
+                        self.analyse(quoteData)
                     except Exception as e:
                         logger.error(f"Error analysing quote data: {e}")
                 else:
@@ -160,7 +189,7 @@ class DhanMarketFeed:
                             depthData.ask_price.append(orderbook["ask_price"])
                             depthData.bid_orders.append(orderbook["bid_orders"])
                             depthData.ask_orders.append(orderbook["ask_orders"])
-                        await self.analyser(depthData)
+                        self.analyse(depthData)
 
                     except Exception as e:
                         logger.error(f"Error parsing depth data: {e}")
@@ -174,3 +203,28 @@ class DhanMarketFeed:
     @subscription_code.setter
     def subscription_code(self, code) -> None:
         self._subscription_code = code
+
+    @property
+    def instruments(self) -> list:
+        return self._instruments
+
+    @instruments.setter
+    def instruments(self, instruments) -> None:
+        """Pass the list of all symbols to be subscribed to the market feed"""
+        self._instruments = []
+        for instrument in instruments:
+            if instrument not in DHAN_INSTRUMENTS["symbol"]:
+                logger.info(f"{instrument} not found in DHAN_INSTRUMENTS")
+                continue
+            else:
+                try:
+                    index = DHAN_INSTRUMENTS["symbol"].index(instrument)
+                    security_id = DHAN_INSTRUMENTS["security_id"][index]
+                    if DHAN_INSTRUMENTS["exchange_segment"][index] == "NSE":
+                        exc = marketfeed.NSE
+                    else:
+                        exc = marketfeed.BSE
+                    self._instruments.append((exc, security_id))
+                except Exception as e:
+                    logger.error(f"Error setting instrument {instrument}: {e}")
+        return

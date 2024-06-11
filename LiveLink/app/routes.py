@@ -1,40 +1,38 @@
 from datetime import datetime, timedelta
+from secrets import token_hex
 
 from app import APIKey, Config, Symbol
 from flask import Blueprint, request
 from utils import DHAN_INSTRUMENTS, Processor
 
-from .services import DhanMarketFeed
+from .services import DhanMarketFeed, LiveTrade
 
 api = Blueprint("api", __name__)
 
 
 @api.route("/")
 def index():
+    print("test")
     return {"success": True}, 200
 
 
 @api.route("/live/start/<platform>")
 async def start(platform):
+    print(platform)
+    channel: str = token_hex(10)
     if platform not in ["dhan"]:
         return {"message": "Invalid platform"}, 400
-    access_token = Config.ACCESS_TOKEN
-    client_id = Config.CLIENT_ID
-    if access_token is False:
-        return {"message": "API Key expired"}, 400
 
-    marketDataQuote = DhanMarketFeed()
-    marketDataQuote.subscription_code = 17
-    marketDataQuote.set_api_key(access_token, client_id)
-    instruments = Symbol.get_all()
-    ins_list = []
-    for ins in instruments:
-        ins_list.append(ins.symbol)
-    marketDataQuote.instruments = ins_list
+    market_feed = DhanMarketFeed()
+    symbols_db = Symbol.get_all()
+    symbols = [symb.symbol for symb in symbols_db]
 
-    # marketFeedQuote = Processor(marketDataQuote)
+    live_trade = LiveTrade(symbols, channel, market_feed, 5)
+
+    live_trade.connect()
+
+    # marketFeedQuote = Processor(live_trade)
     # marketFeedQuote.start()
-    marketDataQuote.connect()
     return {"output": "Market data running"}
 
 
