@@ -4,13 +4,16 @@ from typing import List
 from app import logger, socketio, strategy_events
 from dataclass import MarketQuoteData, Order
 from order_manager import OrderManager
-from services import MarketFeed
 from utils import CandleManager
+
+from .market_feed import MarketFeed
 
 
 class LiveTrade:
 
-    def __init__(self, symbols, channel, candle_interval, market_feed: MarketFeed):
+    def __init__(
+        self, symbols: List[str], channel: str, market_feed: MarketFeed, candle_interval
+    ):
         self.market_feed: MarketFeed = market_feed
         self.symbols = symbols
         self.channel = channel
@@ -18,10 +21,11 @@ class LiveTrade:
         self.candle_manager = CandleManager(candle_interval)
         self.socketio = socketio
         self.register_order_channel(channel)
-        self.market_feed.set_credentials(symbols)
+        self.market_feed.set_credentials(symbols, self.analyse)
 
-    def connect(self):
-        self.market_feed.connect_feed()
+    async def connect(self):
+        print("connecting in liveTrade")
+        await self.market_feed.connect_feed()
 
     def analyse(self, data: MarketQuoteData):
         self.candle_manager.process_tick(

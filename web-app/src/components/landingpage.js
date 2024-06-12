@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import axios from '../axiosConfig';
+import { userService } from '../axiosConfig';
 
 export function LandingPage({ setPage }) {
     const [check, setCheck] = useState();
 
     useEffect(() => {
         const checkLogin = async (event) => {
-            const response = await axios.get('/check_login');
+            const response = await userService.get('/check_login');
             if (response.data['status'] === 'success') {
                 localStorage.setItem(
                     'auth',

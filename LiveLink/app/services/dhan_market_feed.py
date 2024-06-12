@@ -1,12 +1,11 @@
-import pickle
 import struct
 import time
 from datetime import datetime
-from typing import Callable
+from typing import Callable, List
 
 import websockets
 from app import Config, logger
-from dataclass import MarketDepthData, MarketQuoteData, MarketTickerData, Order
+from dataclass import MarketDepthData, MarketQuoteData, MarketTickerData
 from dhanhq import DhanFeed, marketfeed
 from dhanhq.marketfeed import DhanSDKHelper
 from utils import DHAN_INSTRUMENTS
@@ -22,7 +21,7 @@ class DhanMarketFeed(DhanFeed, MarketFeed):
         self._subscription_code = marketfeed.Quote
         self.analyse = None
 
-    def set_credentials(self, symbols, analyse: Callable[[MarketQuoteData], None]):
+    def set_credentials(self, symbols: List[str], analyse: Callable):
         self._access_token = Config.ACCESS_TOKEN
         self._client_id = Config.CLIENT_ID
         self.instruments = symbols
@@ -31,7 +30,7 @@ class DhanMarketFeed(DhanFeed, MarketFeed):
     async def connect_feed(self):
         try:
             self.disconnect_request = False
-            super.__init__(
+            super().__init__(
                 self._client_id,
                 self._access_token,
                 self._instruments,
@@ -97,7 +96,7 @@ class DhanMarketFeed(DhanFeed, MarketFeed):
             logger.warning("Disconnected: Authentication Failed - check ")
             self.on_close = True
 
-    def parse(self, data):
+    def parse(self, instance, data):
         if data:
             if self._subscription_code == marketfeed.Ticker:
                 if "security_id" in data and "LTP" in data and "LTT" in data:

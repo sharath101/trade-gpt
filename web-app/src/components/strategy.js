@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Add, Close } from '@mui/icons-material';
 import '../css/codeeditor.css';
-import axios from '../axiosConfig';
+import { strategyService } from '../axiosConfig';
 
 export const StrategyEditor = ({ setPage, strategyId }) => {
     const [updateButton, setUpdateButton] = useState(false);
@@ -32,8 +32,8 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
             try {
                 if (strategyId) {
                     setUpdateButton(true);
-                    const response = await axios.get(
-                        `/get_strategy/${strategyId}`
+                    const response = await strategyService.get(
+                        `/strategy/${strategyId}`
                     );
                     if (response.data['status'] === 'success') {
                         const strategy = response.data['data'];
@@ -98,7 +98,7 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
             for (let f in files) {
                 fileData[files[f].filename] = files[f].code;
             }
-            const response = await axios.post(
+            const response = await strategyService.post(
                 '/analyze',
                 JSON.stringify({ files: fileData })
             );
@@ -142,7 +142,7 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
             for (let f in files) {
                 fileData[files[f].filename] = files[f].code;
             }
-            const response = await axios(
+            const response = await strategyService(
                 '/run',
                 JSON.stringify({ files: fileData })
             );
@@ -199,7 +199,10 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
                 formData.append('files', blob, file.filename);
             });
 
-            const response = await axios.post('/upload_strategy', formData);
+            const response = await strategyService.post(
+                '/strategy/upload',
+                formData
+            );
 
             if (response.data['status'] !== 'success') {
                 throw new Error(response.data['error']);
@@ -230,8 +233,8 @@ export const StrategyEditor = ({ setPage, strategyId }) => {
                 const blob = new Blob([file.code], { type: 'text/plain' });
                 formData.append('files', blob, file.filename);
             });
-            const response = await axios.post(
-                `/update_strategy/${strategyId}`,
+            const response = await strategyService.post(
+                `/strategy/${strategyId}`,
                 formData
             );
 

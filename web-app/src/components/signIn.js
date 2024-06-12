@@ -12,7 +12,7 @@ import Card from '@mui/material/Card';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { GoogleLogin } from '@react-oauth/google';
-import axios from '../axiosConfig';
+import { userService } from '../axiosConfig';
 
 function Copyright(props) {
     return (
@@ -51,7 +51,7 @@ export function SignInSide({ setPage }) {
         // Send tokenId to your backend for verification and authentication
         // You can use axios to make a POST request to your backend
         try {
-            const res = await axios.get(
+            const res = await userService.get(
                 '/login/callback'.concat('?code=', tokenId)
             );
             // Handle successful backend authentication
@@ -85,7 +85,7 @@ export function SignInSide({ setPage }) {
             password: data.get('password'),
         };
 
-        const response = await axios.post('/login', loginData, {
+        const response = await userService.post('/login', loginData, {
             headers: {
                 'Content-Type': 'application/json',
             },

@@ -1,11 +1,11 @@
 import json
 import os
+import shutil
 from secrets import token_hex
 
 from app import (
     Config,
     LaunchStrategyRequestBody,
-    Strategy,
     StrategyBook,
     UploadStrategyRequestBody,
     logger,
@@ -62,15 +62,14 @@ def launch_strategy():
 # @token_required
 @handle_request
 def upload_strategy():
+    request_data = request.form.to_dict()
+    request_data["indicators"] = json.loads(request_data["indicators"])
+    data = UploadStrategyRequestBody(**request_data)
 
-    request_data = request.form["data"]
-    json_data = json.loads(request_data)
-    data = UploadStrategyRequestBody(**json_data)
-
-    strategy_name = data.name
+    strategy_name = data.strategy_name
     indicators = data.indicators
     description = data.description
-    user_id = data.user_id
+    user_id = "abc"  # data.user_id
 
     logger.info(
         f"Upload strategy request from user {user_id} for strategy {strategy_name}"
@@ -121,7 +120,7 @@ def upload_strategy():
         return f"error: {str(e)}", 500
 
 
-# @app.route("/update_strategy/<int:strategy_id>", methods=["POST"])
+# @api.route("/strategy/<int:strategy_id>", methods=["POST"])
 # # @token_required
 # def update_strategy(strategy_id, user):
 #     try:
@@ -130,49 +129,42 @@ def upload_strategy():
 #         description = request.form.get("description")
 #         if not all([strategy_name, indicators]):
 #             return (
-#                 jsonify({"status": "failure", "error": "Missing required parameters"}),
+#                 {"status": "failure", "error": "Missing required parameters"},
 #                 400,
 #             )
 
 #         strategy = StrategyBook.get_first(id=strategy_id, user_id=user.id)
 #         if not strategy:
-#             return jsonify({"status": "failure", "error": "Strategy not found"}), 404
+#             return {"status": "failure", "error": "Strategy not found"}, 404
 
-#         old_folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
+#         old_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
 #         if os.path.exists(old_folder_path):
 #             shutil.rmtree(f"{old_folder_path}")
 
 #         files = request.files.getlist("files")
 #         if not files:
-#             return jsonify({"status": "failure", "error": "No files provided"}), 400
+#             return {"status": "failure", "error": "No files provided"}, 400
 
-#         new_folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
+#         new_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
 #         if not os.path.exists(new_folder_path):
 #             os.makedirs(new_folder_path)
 
 #         strategy.strategy_name = strategy_name
 #         strategy.indicators = indicators
 #         strategy.description = description
-#     strategy.save()
+#         strategy.save()
 
-#     for file in files:
-#         if file and allowed_file(file.filename):
-#             filename = secure_filename(file.filename)
-#             file.save(os.path.join(new_folder_path, filename))
+#         for file in files:
+#             if file and allowed_file(file.filename):
+#                 filename = secure_filename(file.filename)
+#                 file.save(os.path.join(new_folder_path, filename))
+#     except Exception as e:
+#         return {"status": "failure", "error": str(e)}, 500
 
 #     return (
-#         jsonify({"status": "success", "message": "Strategy updated successfully!"}),
+#         {"status": "success", "message": "Strategy updated successfully!"},
 #         200,
 #     )
-
-# except KeyError as e:
-#     return (
-#         jsonify({"status": "failure", "error": f"Missing required parameter: {e}"}),
-#         400,
-#     )
-
-# except Exception as e:
-#     return jsonify({"status": "failure", "error": str(e)}), 500
 
 
 @api.route("/strategy", methods=["GET"])
@@ -196,15 +188,15 @@ def get_strategies():
         return "Error while getting all strategies", 400
 
 
-# @app.route("/delete_strategy/<int:strategy_id>", methods=["DELETE"])
+# @api.route("/strategy/<int:strategy_id>", methods=["DELETE"])
 # # @token_required
 # def delete_strategy(strategy_id, user):
 #     try:
 #         strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
 #         if not strategy:
-#             return jsonify({"error": "Strategy not found"}), 404
+#             return {"error": "Strategy not found"}, 404
 
-#         folder_path = os.path.join(app.config["UPLOAD_FOLDER"], strategy.folder_loc)
+#         folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
 #         if os.path.exists(folder_path):
 #             shutil.rmtree(folder_path)
 

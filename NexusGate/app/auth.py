@@ -181,5 +181,5 @@ def register():
 
 @app.route("/check_login")
 @token_required
-def check_login():
+def check_login(user):
     return {"status": "success"}

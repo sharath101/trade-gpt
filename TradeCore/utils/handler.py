@@ -15,12 +15,10 @@ def handle_request(func):
             return handle_response(response, status)
         except ValidationError as e:
             logger.error(f"Validation errors")
-            return handle_response({"message": "Invalid request"}, 422)
+            return handle_response({"message": f"Invalid request: {e}"}, 422)
         except Exception as exc:
             logger.error(f"Error")
-            return handle_response(
-                {"message": f"Internal Server Error: {exc.args[0]}"}, 500
-            )
+            return handle_response({"message": f"Internal Server Error: {exc}"}, 500)
 
     return wrapper
 

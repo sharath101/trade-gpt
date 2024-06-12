@@ -1,17 +1,11 @@
-import struct
-import time
 from abc import ABC, abstractmethod
-
-import websockets
-from app import logger
-from dhanhq import DhanFeed, marketfeed
-from dhanhq.marketfeed import DhanSDKHelper
+from typing import Callable, List
 
 
 class MarketFeed(ABC):
 
     @abstractmethod
-    def set_credentials(self, symbols):
+    def set_credentials(self, symbols: List[str], analyseanalyse: Callable):
         pass
 
     @abstractmethod

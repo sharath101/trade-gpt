@@ -1,7 +1,9 @@
+import asyncio
 from datetime import datetime, timedelta
 from secrets import token_hex
 
-from app import APIKey, Config, Symbol
+import requests
+from app import APIKey, Config, Symbol, logger
 from flask import Blueprint, request
 from utils import DHAN_INSTRUMENTS, Processor
 
@@ -12,24 +14,34 @@ api = Blueprint("api", __name__)
 
 @api.route("/")
 def index():
-    print("test")
     return {"success": True}, 200
 
 
-@api.route("/live/start/<platform>")
-async def start(platform):
-    print(platform)
+@api.route("/live/start/<symbol>", methods=["POST"])
+async def start(symbol):
     channel: str = token_hex(10)
-    if platform not in ["dhan"]:
-        return {"message": "Invalid platform"}, 400
+    user_id = 'abc'
+
+    strategy_data = {"user_id": user_id, "symbol": symbol, "channel": channel}
+    strategy_service_url = Config.STRATEGY_BASE
+    print(f"{strategy_service_url}/strategy/launch")
+    try:
+        response = requests.post(
+            f"{strategy_service_url}/strategy/launch",
+            json=strategy_data,
+        )
+        response.raise_for_status()
+        data = response.json()
+        logger.info(f'Strategy container created with id: {data['data']['container_id']}')
+    except requests.exceptions.RequestException as e:
+        return {"message": "Failed to launch strategy", "error": str(e)}, 500
 
     market_feed = DhanMarketFeed()
-    symbols_db = Symbol.get_all()
-    symbols = [symb.symbol for symb in symbols_db]
+    symbols = [symbol]
 
     live_trade = LiveTrade(symbols, channel, market_feed, 5)
 
-    live_trade.connect()
+    await live_trade.connect()
 
     # marketFeedQuote = Processor(live_trade)
     # marketFeedQuote.start()

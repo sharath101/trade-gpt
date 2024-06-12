@@ -10,7 +10,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import axios from '../axiosConfig';
+import { userService } from '../axiosConfig';
 
 function Copyright(props) {
     return (
@@ -43,7 +43,7 @@ export function Register({ setPage }) {
             password: data.get('password'),
         };
 
-        const response = await axios.post(
+        const response = await userService.post(
             '/register',
             { name: data.get('name'), ...loginData },
             {
@@ -54,7 +54,7 @@ export function Register({ setPage }) {
         );
         if (response.data['status'] === 'success') {
             // Now login using the same credentials if registration was successful
-            const response = await axios.post('/login', loginData, {
+            const response = await userService.post('/login', loginData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },

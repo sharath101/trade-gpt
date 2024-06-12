@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../axiosConfig';
+import { strategyService } from '../axiosConfig';
 import {
     Container,
     Typography,
@@ -21,8 +21,8 @@ export const StrategyListPage = ({ setPage, setStrategy }) => {
     const [selectedStrategies, setSelectedStrategies] = useState([]);
 
     useEffect(() => {
-        axios
-            .get('/get_strategies')
+        strategyService
+            .get('/strategy')
             .then((response) => {
                 setStrategies(response.data['data']);
                 setLoading(false);
@@ -58,7 +58,7 @@ export const StrategyListPage = ({ setPage, setStrategy }) => {
         try {
             await Promise.all(
                 selectedStrategies.map((strategyId) =>
-                    axios.delete(`/delete_strategy/${strategyId}`)
+                    strategyService.delete(`/strategy/${strategyId}`)
                 )
             );
             setStrategies((prevStrategies) =>
