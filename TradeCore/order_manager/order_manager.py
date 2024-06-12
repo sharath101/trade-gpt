@@ -7,42 +7,111 @@ from database import OrderBook
 from dataclass import Order
 from order_manager import Broker
 from talipp.ohlcv import OHLCV
+from utils.candles import CandleManager
+from utils.type_dict import MarketData, Stocks
 
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)
 
 
-class OrderManager():
+class OrderManager:
     """Responsible for managing the orders for different symbols, across different brokers"""
 
-    def __init__(self, symbols, balance=20000, backtesting=False):
+    def __init__(self, symbols: Stocks, intervals: list = [5], backtesting=False):
         self.symbols = symbols
         self.backtesting = backtesting
         if backtesting:
             self._open_positions: List[OrderBook] = []
 
         self.brokers: List[Broker] = []
+        self.candles: List[CandleManager] = []
+        for interval in intervals:
+            self.candles.append(CandleManager(interval, backtesting))
 
-
-    def next(self, symbol: str, current_candle: OHLCV, timestamp: datetime, emitter, channel, new_candle):
-        """This method is called for each new data point on each symbol"""
+    def next(
+        self,
+        symbol: Stocks,
+        current_price: float,
+        timestamp: datetime,
+        volume,
+        emitter,
+        channel,
+    ):
 
         market_closing_threshold = time(23, 15, 0)
         # Checks if the market is open
         if timestamp.time() < market_closing_threshold:
             assert self.one_position_per_symbol()
-            if symbol in self.symbols and new_candle:
-                
-                payload = {
-                    "symbol": symbol,
-                    "market_data": {
-                        "candle": {
-                            "5": current_candle
-                        }
-                    }
-                }
+            if symbol in self.symbols:
+
+                market_data: MarketData = MarketData(
+                    candle={},
+                    AccuDist={},
+                    ADX={},
+                    ALMA={},
+                    AO={},
+                    Aroon={},
+                    ATR={},
+                    BB={},
+                    BOP={},
+                    CCI={},
+                    ChaikinOsc={},
+                    ChandeKrollStop={},
+                    CHOP={},
+                    CoppockCurve={},
+                    DEMA={},
+                    DonchianChannels={},
+                    DPO={},
+                    EMA={},
+                    EMV={},
+                    ForceIndex={},
+                    HMA={},
+                    Ichimoku={},
+                    KAMA={},
+                    KeltnerChannels={},
+                    KST={},
+                    KVO={},
+                    MACD={},
+                    MassIndex={},
+                    McGinleyDynamic={},
+                    MeanDev={},
+                    OBV={},
+                    ROC={},
+                    RSI={},
+                    ParabolicSAR={},
+                    SFX={},
+                    SMA={},
+                    SMMA={},
+                    SOBV={},
+                    STC={},
+                    StdDev={},
+                    Stoch={},
+                    StochRSI={},
+                    SuperTrend={},
+                    T3={},
+                    TEMA={},
+                    TRIX={},
+                    TSI={},
+                    TTM={},
+                    UO={},
+                    VTX={},
+                    VWAP={},
+                    VWMA={},
+                    WMA={},
+                    ZLEMA={},
+                )
+                for candle_manager in self.candles:
+                    candle_manager.process_tick(
+                        timestamp, current_price, volume, symbol
+                    )
+                    market_data["candle"][candle_manager.interval_minutes] = (
+                        candle_manager.get_latest_candle(symbol)
+                    )
+
+                payload = {"symbol": symbol, "market_data": market_data}
+
                 emitter(channel, payload)
 
-        self.analyse(current_candle.close, timestamp, symbol)
+        self.analyse(current_price, timestamp, symbol)
 
     @property
     def open_positions(self) -> List[OrderBook]:
@@ -109,29 +178,29 @@ class OrderManager():
             # Condition to filter active orders
             if position.position_status != "CLOSE":
                 open_positions.append(position)
-                
+
         return open_positions
 
-    def place_order(self, order: Order):
+    def place_order(self, ordered: Order):
         tag = token_hex(9)
         order: OrderBook = OrderBook(
             correlation_id=tag,
-            symbol=order.symbol,
-            exchange=order.exchange or "NSE_EQ",
-            quantity=order.quantity,
-            price=order.price,
-            trigger_price=order.trigger_price,
-            transaction_type=order.transaction_type,
-            order_type=order.order_type or "LIMIT",
-            product_type=order.product_type or "INTRADAY",
+            symbol=ordered.symbol,
+            exchange=ordered.exchange or "NSE_EQ",
+            quantity=ordered.quantity,
+            price=ordered.price,
+            trigger_price=ordered.trigger_price,
+            transaction_type=ordered.transaction_type,
+            order_type=ordered.order_type or "LIMIT",
+            product_type=ordered.product_type or "INTRADAY",
             order_status="TRANSIT",
             position_status="OPENING",
             position_action="OPEN",
-            order_created=order.timestamp,
-            bo_takeprofit=order.bo_takeprofit,
-            bo_stoploss=order.bo_stoploss,
-            buy_price=order.price if order.transaction_type == "BUY" else None,
-            sell_price=None if order.transaction_type == "BUY" else order.price,
+            order_created=ordered.timestamp,
+            bo_takeprofit=ordered.bo_takeprofit,
+            bo_stoploss=ordered.bo_stoploss,
+            buy_price=ordered.price if ordered.transaction_type == "BUY" else None,
+            sell_price=None if ordered.transaction_type == "BUY" else ordered.price,
         )
 
         # List of open positions for the symbol (OPENING, OPEN, CLOSING)
@@ -160,27 +229,25 @@ class OrderManager():
             for broker in self.brokers:
                 broker.analyse(current_price, current_time, symbol)
 
-    def close_all_positions(self, open_positions: List[OrderBook], current_price, current_time):
+    def close_all_positions(
+        self, open_positions: List[OrderBook], current_price, current_time
+    ):
         for position in open_positions:
             self.close_position(position, current_price, current_time, immediate=True)
             self.open_positions = position
 
     def close_position(
-        self, position: OrderBook, closing_price: float, current_time: datetime,immediate: bool = True
+        self,
+        position: OrderBook,
+        closing_price: float,
+        current_time: datetime,
+        immediate: bool = True,
     ):
 
         if position.position_status == "CLOSING":
-            """This implies that the position is already in closing state, so no need to close again.
-            An order is already placed with correlation_id suffix of _close to close this position,
-            so it will be closed automatically when the order is executed. The analyse method will
-            update the position status to CLOSED when that order is executed."""
             return
 
-       
-
         if position.order_status == "TRANSIT" or position.order_status == "PENDING":
-            """This imples that the order is not yet traded, so we will cancel the order.
-            The position status at this point must be OPENING, we will update it to CLOSED"""
 
             try:
                 assert position.position_status == "OPENING"
@@ -192,28 +259,16 @@ class OrderManager():
             for broker in self.brokers:
                 broker.cancel_order(position)
 
-            """Note: Currently, not checking if the order
-            was successfully cancelled by broker"""
-
             position.order_status = "CANCELLED"
             position.position_status = "CLOSE"
             return
 
         elif position.order_status != "TRADED":
-            """If position is not traded, then it is either EXPIRED, REJECTED,
-            CANCELLED, because previously we checked for TRANSIT and PENDING status,
-            in all the above cases, the position status must be CLOSE. This should be
-            implemented in analyse method, but just to be sure, we are updating again."""
 
             position.position_status = "CLOSE"
             return
-        
+
         position.position_status = "CLOSING"
-        
-        """ If the position is traded, we will close the order by placing a new order
-        of opposite transaction type. If the immediate flag is set, then the order
-        will be placed as MARKET order, otherwise it will be placed as LIMIT order
-        at requested price."""
 
         if position.transaction_type == "BUY":
             position.sell_price = closing_price
@@ -257,6 +312,3 @@ class OrderManager():
                 return False
             symbol_set.add(position.symbol)
         return True
-
-
-

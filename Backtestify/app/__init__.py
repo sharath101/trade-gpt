@@ -8,9 +8,7 @@ from flask import Flask
 
 from .config import Config
 
-logger: Logger = None
-
-from utils import redis_instance, redis_instance_backtest
+logger: Logger = None  # type: ignore
 
 from .extensions import client_manager, configure_logging, cors, socketio
 
@@ -33,11 +31,7 @@ def create_app():
     logger = configure_logging(app)
 
     # Register blueprints
-    from .socketio_events import ClientEvents, StrategyEvents
-
-    global client_events
-    client_events = ClientEvents(socketio)
-    client_events.register_events()
+    from .socketio_events import StrategyEvents
 
     global strategy_events
     strategy_events = StrategyEvents(socketio)

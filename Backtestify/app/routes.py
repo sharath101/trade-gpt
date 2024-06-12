@@ -21,7 +21,8 @@ def backtest(stock):
     channel: str = token_hex(10)
     strategy_data = {"user_id": user_id, "symbol": stock, "channel": channel}
     strategy_service_url = Config.STRATEGY_BASE
-    print(f"{strategy_service_url}/strategy/launch")
+    file = f"{stock}_with_indicators_.csv"
+    start_backtest(file, stock, channel)
     try:
         response = requests.post(
             f"{strategy_service_url}/strategy/launch",
@@ -33,13 +34,8 @@ def backtest(stock):
     except requests.exceptions.RequestException as e:
         return jsonify({"message": "Failed to launch strategy", "error": str(e)}), 500
 
-    file = f"{stock}_with_indicators_.csv"
-    thread = threading.Thread(target=start_backtest, args=(file, stock, channel))
-    thread.start()
-
     return jsonify({"message": f"Backtesting Started "})
 
 def start_backtest(file, stock, channel):
-    strategy_events.register_channel(channel)
     backtester = BackTest(file, stock)
-    backtester.backtest(channel)
+    backtester.register_channel(channel)

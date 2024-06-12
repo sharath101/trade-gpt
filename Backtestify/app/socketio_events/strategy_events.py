@@ -12,12 +12,12 @@ class StrategyEvents:
         self.register_events()
 
     def register_events(self):
-        @self.socketio.on("strategy_connect")
+        @self.socketio.on("connect")
         def handle_connect(data):
             logger.info("Strategy service connected")
             return True
 
-        @self.socketio.on("strategy_disconnect")
+        @self.socketio.on("disconnect")
         def handle_strategy_disconnect():
             logger.info("Strategy service disconnected")
 

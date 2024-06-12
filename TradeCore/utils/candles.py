@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, time, timedelta
+from typing import Optional
 
 from talipp.ohlcv import OHLCV
 from utils import redis_instance, redis_instance_backtest
@@ -84,12 +85,12 @@ class CandleManager:
 
     def _open_candle(
         self, timestamp: datetime, price: float, volume: int, symbol: str
-    ) -> dict:
+    ) -> Optional[dict]:
         try:
             if not self.is_market_open(timestamp):
                 return None
             ta_key = f"ta_{symbol}_{self.interval_minutes}"
-            indicator = self.redis_instance.get(ta_key)
+            indicator: IndicatorManager = self.redis_instance.get(ta_key)  # type: ignore
             if indicator:
                 self.indicators = indicator
             current_candle_data = {
@@ -140,11 +141,21 @@ class CandleManager:
             logger.error(f"Error getting candles: {e}")
             return []
 
-    def get_latest_candle(self, symbol) -> dict:
+    def get_latest_candle(self, symbol) -> OHLCV:
         try:
             current_candle_key = f"candle_{symbol}_{self.interval_minutes}_current"
-            current_candle_data = self.redis_instance.get(current_candle_key)
-            return current_candle_data if current_candle_data else None
+            current_candle_data: dict = self.redis_instance.get(current_candle_key)  # type: ignore
+            if current_candle_data:
+                olhcv_data = OHLCV(
+                    current_candle_data["open"],
+                    current_candle_data["high"],
+                    current_candle_data["low"],
+                    current_candle_data["close"],
+                    current_candle_data["volume"],
+                    current_candle_data["time"],
+                )
+                return olhcv_data
+            return OHLCV(None, None, None, None)
         except Exception as e:
             logger.error(f"Error getting latest candle: {e}")
-            return None
+            raise

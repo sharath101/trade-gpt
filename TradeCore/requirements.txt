@@ -4,3 +4,4 @@ flask
 pydantic
 sqlalchemy
 pyjwt
+pandas

@@ -7,10 +7,6 @@ from .strategy_obj import Strategy
 
 
 class StrategyManager:
-    """Data structure for candles stored in strategy manager:
-    data = {"symbol": {"interval": []}}
-    """
-
     def __init__(
         self, symbols: List[Stocks], balance: float, strategies: List[Strategy]
     ):

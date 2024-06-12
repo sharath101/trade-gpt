@@ -66,7 +66,6 @@ if __name__ == "__main__":
     except ImportError as e:
         logger.error(f"Error importing Strategy class: {e}")
 
-    print(f"All Class instances: {all_instances}")
     symbol: str = os.getenv("SYMBOL")
     balance = float(os.getenv("BALANCE"))
     socket_url: str = os.getenv("SOCKET_URL")

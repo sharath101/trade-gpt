@@ -5,6 +5,7 @@ from typing import Optional
 
 import socketio
 from dataclass import Order
+from utils.type_dict import MarketData, Stocks
 
 from .strategy_manager import StrategyManager
 
@@ -22,7 +23,8 @@ class SocketClient:
         self.sio.on(self.channel, self.on_order)
 
     def on_connect(self):
-        print("connected")
+        data = {"status": "success", "order": None}
+        self.sio.emit(self.channel, pickle.dumps(data))
 
     def on_disconnect(self):
         pass
@@ -34,11 +36,10 @@ class SocketClient:
     def on_order(self, data):
         """Data received from backtester via websocket"""
         message_data = pickle.loads(data)
-        print(message_data)
 
         """Available Data extraction"""
-        symbol = message_data.get("symbol")
-        market_data = message_data.get("market_data")
+        symbol: Stocks = message_data.get("symbol")
+        market_data: MarketData = message_data.get("market_data")
 
         """This runs all the strategies for the received data"""
         order: Optional[Order] = self.strategy_manager.run_strategies(
