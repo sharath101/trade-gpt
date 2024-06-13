@@ -3,6 +3,10 @@ import os
 import shutil
 from secrets import token_hex
 
+from flask import Blueprint, request
+from utils import deploy_container, handle_request
+from werkzeug.utils import secure_filename
+
 from app import (
     Config,
     LaunchStrategyRequestBody,
@@ -10,9 +14,6 @@ from app import (
     UploadStrategyRequestBody,
     logger,
 )
-from flask import Blueprint, request
-from utils import deploy_container, handle_request
-from werkzeug.utils import secure_filename
 
 api = Blueprint("api", __name__)
 
@@ -120,51 +121,58 @@ def upload_strategy():
         return f"error: {str(e)}", 500
 
 
-# @api.route("/strategy/<int:strategy_id>", methods=["POST"])
-# # @token_required
-# def update_strategy(strategy_id, user):
-#     try:
-#         strategy_name = request.form.get("strategy_name")
-#         indicators = request.form.get("indicators")
-#         description = request.form.get("description")
-#         if not all([strategy_name, indicators]):
-#             return (
-#                 {"status": "failure", "error": "Missing required parameters"},
-#                 400,
-#             )
+@api.route("/strategy/<int:id>", methods=["POST"])
+# @token_required
+@handle_request
+def update_strategy(id):
 
-#         strategy = StrategyBook.get_first(id=strategy_id, user_id=user.id)
-#         if not strategy:
-#             return {"status": "failure", "error": "Strategy not found"}, 404
+    request_data = request.form["data"]
+    json_data = json.loads(request_data)
+    data = UploadStrategyRequestBody(**json_data)
 
-#         old_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
-#         if os.path.exists(old_folder_path):
-#             shutil.rmtree(f"{old_folder_path}")
+    strategy_name = data.name
+    indicators = data.indicators
+    description = data.description
+    user_id = data.user_id
 
-#         files = request.files.getlist("files")
-#         if not files:
-#             return {"status": "failure", "error": "No files provided"}, 400
+    try:
 
-#         new_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
-#         if not os.path.exists(new_folder_path):
-#             os.makedirs(new_folder_path)
+        strategy = StrategyBook.get_first(id=id, user_id=user_id)
+        if not strategy:
+            return "Strategy not found", 404
 
-#         strategy.strategy_name = strategy_name
-#         strategy.indicators = indicators
-#         strategy.description = description
-#         strategy.save()
+        old_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
+        if os.path.exists(old_folder_path):
+            shutil.rmtree(f"{old_folder_path}")
 
-#         for file in files:
-#             if file and allowed_file(file.filename):
-#                 filename = secure_filename(file.filename)
-#                 file.save(os.path.join(new_folder_path, filename))
-#     except Exception as e:
-#         return {"status": "failure", "error": str(e)}, 500
+        files = request.files.getlist("files")
+        if not files:
+            return "No files provided", 400
 
-#     return (
-#         {"status": "success", "message": "Strategy updated successfully!"},
-#         200,
-#     )
+        new_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
+        if not os.path.exists(new_folder_path):
+            os.makedirs(new_folder_path)
+
+        strategy.strategy_name = strategy_name
+        strategy.indicators = indicators
+        strategy.description = description
+        strategy.save()
+
+        for file in files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(new_folder_path, filename))
+
+        return (
+            "Strategy updated successfully!",
+            200,
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Failed updating strategy {id} from user {user_id}, error {str(e)}"
+        )
+        return "Failed updating strategy", 500
 
 
 @api.route("/strategy", methods=["GET"])
@@ -188,57 +196,58 @@ def get_strategies():
         return "Error while getting all strategies", 400
 
 
-# @api.route("/strategy/<int:strategy_id>", methods=["DELETE"])
-# # @token_required
-# def delete_strategy(strategy_id, user):
-#     try:
-#         strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
-#         if not strategy:
-#             return {"error": "Strategy not found"}, 404
+@api.route("/strategy/<int:id>", methods=["DELETE"])
+# @token_required
+@handle_request
+def delete_strategy(id):
+    try:
+        strategy: StrategyBook = StrategyBook.get_first(id=id)
+        if not strategy:
+            return "Strategy not found", 404
 
-#         folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
-#         if os.path.exists(folder_path):
-#             shutil.rmtree(folder_path)
+        folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
 
-#         strategy.delete()
+        strategy.delete()
 
-#         return (
-#             {"status": "success", "message": "Strategy deleted successfully!"},
-#             200,
-#         )
+        return (
+            "Strategy deleted successfully!",
+            200,
+        )
 
-#     except Exception as e:
-#         response_data = {"status": "failure", "message": e}
-#         response = response_data, 200
-#         return response
+    except Exception as e:
+        logger.error(f"Failed to delete strategy {id}, error {str(e)}")
+        return "Failed to delete strategy", 500
 
 
-# @app.route("/get_strategy/<int:strategy_id>", methods=["GET"])
-# # @token_required
-# def get_strategy(strategy_id, user):
-#     strategy: StrategyBook = StrategyBook.get_first(id=strategy_id)
-#     if not strategy:
-#         return jsonify({"error": "Strategy not found"}), 404
+@api.route("/strategy/<int:id>", methods=["GET"])
+# @token_required
+@handle_request
+def get_strategy(id):
+    strategy: StrategyBook = StrategyBook.get_first(id=id)
+    if not strategy:
+        return "Strategy not found", 404
 
-#     strategy_details = {
-#         "strategy_name": strategy.strategy_name,
-#         "indicators": strategy.indicators,
-#         "description": strategy.description,
-#         "files": [],
-#     }
+    strategy_details = {
+        "strategy_name": strategy.strategy_name,
+        "indicators": strategy.indicators,
+        "description": strategy.description,
+        "files": [],
+    }
 
-#     folder_loc = strategy.folder_loc
-#     strategy_folder = os.path.join(app.config["UPLOAD_FOLDER"], folder_loc)
-#     if os.path.isdir(strategy_folder):
-#         for filename in os.listdir(strategy_folder):
-#             file_path = os.path.join(strategy_folder, filename)
-#             if os.path.isfile(file_path):
-#                 with open(file_path, "r") as file:
-#                     strategy_details["files"].append(
-#                         {"filename": filename, "code": file.read()}
-#                     )
+    folder_loc = strategy.folder_loc
+    strategy_folder = os.path.join(Config.UPLOAD_FOLDER, folder_loc)
+    if os.path.isdir(strategy_folder):
+        for filename in os.listdir(strategy_folder):
+            file_path = os.path.join(strategy_folder, filename)
+            if os.path.isfile(file_path):
+                with open(file_path, "r") as file:
+                    strategy_details["files"].append(
+                        {"filename": filename, "code": file.read()}
+                    )
 
-#     return {"status": "success", "data": strategy_details}
+    return strategy_details, 200
 
 
 def allowed_file(filename):

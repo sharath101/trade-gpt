@@ -33,7 +33,6 @@ class StrategyBook(Base):
         return f"StrategyBook(strategy_name={self.strategy_name}, indicators={self.indicators})"
 
     def __init__(self, **strategy):
-        print("hi")
         self.user_id = strategy.get("user_id", None)
         self.strategy_name = strategy.get("strategy_name", None)
         self.folder_loc = strategy.get("folder_loc", None)
