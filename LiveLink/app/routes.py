@@ -7,7 +7,7 @@ from app import APIKey, Config, Symbol, logger
 from flask import Blueprint, request
 from utils import DHAN_INSTRUMENTS, Processor
 
-from .services import DhanMarketFeed, LiveTrade
+from .services import BinanceMarketFeed, DhanMarketFeed, LiveTrade
 
 api = Blueprint("api", __name__)
 
@@ -20,11 +20,11 @@ def index():
 @api.route("/live/start/<symbol>", methods=["POST"])
 async def start(symbol):
     channel: str = token_hex(10)
-    user_id = 'abc'
+    user_id = "abc"
 
-    strategy_data = {"user_id": user_id, "symbol": symbol, "channel": channel}
+    strategy_data = {"user_id": user_id, "symbol": symbol, "channel": channel, "live": True}
     strategy_service_url = Config.STRATEGY_BASE
-    print(f"{strategy_service_url}/strategy/launch")
+    print(f"{strategy_service_url}/strategy/launch/live")
     try:
         response = requests.post(
             f"{strategy_service_url}/strategy/launch",
@@ -36,7 +36,8 @@ async def start(symbol):
     except requests.exceptions.RequestException as e:
         return {"message": "Failed to launch strategy", "error": str(e)}, 500
 
-    market_feed = DhanMarketFeed()
+    # market_feed = DhanMarketFeed()
+    market_feed = BinanceMarketFeed()
     symbols = [symbol]
 
     live_trade = LiveTrade(symbols, channel, market_feed, 5)

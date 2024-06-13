@@ -22,8 +22,8 @@ class DhanMarketFeed(DhanFeed, MarketFeed):
         self.analyse = None
 
     def set_credentials(self, symbols: List[str], analyse: Callable):
-        self._access_token = Config.ACCESS_TOKEN
-        self._client_id = Config.CLIENT_ID
+        self._access_token = Config.DHAN_ACCESS_TOKEN
+        self._client_id = Config.DHAN_CLIENT_ID
         self.instruments = symbols
         self.analyse = analyse
 

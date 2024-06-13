@@ -12,7 +12,9 @@ class StrategyManager:
     ):
         self.symbols: List[Stocks] = symbols
         self.strategies: List[Strategy] = strategies
-        self.strat_map: Dict[Stocks, List[Strategy]] = {"SBIN": strategies}
+        self.strat_map: Dict[Stocks, List[Strategy]] = {}
+        for symbol in self.symbols:
+            self.strat_map[symbol] = strategies
         self.balance: float = balance
         self.candles: Dict[Stocks, MarketDataList] = {}
 

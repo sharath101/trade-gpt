@@ -17,7 +17,7 @@ def create_app():
 
     socketio.init_app(
         app,
-        async_mode="gevent",
+        async_mode="threading",
         cors_allowed_origins="*",
         client_manager=client_manager,
     )

@@ -1,5 +1,6 @@
 from app.utils.schedule import *
 
+from .binance_market_feed import BinanceMarketFeed
 from .dhan_market_feed import DhanMarketFeed
 from .live_trade import LiveTrade
 from .market_feed import MarketFeed

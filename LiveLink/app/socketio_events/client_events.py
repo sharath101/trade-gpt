@@ -15,7 +15,7 @@ class ClientEvents:
             print(f"client connected: {data}")
             return True
 
-        @self.socketio.on("backtest")
+        @self.socketio.on("live")
         def handle_backtest_all(data):
             pass
 

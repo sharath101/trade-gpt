@@ -7,6 +7,7 @@ class LaunchStrategyRequestBody(BaseModel):
     symbol: str
     user_id: str
     channel: str
+    live: bool = False
 
 
 class Indicator(BaseModel):

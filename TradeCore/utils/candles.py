@@ -12,12 +12,17 @@ logger = logging.getLogger(__name__)
 
 class CandleManager:
     def __init__(
-        self, interval_minutes: int, backtesting=False, indicators={"MACD": [12, 26, 9]}
+        self,
+        interval_minutes: int,
+        is_crypto=False,
+        backtesting=False,
+        indicators={"MACD": [12, 26, 9]},
     ):
         self.interval_minutes: int = interval_minutes
         self.indicators: IndicatorManager = IndicatorManager(indicators)
         self._market_open: time = time(9, 15, 0)
         self._market_close: time = time(15, 30, 0)
+        self.is_crypto = is_crypto
         if backtesting:
             self.redis_instance = redis_instance_backtest
         else:
@@ -87,7 +92,7 @@ class CandleManager:
         self, timestamp: datetime, price: float, volume: int, symbol: str
     ) -> Optional[dict]:
         try:
-            if not self.is_market_open(timestamp):
+            if not self.is_crypto and not self.is_market_open(timestamp):
                 return None
             ta_key = f"ta_{symbol}_{self.interval_minutes}"
             indicator: IndicatorManager = self.redis_instance.get(ta_key)  # type: ignore

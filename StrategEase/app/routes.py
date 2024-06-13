@@ -27,7 +27,9 @@ def launch_strategy():
     environment = {
         "SYMBOL": stock,
         "BALANCE": 2000,
-        "SOCKET_URL": Config.SOCKET_URL,
+        "SOCKET_URL": (
+            Config.LIVE_SOCKET_URL if strategy.live else Config.BACKTEST_SOCKET_URL
+        ),
         "CHANNEL": strategy.channel,
     }
 
@@ -66,7 +68,7 @@ def upload_strategy():
     request_data["indicators"] = json.loads(request_data["indicators"])
     data = UploadStrategyRequestBody(**request_data)
 
-    strategy_name = data.strategy_name
+    strategy_name = data.name
     indicators = data.indicators
     description = data.description
     user_id = "abc"  # data.user_id

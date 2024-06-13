@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class OrderManager:
     """Responsible for managing the orders for different symbols, across different brokers"""
 
-    def __init__(self, symbols: Stocks, intervals: list = [5], backtesting=False):
+    def __init__(
+        self, symbols: Stocks, intervals: list = [5], is_crypto=False, backtesting=False
+    ):
         self.symbols = symbols
         self.backtesting = backtesting
         if backtesting:
@@ -25,7 +27,7 @@ class OrderManager:
         self.brokers: List[Broker] = []
         self.candles: List[CandleManager] = []
         for interval in intervals:
-            self.candles.append(CandleManager(interval, backtesting))
+            self.candles.append(CandleManager(interval, is_crypto, backtesting))
 
     def next(
         self,
