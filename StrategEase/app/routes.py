@@ -3,10 +3,6 @@ import os
 import shutil
 from secrets import token_hex
 
-from flask import Blueprint, request
-from utils import deploy_container, handle_request
-from werkzeug.utils import secure_filename
-
 from app import (
     Config,
     LaunchStrategyRequestBody,
@@ -14,6 +10,9 @@ from app import (
     UploadStrategyRequestBody,
     logger,
 )
+from flask import Blueprint, request
+from utils import deploy_container, handle_request
+from werkzeug.utils import secure_filename
 
 api = Blueprint("api", __name__)
 
@@ -32,15 +31,20 @@ def launch_strategy():
         "CHANNEL": strategy.channel,
     }
 
-    # Hardcoding strategy name to "abc"
-    # TODO: Download the strategy files from object storage
-    host_mount = Config.UPLOAD_FOLDER + "/abc"
-    volumes = {
-        host_mount: {
-            "bind": "/StratRun/app/user_strategies",
+    # Get all user startegies for this user
+    strategies = StrategyBook.filter(user_id=strategy.user_id)
+
+    volumes = {}
+    host_mount_prefix = Config.UPLOAD_FOLDER
+
+    # Mount all the user strategies
+    for s in strategies:
+        s_host_mount = host_mount_prefix + "/" + s.folder_loc
+        volumes[s_host_mount] = {
+            "bind": f"/StratRun/app/user_strategies/{s.folder_loc}",
             "mode": "ro",
         }
-    }
+
     logger.debug(volumes)
 
     try:
