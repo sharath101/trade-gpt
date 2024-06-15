@@ -56,15 +56,23 @@ if __name__ == "__main__":
     all_instances = []
     try:
         for filename in os.listdir("/StratRun/app/user_strategies"):
-            if filename.endswith(".py"):
-                print(filename)
-                instances: list = instantiate_classes_from_file(filename)
-                all_instances = all_instances + instances
+            print(f"direc {filename}")
+            file_path = os.path.join("/StratRun/app/user_strategies/", filename)
+            print(f"direc path {file_path}")
+            if os.path.isdir(file_path):
+                for file in os.listdir(file_path):
+                    if file.endswith(".py"):
+                        print(f"filename: {file}")
+                        strategy_path = os.path.join(file_path, file)
+                        instances: list = instantiate_classes_from_file(strategy_path)
+                        all_instances = all_instances + instances
 
     except ValueError as e:
-        logger.warning(f"Warning in startegy: {e}")
+        print(f"Warning in startegy: {e}")
     except ImportError as e:
-        logger.error(f"Error importing Strategy class: {e}")
+        print(f"Error importing Strategy class: {e}")
+
+    print(f"All Instances: {all_instances}")
 
     symbol: str = os.getenv("SYMBOL")
     balance = float(os.getenv("BALANCE"))

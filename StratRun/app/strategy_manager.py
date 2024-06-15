@@ -173,10 +173,16 @@ class StrategyManager:
     def run_strategies(self, symbol: Stocks, data: MarketData) -> Optional[Order]:
 
         self.update_candles(symbol, data)
+        candle_interval = list(data.keys())
 
         current_order: Optional[Order] = None
         for strategy in self.strat_map[symbol]:
-            current_order, confidence = strategy.analyse(self.candles[symbol]["5"])
+            print(
+                f"Calling Engulfing strat {strategy} with data: {self.candles[symbol][candle_interval[0]]}"
+            )
+            current_order, confidence = strategy.analyse(
+                self.candles[symbol][candle_interval[0]]
+            )
             if current_order:
                 current_order.timestamp = data["candle"]["5"].time
             for strategy in self.strategies:

@@ -40,7 +40,7 @@ async def start(symbol):
     market_feed = BinanceMarketFeed()
     symbols = [symbol]
 
-    live_trade = LiveTrade(symbols, channel, market_feed, 5)
+    live_trade = LiveTrade(symbols, channel, market_feed, 1)
 
     await live_trade.connect()
 

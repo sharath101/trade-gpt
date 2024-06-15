@@ -73,7 +73,7 @@ def upload_strategy():
     request_data["indicators"] = json.loads(request_data["indicators"])
     data = UploadStrategyRequestBody(**request_data)
 
-    strategy_name = data.name
+    strategy_name = data.strategy_name
     indicators = data.indicators
     description = data.description
     user_id = "abc"  # data.user_id

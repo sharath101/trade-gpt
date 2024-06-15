@@ -45,7 +45,8 @@ class SocketClient:
         order: Optional[Order] = self.strategy_manager.run_strategies(
             symbol, market_data
         )
-        print(f"Order: {order}")
+        if order:
+            print(f"Order: {order}")
 
         data = {"status": "success", "order": None}
         if order:

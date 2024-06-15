@@ -1,10 +1,9 @@
 import asyncio
-import threading
 import traceback
 from datetime import datetime
 from typing import Callable, List
 
-from app import Config
+from app import Config, logger
 from binance import AsyncClient, BinanceSocketManager
 from binance.enums import KLINE_INTERVAL_5MINUTE
 from dataclass import MarketQuoteData
@@ -55,19 +54,22 @@ class BinanceMarketFeed(MarketFeed):
                 self.parse(res)
 
     def parse(self, data):
-        kline = data["k"]
-        data = MarketQuoteData(
-            symbol=kline["s"],
-            price=float(kline["c"]),
-            timestamp=datetime.fromtimestamp(int(kline["T"]) / 1000),
-            volume=float(kline["v"]),
-            open=float(kline["o"]),
-            close=float(kline["c"]),
-            high=float(kline["h"]),
-            low=float(kline["l"]),
-        )
-        print(f"data: {data}")
-        self.analyse(data)
+        kline = data.get("k")
+        if kline:
+            data = MarketQuoteData(
+                symbol=kline["s"],
+                price=float(kline["c"]),
+                timestamp=datetime.fromtimestamp(int(kline["T"]) / 1000),
+                volume=float(kline["v"]),
+                open=float(kline["o"]),
+                close=float(kline["c"]),
+                high=float(kline["h"]),
+                low=float(kline["l"]),
+            )
+            print(f"data: {data}")
+            self.analyse(data)
+        else:
+            logger.error("Failed to recieve data from Binance")
 
     # "k": {
     #     "t": 1499404860000, 		# start time of this bar

@@ -20,6 +20,7 @@ class OrderManager:
         self, symbols: Stocks, intervals: list = [5], is_crypto=False, backtesting=False
     ):
         self.symbols = symbols
+        self.is_crypto = is_crypto
         self.backtesting = backtesting
         if backtesting:
             self._open_positions: List[OrderBook] = []
@@ -41,7 +42,7 @@ class OrderManager:
 
         market_closing_threshold = time(23, 15, 0)
         # Checks if the market is open
-        if timestamp.time() < market_closing_threshold:
+        if timestamp.time() < market_closing_threshold or self.is_crypto:
             assert self.one_position_per_symbol()
             if symbol in self.symbols:
 
