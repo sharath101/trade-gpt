@@ -72,6 +72,14 @@ export const StrategyListPage = ({ setPage, setStrategy }) => {
         }
     };
 
+    const handleLive = () => {
+        setPage('liveGraph');
+    };
+
+    const handleBacktest = () => {
+        setPage('backtestGraph');
+    };
+
     if (loading) {
         return <CircularProgress />;
     }
@@ -135,6 +143,22 @@ export const StrategyListPage = ({ setPage, setStrategy }) => {
                     </ListItem>
                 ))}
             </List>
+            <Button
+                variant='contained'
+                color='secondary'
+                onClick={handleLive}
+                style={{ marginLeft: '10px' }}
+            >
+                Live
+            </Button>
+            <Button
+                variant='contained'
+                color='secondary'
+                onClick={handleBacktest}
+                style={{ marginLeft: '10px' }}
+            >
+                Backtest
+            </Button>
         </Container>
     );
 };

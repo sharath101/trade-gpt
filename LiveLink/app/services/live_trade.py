@@ -1,7 +1,7 @@
 import pickle
 from typing import List
 
-from app import logger, socketio, strategy_events
+from app import client_events, logger, socketio, strategy_events
 from dataclass import MarketQuoteData, Order
 from order_manager import OrderManager
 from utils import CandleManager
@@ -20,7 +20,7 @@ class LiveTrade:
         self.order_manager = OrderManager(symbols, [candle_interval], True)
         self.socketio = socketio
         self.register_order_channel(channel)
-        self.market_feed.set_credentials(symbols, self.analyse)
+        self.market_feed.set_credentials(symbols, self.analyse, candle_interval)
 
     async def connect(self):
         await self.market_feed.connect_feed()
@@ -28,15 +28,16 @@ class LiveTrade:
     def analyse(self, data: MarketQuoteData):
         for candle in self.order_manager.candles:
             candle.process_tick(data.timestamp, data.price, data.volume, data.symbol)
-        for symbol in self.symbols:
-            self.order_manager.next(
-                symbol,
-                data.price,
-                data.timestamp,
-                data.volume,
-                strategy_events.emit,
-                self.channel,
-            )
+            current_candle = candle.get_latest_candle(data.symbol)
+            client_events.emit_candle(current_candle)
+        self.order_manager.next(
+            data.symbol,
+            data.price,
+            data.timestamp,
+            data.volume,
+            strategy_events.emit,
+            self.channel,
+        )
 
     def register_order_channel(self, channel: str):
 

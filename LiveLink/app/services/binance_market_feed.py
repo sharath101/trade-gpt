@@ -21,11 +21,12 @@ class BinanceMarketFeed(MarketFeed):
         self.api_key = None
         self.api_secret = None
 
-    def set_credentials(self, symbols: List[str], analyse: Callable):
+    def set_credentials(self, symbols: List[str], analyse: Callable, interval: int):
         self.symbols = symbols
         self.analyse = analyse
         self.api_key = Config.BINANCE_API_KEY
         self.api_secret = Config.BINANCE_SECRET
+        self.interval = f"{interval}m"
 
     async def connect(self):
         try:
@@ -46,9 +47,7 @@ class BinanceMarketFeed(MarketFeed):
         await self.connect()
 
     async def start_symbol_socket(self, symbol):
-        async with self.bm.kline_socket(
-            symbol, interval=KLINE_INTERVAL_5MINUTE
-        ) as stream:
+        async with self.bm.kline_socket(symbol, interval=self.interval) as stream:
             while True:
                 res = await stream.recv()
                 self.parse(res)

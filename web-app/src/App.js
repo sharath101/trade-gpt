@@ -4,6 +4,8 @@ import { Register } from './components/register';
 import { StrategyEditor } from './components/strategy';
 import { LandingPage } from './components/landingpage';
 import { StrategyListPage } from './components/strategyList';
+import { LiveChart } from './components/liveChart';
+import { ChartComponent } from './components/chartComponent';
 
 function App(props) {
     const [state, setState] = useState('landing');
@@ -25,6 +27,12 @@ function App(props) {
     }
     if (state === 'strategyEditor') {
         return <StrategyEditor setPage={setState} strategyId={strategy} />;
+    }
+    if (state === 'liveGraph') {
+        return <LiveChart setPage={setState} />;
+    }
+    if (state === 'backtestGraph') {
+        return <ChartComponent setPage={setState} />;
     }
 }
 

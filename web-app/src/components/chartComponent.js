@@ -2,8 +2,7 @@ import { createChart } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
 import { useChartData } from '../hooks/useChartData';
 
-
-export const ChartComponent = () => {
+export const ChartComponent = ({ setPage }) => {
     const { candleData, setWinPosition } = useChartData();
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
@@ -47,11 +46,11 @@ export const ChartComponent = () => {
                 bottomColor: 'rgba(56, 33, 110, 0.1)',
             });
 
-            chartRef.current = { chart, candleSeries, areaSeries};
+            chartRef.current = { chart, candleSeries, areaSeries };
         }
 
         if (candleData && candleData.length) {
-            const lineData = candleData.map(datapoint => ({
+            const lineData = candleData.map((datapoint) => ({
                 time: datapoint.time,
                 value: (datapoint.close + datapoint.open) / 2,
             }));
@@ -73,15 +72,17 @@ export const ChartComponent = () => {
 
             setWinPosition(adjustedTimeWindow);
         };
-        
+
         chartRef.current.chart
             .timeScale()
             .subscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange);
 
         return () => {
             chartRef.current.chart
-            .timeScale()
-            .unsubscribeVisibleTimeRangeChange(handleVisibleTimeRangeChange);
+                .timeScale()
+                .unsubscribeVisibleTimeRangeChange(
+                    handleVisibleTimeRangeChange
+                );
             window.removeEventListener('resize', handleResize);
         };
     }, [candleData, setWinPosition]);
