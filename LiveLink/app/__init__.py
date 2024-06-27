@@ -1,18 +1,18 @@
 import logging
 
+from config import Config
 from database import *
 from flask import Flask
 from utils import CandleManager, redis_instance, redis_instance_backtest
 from utils.logging import get_logger
 
-from .config import Config
 from .extensions import client_manager, cors, socketio
 
 logger = get_logger(Config.NAME, logging.DEBUG)
 
 
 def create_app():
-    app = Flask(Config.NAME)
+    app = Flask(Config.LiveLink.NAME)
     app.config.from_object(Config)
 
     socketio.init_app(

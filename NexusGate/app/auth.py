@@ -1,13 +1,14 @@
 import os
 from functools import wraps
 
+from config import Config
 from database.users import Users
 from flask import jsonify, make_response, redirect, request
 
 from . import app, bcrypt, client, logger
 from .oauth_google import get_google_provider_cfg
 
-HOST = os.environ.get("HOST", "http://127.0.0.1:5000")
+HOST = Config.NexusGate.HOST
 
 
 def token_required(f):

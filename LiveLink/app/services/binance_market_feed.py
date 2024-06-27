@@ -24,8 +24,8 @@ class BinanceMarketFeed(MarketFeed):
     def set_credentials(self, symbols: List[str], analyse: Callable, interval: int):
         self.symbols = symbols
         self.analyse = analyse
-        self.api_key = Config.BINANCE_API_KEY
-        self.api_secret = Config.BINANCE_SECRET
+        self.api_key = Config.LiveLink.BINANCE_API_KEY
+        self.api_secret = Config.LiveLink.BINANCE_SECRET
         self.interval = f"{interval}m"
 
     async def connect(self):

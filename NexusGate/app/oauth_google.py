@@ -1,13 +1,14 @@
 import os
 
 import requests
+from config import Config
 from database import Users
 from flask import json, jsonify, make_response, request
 
 from . import app, client
 
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
+GOOGLE_CLIENT_ID = Config.NexusGate.GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET = Config.NexusGate.GOOGLE_CLIENT_SECRET
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 
 

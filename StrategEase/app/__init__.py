@@ -1,22 +1,21 @@
 import logging
 import sys
 
+from config import Config
 from database import StrategyBook
 from flask import Flask
 from flask_cors import CORS
 from utils.logging import get_logger
 
-from .config import Config
 from .models import *
 
-NAME = "StrategEase"
-logger = get_logger(NAME, logging.DEBUG)
+logger = get_logger(Config.StrategEase.NAME, logging.DEBUG)
 cors = CORS()
 
 
 def create_app():
-    app = Flask(NAME)
-    python_path = Config.PYTHONPATH
+    app = Flask(Config.StrategEase.NAME)
+    python_path = Config.StrategEase.PYTHONPATH
     if python_path and python_path not in sys.path:
         sys.path.append(python_path)
 

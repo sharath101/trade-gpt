@@ -1,9 +1,9 @@
 import logging
 from functools import wraps
 
-from flask import jsonify, request, make_response
-from pydantic import ValidationError
 from database import Users
+from flask import jsonify, make_response, request
+from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +20,9 @@ def handle_request(func):
             if not user:
                 return handle_response({"message": "User not found"}, 400)
 
-            response, status = func(*args, **kwargs)
+            response, status = func(*args, **kwargs, user=user)
 
-            return handle_response(response, status)
+            return handle_response(response, status, user)
         except ValidationError as e:
             logger.error(f"Validation errors")
             return handle_response({"message": f"Invalid request: {e}"}, 422)
@@ -53,3 +53,16 @@ def handle_response(response_data=None, status=200, user=None):
     server_response.headers["Access-Control-Expose-Headers"] = "Authorization"
 
     return server_response
+
+
+def handle_server_request(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            response, status = func(*args, **kwargs)
+            return handle_response(response, status)
+        except Exception as exc:
+            logger.error(f"Error")
+            return handle_response({"message": f"Internal Server Error: {exc}"}, 500)
+
+    return wrapper

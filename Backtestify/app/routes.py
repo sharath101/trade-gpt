@@ -1,9 +1,11 @@
-import threading
 from secrets import token_hex
 
 import requests
-from app import Config, logger, strategy_events
-from flask import Blueprint, jsonify, render_template, request
+from app import logger
+from config import Config
+from database import Users
+from flask import Blueprint, jsonify, render_template
+from utils import handle_request, handle_server_request
 
 from .services import BackTest
 
@@ -16,11 +18,12 @@ def index():
 
 
 @api.route("/backtest/run/<stock>", methods=["GET"])
-def backtest(stock):
-    user_id = "abc"  # get from user service
+@handle_server_request
+def backtest(stock, user: Users):
+    user_id = user.id
     channel: str = token_hex(10)
     strategy_data = {"user_id": user_id, "symbol": stock, "channel": channel}
-    strategy_service_url = Config.STRATEGY_BASE
+    strategy_service_url = Config.Backtestify.STRATEGY_BASE
     file = f"{stock}_with_indicators_.csv"
     start_backtest(file, stock, channel)
     try:

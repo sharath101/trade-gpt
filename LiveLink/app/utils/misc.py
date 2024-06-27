@@ -2,19 +2,22 @@ import os
 import pickle
 from datetime import datetime, timedelta
 
-from app import CandleManager, Config, logger, redis_instance
+from app import logger, redis_instance
+from config import Config
 from database import Symbol
-from dataclass import MarketQuoteData
 
 
 def backup_current_day() -> None:
     try:
         if not os.path.isdir(
-            os.path.join(Config.DATA, f"backup_{datetime.now().strftime('%Y-%m-%d')}")
+            os.path.join(
+                Config.LiveLink.DATA, f"backup_{datetime.now().strftime('%Y-%m-%d')}"
+            )
         ):
             os.mkdir(
                 os.path.join(
-                    Config.DATA, f"backup_{datetime.now().strftime('%Y-%m-%d')}"
+                    Config.LiveLink.DATA,
+                    f"backup_{datetime.now().strftime('%Y-%m-%d')}",
                 )
             )
         all_symbols = Symbol.get_all()
@@ -49,7 +52,8 @@ def backup_current_day() -> None:
                             backup_data[key].append(candle)
 
                 new_path = os.path.join(
-                    Config.DATA, f"backup_{datetime.now().strftime('%Y-%m-%d')}"
+                    Config.LiveLink.DATA,
+                    f"backup_{datetime.now().strftime('%Y-%m-%d')}",
                 )
                 with open(
                     f"{new_path}/backup_{symbol.symbol}_{symbol.exchange}.pkl", "wb"

@@ -4,7 +4,8 @@ import pickle
 from datetime import datetime
 from typing import List
 
-from app import Config, logger, socketio, strategy_events
+from app import socketio, strategy_events
+from config import Config
 from dataclass import Order
 from order_manager import OrderManager
 from talipp.ohlcv import OHLCV
@@ -14,7 +15,7 @@ from utils.common import generate_tickers
 class BackTest:
     def __init__(self, file, stock):
         self.socketio = socketio
-        app_dir = Config.APP_DIR
+        app_dir = Config.Backtestify.APP_DIR
         csv_file_rel_path = f"historical_data/{file}"
         self.csv_file_path = os.path.join(app_dir, csv_file_rel_path)
         self.stock = stock

@@ -1,13 +1,13 @@
-import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from secrets import token_hex
 
 import requests
-from app import APIKey, Config, Symbol, logger
+from app import APIKey, Symbol, logger
+from config import Config
 from flask import Blueprint, request
-from utils import DHAN_INSTRUMENTS, Processor
+from utils import DHAN_INSTRUMENTS
 
-from .services import BinanceMarketFeed, DhanMarketFeed, LiveTrade
+from .services import BinanceMarketFeed, LiveTrade
 
 api = Blueprint("api", __name__)
 
@@ -23,7 +23,7 @@ async def start(symbol):
     user_id = "abc"
 
     strategy_data = {"user_id": user_id, "symbol": symbol, "channel": channel, "live": True}
-    strategy_service_url = Config.STRATEGY_BASE
+    strategy_service_url = Config.LiveLink.STRATEGY_BASE
     print(f"{strategy_service_url}/strategy/launch/live")
     try:
         response = requests.post(

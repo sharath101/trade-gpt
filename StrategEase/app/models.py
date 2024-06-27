@@ -19,4 +19,4 @@ class UploadStrategyRequestBody(BaseModel):
     strategy_name: str
     indicators: List[Indicator]
     description: str
-    # user_id: str
+    user_id: str

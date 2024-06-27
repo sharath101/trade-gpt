@@ -1,6 +1,7 @@
 import logging
 import os
 
+from config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -9,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 logger = logging.getLogger("databases")
 logging.basicConfig(level=logging.INFO)
 
-DATABASE_URL = os.getenv("DATABASE_URI", "sqlite:///database_default.db")
+DATABASE_URL = Config.Database.URI
 
 # Create engine and session
 engine = create_engine(DATABASE_URL)

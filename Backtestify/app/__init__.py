@@ -3,12 +3,13 @@ from gevent import monkey
 monkey.patch_all()
 from logging import Logger
 
+from config import Config
 from database import *
 from flask import Flask
 
-from .config import Config
-
 logger: Logger = None  # type: ignore
+
+from config import Config
 
 from .extensions import client_manager, configure_logging, cors, socketio
 
@@ -17,8 +18,8 @@ strategy_events = None
 
 
 def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
+    app = Flask(Config.Backtestify.NAME)
+    app.config.from_object(Config.Backtestify)
 
     socketio.init_app(
         app,

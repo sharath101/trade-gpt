@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import Callable, List
 
 import websockets
-from app import Config, logger
+from app import logger
+from config import Config
 from dataclass import MarketDepthData, MarketQuoteData, MarketTickerData
 from dhanhq import DhanFeed, marketfeed
 from dhanhq.marketfeed import DhanSDKHelper
@@ -22,8 +23,8 @@ class DhanMarketFeed(DhanFeed, MarketFeed):
         self.analyse = None
 
     def set_credentials(self, symbols: List[str], analyse: Callable):
-        self._access_token = Config.DHAN_ACCESS_TOKEN
-        self._client_id = Config.DHAN_CLIENT_ID
+        self._access_token = Config.LiveLink.DHAN_ACCESS_TOKEN
+        self._client_id = Config.LiveLink.DHAN_CLIENT_ID
         self.instruments = symbols
         self.analyse = analyse
 

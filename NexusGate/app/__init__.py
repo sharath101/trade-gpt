@@ -2,12 +2,13 @@ import logging
 import os
 from logging.config import dictConfig
 
+from config import Config
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from oauthlib.oauth2 import WebApplicationClient
 
-app = Flask("NexusGate")
+app = Flask(Config.NexusGate.NAME)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 bcrypt = Bcrypt(app=app)

@@ -4,12 +4,13 @@ import shutil
 from secrets import token_hex
 
 from app import (
-    Config,
     LaunchStrategyRequestBody,
     StrategyBook,
     UploadStrategyRequestBody,
     logger,
 )
+from config import Config
+from database import Users
 from flask import Blueprint, request
 from utils import deploy_container, handle_request
 from werkzeug.utils import secure_filename
@@ -19,7 +20,7 @@ api = Blueprint("api", __name__)
 
 @api.route("/strategy/launch", methods=["POST"])
 @handle_request
-def launch_strategy():
+def launch_strategy(user: Users):
     strategy = LaunchStrategyRequestBody(**request.json)  # type: ignore
     stock = strategy.symbol
     logger.debug(stock)
@@ -28,7 +29,9 @@ def launch_strategy():
         "SYMBOL": stock,
         "BALANCE": 2000,
         "SOCKET_URL": (
-            Config.LIVE_SOCKET_URL if strategy.live else Config.BACKTEST_SOCKET_URL
+            Config.StrategEase.LIVE_SOCKET_URL
+            if strategy.live
+            else Config.StrategEase.BACKTEST_SOCKET_URL
         ),
         "CHANNEL": strategy.channel,
     }
@@ -37,7 +40,7 @@ def launch_strategy():
     strategies = StrategyBook.filter(user_id=strategy.user_id)
 
     volumes = {}
-    host_mount_prefix = Config.UPLOAD_FOLDER
+    host_mount_prefix = Config.StrategEase.UPLOAD_FOLDER
 
     # Mount all the user strategies
     for s in strategies:
@@ -50,7 +53,11 @@ def launch_strategy():
     logger.debug(volumes)
 
     try:
-        image = Config.STRATRUN["IMAGE"] + ":" + str(Config.STRATRUN["VERSION"])
+        image = (
+            Config.StrategEase.STRATRUN["IMAGE"]
+            + ":"
+            + str(Config.StrategEase.STRATRUN["VERSION"])
+        )
         logger.debug(image)
         container = deploy_container(
             image,
@@ -66,17 +73,16 @@ def launch_strategy():
 
 
 @api.route("/strategy/upload", methods=["POST"])
-# @token_required
 @handle_request
-def upload_strategy():
+def upload_strategy(user: Users):
     request_data = request.form.to_dict()
     request_data["indicators"] = json.loads(request_data["indicators"])
-    data = UploadStrategyRequestBody(**request_data)
+    data = UploadStrategyRequestBody(**request_data, user=user.id)
 
     strategy_name = data.strategy_name
     indicators = data.indicators
     description = data.description
-    user_id = "abc"  # data.user_id
+    user_id = data.user_id
 
     logger.info(
         f"Upload strategy request from user {user_id} for strategy {strategy_name}"
@@ -90,7 +96,7 @@ def upload_strategy():
 
         files = request.files.getlist("files")
 
-        folder_path = os.path.join(Config.UPLOAD_FOLDER, folder_loc)
+        folder_path = os.path.join(Config.StrategEase.UPLOAD_FOLDER, folder_loc)
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
@@ -111,9 +117,14 @@ def upload_strategy():
         for file in files:
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                file.save(os.path.join(Config.UPLOAD_FOLDER, folder_loc, filename))
+                file.save(
+                    os.path.join(Config.StrategEase.UPLOAD_FOLDER, folder_loc, filename)
+                )
                 with open(
-                    os.path.join(Config.UPLOAD_FOLDER, folder_loc, filename), "r"
+                    os.path.join(
+                        Config.StrategEase.UPLOAD_FOLDER, folder_loc, filename
+                    ),
+                    "r",
                 ) as f:
                     file_data[filename] = f.read()
 
@@ -128,15 +139,14 @@ def upload_strategy():
 
 
 @api.route("/strategy/<int:id>", methods=["POST"])
-# @token_required
 @handle_request
-def update_strategy(id):
+def update_strategy(id, user: Users):
 
     request_data = request.form["data"]
     json_data = json.loads(request_data)
-    data = UploadStrategyRequestBody(**json_data)
+    data = UploadStrategyRequestBody(**json_data, user_id=user.id)
 
-    strategy_name = data.name
+    strategy_name = data.strategy_name
     indicators = data.indicators
     description = data.description
     user_id = data.user_id
@@ -147,7 +157,9 @@ def update_strategy(id):
         if not strategy:
             return "Strategy not found", 404
 
-        old_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
+        old_folder_path = os.path.join(
+            Config.StrategEase.UPLOAD_FOLDER, strategy.folder_loc
+        )
         if os.path.exists(old_folder_path):
             shutil.rmtree(f"{old_folder_path}")
 
@@ -155,7 +167,9 @@ def update_strategy(id):
         if not files:
             return "No files provided", 400
 
-        new_folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
+        new_folder_path = os.path.join(
+            Config.StrategEase.UPLOAD_FOLDER, strategy.folder_loc
+        )
         if not os.path.exists(new_folder_path):
             os.makedirs(new_folder_path)
 
@@ -182,9 +196,8 @@ def update_strategy(id):
 
 
 @api.route("/strategy", methods=["GET"])
-# @token_required
 @handle_request
-def get_strategies():
+def get_strategies(user: Users):
     try:
         all_strategies = StrategyBook.get_all()
 
@@ -203,15 +216,16 @@ def get_strategies():
 
 
 @api.route("/strategy/<int:id>", methods=["DELETE"])
-# @token_required
 @handle_request
-def delete_strategy(id):
+def delete_strategy(id, user: Users):
     try:
         strategy: StrategyBook = StrategyBook.get_first(id=id)
         if not strategy:
             return "Strategy not found", 404
 
-        folder_path = os.path.join(Config.UPLOAD_FOLDER, strategy.folder_loc)
+        folder_path = os.path.join(
+            Config.StrategEase.UPLOAD_FOLDER, strategy.folder_loc
+        )
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
 
@@ -228,9 +242,8 @@ def delete_strategy(id):
 
 
 @api.route("/strategy/<int:id>", methods=["GET"])
-# @token_required
 @handle_request
-def get_strategy(id):
+def get_strategy(id, user: Users):
     strategy: StrategyBook = StrategyBook.get_first(id=id)
     if not strategy:
         return "Strategy not found", 404
@@ -243,7 +256,7 @@ def get_strategy(id):
     }
 
     folder_loc = strategy.folder_loc
-    strategy_folder = os.path.join(Config.UPLOAD_FOLDER, folder_loc)
+    strategy_folder = os.path.join(Config.StrategEase.UPLOAD_FOLDER, folder_loc)
     if os.path.isdir(strategy_folder):
         for filename in os.listdir(strategy_folder):
             file_path = os.path.join(strategy_folder, filename)
@@ -259,5 +272,5 @@ def get_strategy(id):
 def allowed_file(filename):
     return (
         "." in filename
-        and filename.rsplit(".", 1)[1].lower() in Config.ALLOWED_EXTENSIONS
+        and filename.rsplit(".", 1)[1].lower() in Config.StrategEase.ALLOWED_EXTENSIONS
     )
