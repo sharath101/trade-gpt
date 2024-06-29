@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 logger = logging.getLogger("databases")
 logging.basicConfig(level=logging.INFO)
 
-DATABASE_URL = Config.Database.URI
+DATABASE_URL = Config.Misc.DATABASE_URI
 
 # Create engine and session
 engine = create_engine(DATABASE_URL)

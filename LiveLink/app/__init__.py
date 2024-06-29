@@ -8,7 +8,7 @@ from utils.logging import get_logger
 
 from .extensions import client_manager, cors, socketio
 
-logger = get_logger(Config.NAME, logging.DEBUG)
+logger = get_logger(Config.LiveLink.NAME, logging.DEBUG)
 
 
 def create_app():

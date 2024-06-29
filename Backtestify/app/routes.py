@@ -5,9 +5,9 @@ from app import logger
 from config import Config
 from database import Users
 from flask import Blueprint, jsonify, render_template
-from utils import handle_request, handle_server_request
+from utils import handle_request
 
-from .services import BackTest
+from .backtest import BackTest
 
 api = Blueprint("api", __name__)
 
@@ -18,12 +18,12 @@ def index():
 
 
 @api.route("/backtest/run/<stock>", methods=["GET"])
-@handle_server_request
+@handle_request
 def backtest(stock, user: Users):
     user_id = user.id
     channel: str = token_hex(10)
     strategy_data = {"user_id": user_id, "symbol": stock, "channel": channel}
-    strategy_service_url = Config.Backtestify.STRATEGY_BASE
+    strategy_service_url = Config.StrategEase.HOST
     file = f"{stock}_with_indicators_.csv"
     start_backtest(file, stock, channel)
     try:

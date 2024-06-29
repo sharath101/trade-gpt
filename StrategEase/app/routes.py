@@ -54,9 +54,7 @@ def launch_strategy(user: Users):
 
     try:
         image = (
-            Config.StrategEase.STRATRUN["IMAGE"]
-            + ":"
-            + str(Config.StrategEase.STRATRUN["VERSION"])
+            Config.Misc.STRAT_RUN["IMAGE"] + ":" + str(Config.Misc.STRAT_RUN["VERSION"])
         )
         logger.debug(image)
         container = deploy_container(

@@ -1,6 +1,6 @@
-from gevent import monkey
+# from gevent import monkey
 
-monkey.patch_all()
+# monkey.patch_all()
 from logging import Logger
 
 from config import Config
@@ -14,7 +14,7 @@ from config import Config
 from .extensions import client_manager, configure_logging, cors, socketio
 
 client_events = None
-strategy_events = None
+strategy_event = None
 
 
 def create_app():
@@ -23,7 +23,7 @@ def create_app():
 
     socketio.init_app(
         app,
-        async_mode="gevent",
+        # async_mode="gevent_uwsgi",
         cors_allowed_origins="*",
         client_manager=client_manager,
     )
@@ -32,11 +32,11 @@ def create_app():
     logger = configure_logging(app)
 
     # Register blueprints
-    from .socketio_events import StrategyEvents
+    from .strategy_events import StrategyEvents
 
-    global strategy_events
-    strategy_events = StrategyEvents(socketio)
-    strategy_events.register_events()
+    global strategy_event
+    strategy_event = StrategyEvents(socketio)
+    strategy_event.register_events()
 
     from .routes import api as api_blueprint
 

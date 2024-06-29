@@ -23,7 +23,7 @@ async def start(symbol):
     user_id = "abc"
 
     strategy_data = {"user_id": user_id, "symbol": symbol, "channel": channel, "live": True}
-    strategy_service_url = Config.LiveLink.STRATEGY_BASE
+    strategy_service_url = Config.StrategEase.HOST
     print(f"{strategy_service_url}/strategy/launch/live")
     try:
         response = requests.post(

@@ -23,7 +23,7 @@ export const createAxiosInstance = (baseURL) => {
     return instance;
 };
 
-export const userService = createAxiosInstance('http://127.0.0.1:5002');
-export const strategyService = createAxiosInstance('http://127.0.0.1:5001');
-export const backtestService = createAxiosInstance('http://127.0.0.1:5000');
+export const userService = createAxiosInstance('http://127.0.0.1:5000');
+export const strategyService = createAxiosInstance('http://127.0.0.1:5002');
+export const backtestService = createAxiosInstance('http://127.0.0.1:5001');
 export const liveService = createAxiosInstance('http://127.0.0.1:5003');

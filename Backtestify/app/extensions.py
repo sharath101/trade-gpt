@@ -1,13 +1,14 @@
 import logging
 
 import socketio as s
+from config import Config
 from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
 socketio = SocketIO()
 cors = CORS()
-client_manager = s.RedisManager()
+client_manager = s.RedisManager(Config.Misc.REDIS_SERVER)
 
 
 def configure_logging(app: Flask):

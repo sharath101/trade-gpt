@@ -46,3 +46,4 @@ yarn-error.log*
 strategy_object_store
 
 temp/
+/DATA

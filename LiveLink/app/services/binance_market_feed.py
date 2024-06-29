@@ -3,9 +3,10 @@ import traceback
 from datetime import datetime
 from typing import Callable, List
 
-from app import Config, logger
+from app import logger
 from binance import AsyncClient, BinanceSocketManager
 from binance.enums import KLINE_INTERVAL_5MINUTE
+from config import Config
 from dataclass import MarketQuoteData
 
 from .market_feed import MarketFeed

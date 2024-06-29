@@ -4,7 +4,7 @@ import pickle
 from datetime import datetime
 from typing import List
 
-from app import socketio, strategy_events
+from app import socketio, strategy_event
 from config import Config
 from dataclass import Order
 from order_manager import OrderManager
@@ -15,9 +15,9 @@ from utils.common import generate_tickers
 class BackTest:
     def __init__(self, file, stock):
         self.socketio = socketio
-        app_dir = Config.Backtestify.APP_DIR
-        csv_file_rel_path = f"historical_data/{file}"
-        self.csv_file_path = os.path.join(app_dir, csv_file_rel_path)
+        self.csv_file_path = os.path.join(
+            Config.Backtestify.DATA, "historical_data", file
+        )
         self.stock = stock
         self.order_manager = OrderManager(self.stock, [5], True)
         self.candle_data: List[OHLCV] = []
@@ -60,7 +60,7 @@ class BackTest:
             current_price,
             timestamp,
             volume,
-            strategy_events.emit,
+            strategy_event.emit,
             channel,
         )
         self.ticker_data_pointer += 1

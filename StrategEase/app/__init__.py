@@ -15,7 +15,7 @@ cors = CORS()
 
 def create_app():
     app = Flask(Config.StrategEase.NAME)
-    python_path = Config.StrategEase.PYTHONPATH
+    python_path = Config.Misc.PYTHONPATH
     if python_path and python_path not in sys.path:
         sys.path.append(python_path)
 

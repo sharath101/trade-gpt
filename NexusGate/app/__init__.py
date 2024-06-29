@@ -30,7 +30,7 @@ logging_config = dict(
 )
 
 dictConfig(logging_config)
-logger = logging.getLogger("NexusGate")
+logger = logging.getLogger(Config.NexusGate.NAME)
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 
