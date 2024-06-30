@@ -5,9 +5,10 @@ from pydantic import BaseModel
 
 class LaunchStrategyRequestBody(BaseModel):
     symbol: str
-    user_id: str
+    user_id: int
     channel: str
-    live: bool = False
+    origin: str
+    balance: float
 
 
 class Indicator(BaseModel):

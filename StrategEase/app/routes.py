@@ -12,15 +12,15 @@ from app import (
 from config import Config
 from database import Users
 from flask import Blueprint, request
-from utils import deploy_container, handle_request
+from utils import deploy_container, handle_request, handle_server_request
 from werkzeug.utils import secure_filename
 
 api = Blueprint("api", __name__)
 
 
 @api.route("/strategy/launch", methods=["POST"])
-@handle_request
-def launch_strategy(user: Users):
+@handle_server_request
+def launch_strategy():
     strategy = LaunchStrategyRequestBody(**request.json)  # type: ignore
     stock = strategy.symbol
     logger.debug(stock)
@@ -28,11 +28,7 @@ def launch_strategy(user: Users):
     environment = {
         "SYMBOL": stock,
         "BALANCE": 2000,
-        "SOCKET_URL": (
-            Config.StrategEase.LIVE_SOCKET_URL
-            if strategy.live
-            else Config.StrategEase.BACKTEST_SOCKET_URL
-        ),
+        "SOCKET_URL": strategy.origin,
         "CHANNEL": strategy.channel,
     }
 

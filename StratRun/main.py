@@ -71,6 +71,8 @@ if __name__ == "__main__":
         print(f"Warning in startegy: {e}")
     except ImportError as e:
         print(f"Error importing Strategy class: {e}")
+    except FileNotFoundError as e:
+        print(f"Strategies not loaded: {e}")
 
     print(f"All Instances: {all_instances}")
 

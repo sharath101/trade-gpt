@@ -22,7 +22,13 @@ async def start(symbol):
     channel: str = token_hex(10)
     user_id = "abc"
 
-    strategy_data = {"user_id": user_id, "symbol": symbol, "channel": channel, "live": True}
+    strategy_data = {
+        "user_id": user_id,
+        "symbol": symbol,
+        "channel": channel,
+        "balance": 20000,
+        "origin": Config.LiveLink.HOST,
+    }
     strategy_service_url = Config.StrategEase.HOST
     print(f"{strategy_service_url}/strategy/launch/live")
     try:
@@ -32,7 +38,9 @@ async def start(symbol):
         )
         response.raise_for_status()
         data = response.json()
-        logger.info(f'Strategy container created with id: {data['data']['container_id']}')
+        logger.info(
+            f"Strategy container created with id: {data['data']['container_id']}"
+        )
     except requests.exceptions.RequestException as e:
         return {"message": "Failed to launch strategy", "error": str(e)}, 500
 
